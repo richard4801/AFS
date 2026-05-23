@@ -105,7 +105,24 @@
 
 <body class="bg-obsidian text-white font-sans antialiased selection:bg-gold selection:text-obsidian">
 
-  <div id="afs-glow" class="pointer-events-none fixed inset-0 transition-opacity duration-500 ease-in-out" style="z-index: 0;"></div>
+  <!-- Layer 1: soft gold radial glow that follows the cursor -->
+  <div id="afs-glow"
+       class="pointer-events-none fixed inset-0"
+       style="z-index:0; will-change:background;"></div>
+
+  <!-- Layer 2: faint gold grid, fully masked by default, revealed by cursor -->
+  <div id="afs-grid"
+       class="pointer-events-none fixed inset-0"
+       style="
+         z-index: 0;
+         background-image:
+           linear-gradient(rgba(201,168,76,0.13) 1px, transparent 1px),
+           linear-gradient(90deg, rgba(201,168,76,0.13) 1px, transparent 1px);
+         background-size: 48px 48px;
+         -webkit-mask-image: radial-gradient(circle 520px at -9999px -9999px, black 0%, transparent 70%);
+         mask-image:         radial-gradient(circle 520px at -9999px -9999px, black 0%, transparent 70%);
+         will-change: mask-image, -webkit-mask-image;
+       "></div>
 
   <div class="relative z-10">
 
@@ -648,19 +665,40 @@
 
   <script>
     const afsGlow = document.getElementById('afs-glow');
+    const afsGrid = document.getElementById('afs-grid');
 
+    let raf = null;
+    let curX = -9999;
+    let curY = -9999;
+
+    function paint() {
+      const x = curX;
+      const y = curY;
+
+      // Layer 1 — large, soft gold bloom
+      afsGlow.style.background =
+        `radial-gradient(700px circle at ${x}px ${y}px, rgba(212,175,55,0.07), transparent 40%)`;
+
+      // Layer 2 — crisp grid revealed through a hard-edged radial mask
+      const mask = `radial-gradient(circle 520px at ${x}px ${y}px, black 0%, transparent 68%)`;
+      afsGrid.style.webkitMaskImage = mask;
+      afsGrid.style.maskImage       = mask;
+
+      raf = null;
+    }
+
+    // Batch DOM writes to one rAF per frame — keeps GPU compositing smooth
     window.addEventListener('mousemove', (e) => {
-      const x = e.clientX;
-      const y = e.clientY;
-      afsGlow.style.background = `radial-gradient(800px circle at ${x}px ${y}px, rgba(212, 175, 55, 0.08), transparent 40%)`;
-    });
+      curX = e.clientX;
+      curY = e.clientY;
+      if (!raf) raf = requestAnimationFrame(paint);
+    }, { passive: true });
 
+    // Park the spotlight offscreen when the cursor leaves the window
     document.addEventListener('mouseleave', () => {
-      afsGlow.style.opacity = '0';
-    });
-
-    document.addEventListener('mouseenter', () => {
-      afsGlow.style.opacity = '1';
+      curX = -9999;
+      curY = -9999;
+      if (!raf) raf = requestAnimationFrame(paint);
     });
   </script>
 
