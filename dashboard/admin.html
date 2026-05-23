@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin — Apex Fiction Studio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            obsidian:     '#121212',
+            charcoal:     '#1C1C1C',
+            surface:      '#242424',
+            border:       '#2E2E2E',
+            gold:         '#C9A84C',
+            'gold-light': '#E2C97E',
+            crimson:      '#A31621',
+            'crimson-light': '#C82333',
+            muted:        '#7A7A7A',
+          },
+          fontFamily: {
+            sans:  ['Inter', 'system-ui', 'sans-serif'],
+            serif: ['"DM Serif Display"', 'Georgia', 'serif'],
+          },
+        },
+      },
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    @keyframes shimmer {
+      0%   { background-position: -400px 0; }
+      100% { background-position:  400px 0; }
+    }
+    .skeleton {
+      background: linear-gradient(90deg, #1C1C1C 25%, #2a2a2a 50%, #1C1C1C 75%);
+      background-size: 800px 100%;
+      animation: shimmer 1.6s ease-in-out infinite;
+      border-radius: 6px;
+    }
+
+    /* Scrollbar styling for the sidebar lists */
+    .thin-scroll::-webkit-scrollbar       { width: 4px; }
+    .thin-scroll::-webkit-scrollbar-track { background: transparent; }
+    .thin-scroll::-webkit-scrollbar-thumb { background: #2E2E2E; border-radius: 4px; }
+
+    /* Paragraph hover comment trigger */
+    .para-wrap:hover .para-btn    { opacity: 1; }
+    .para-btn                     { opacity: 0; transition: opacity .15s; }
+
+    /* Form input focus ring */
+    .form-input:focus {
+      outline: none;
+      border-color: #C9A84C;
+      box-shadow: 0 0 0 2px rgba(201,168,76,0.15);
+    }
+
+    /* Smooth panel transitions */
+    .panel { display: none; }
+    .panel.active { display: block; }
+  </style>
+</head>
+
+<body class="bg-obsidian text-white font-sans antialiased overflow-hidden h-screen" style="opacity:0;">
+
+  <!-- ── CURSOR SPOTLIGHT ───────────────────────────────────── -->
+  <div id="afs-glow"
+       class="pointer-events-none fixed inset-0"
+       style="z-index:0; will-change:background;"></div>
+  <div id="afs-grid"
+       class="pointer-events-none fixed inset-0"
+       style="
+         z-index: 0;
+         background-image:
+           linear-gradient(rgba(201,168,76,0.13) 1px, transparent 1px),
+           linear-gradient(90deg, rgba(201,168,76,0.13) 1px, transparent 1px);
+         background-size: 48px 48px;
+         -webkit-mask-image: radial-gradient(circle 520px at -9999px -9999px, black 0%, transparent 70%);
+         mask-image:         radial-gradient(circle 520px at -9999px -9999px, black 0%, transparent 70%);
+         will-change: mask-image, -webkit-mask-image;
+       "></div>
+
+  <!-- ── PILL NAV ───────────────────────────────────────────── -->
+  <header class="fixed top-5 inset-x-0 z-50 flex justify-center px-5 pointer-events-none">
+    <nav class="pointer-events-auto flex items-center justify-between gap-6
+                w-full max-w-5xl rounded-full
+                bg-obsidian/70 backdrop-blur-md border border-white/10
+                shadow-xl shadow-black/60 px-4 py-2.5">
+      <div class="flex items-center gap-2.5 flex-shrink-0">
+        <span class="w-6 h-6 rounded-sm bg-gold flex items-center justify-center text-obsidian font-serif font-bold text-xs">A</span>
+        <span class="font-serif text-base tracking-wide text-white whitespace-nowrap">Apex Fiction Studio</span>
+        <span class="ml-2 text-[10px] font-semibold tracking-[0.18em] uppercase text-gold border border-gold/25 bg-gold/8 rounded-full px-2.5 py-0.5">Admin</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <span id="nav-name" class="hidden sm:block text-muted text-sm truncate max-w-[180px]"></span>
+        <a href="index.html"
+           class="flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium
+                  text-muted hover:text-white border border-border hover:border-white/20
+                  rounded-full transition-all duration-200">
+          Writer View
+        </a>
+        <button id="sign-out-btn"
+                class="flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium
+                       text-muted hover:text-white border border-border hover:border-white/20
+                       rounded-full transition-all duration-200">
+          Sign Out
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <!-- ── REJECT MODAL ───────────────────────────────────────── -->
+  <div id="reject-modal"
+       class="hidden fixed inset-0 z-[60] flex items-center justify-center px-4"
+       style="background:rgba(0,0,0,0.7); backdrop-filter:blur(4px);">
+    <div class="relative w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-2xl shadow-black/60">
+      <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-crimson/50 to-transparent"></div>
+      <h3 class="font-serif text-xl text-white mb-1">Request Revision</h3>
+      <p id="reject-modal-subtitle" class="text-muted text-xs mb-5">Leave specific feedback for the writer.</p>
+      <textarea id="reject-reason"
+                rows="5"
+                placeholder="Describe what needs to be changed..."
+                class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 resize-none transition-all duration-200"></textarea>
+      <div class="flex gap-3 mt-4">
+        <button id="reject-confirm-btn"
+                class="flex-1 px-4 py-2.5 bg-crimson hover:bg-crimson-light text-white text-sm font-semibold rounded-lg transition-colors duration-200">
+          Send Revision Request
+        </button>
+        <button onclick="closeRejectModal()"
+                class="px-4 py-2.5 border border-border hover:border-white/20 text-muted hover:text-white text-sm rounded-lg transition-all duration-200">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MAIN LAYOUT ────────────────────────────────────────── -->
+  <!-- pt accounts for the pill nav (~80px) -->
+  <div class="relative z-10 flex h-screen pt-20">
+
+    <!-- ── LEFT SIDEBAR ───────────────────────────────────────── -->
+    <aside class="flex flex-col w-64 flex-shrink-0 border-r border-border bg-charcoal/40 backdrop-blur-sm overflow-hidden">
+
+      <!-- Section toggle tabs -->
+      <div class="flex border-b border-border flex-shrink-0">
+        <button id="tab-reviews"
+                onclick="switchSection('reviews')"
+                class="section-tab flex-1 px-3 py-3.5 text-[10px] font-semibold tracking-[0.16em] uppercase transition-colors duration-200
+                       text-gold border-b-2 border-gold">
+          Book Reviews
+        </button>
+        <button id="tab-income"
+                onclick="switchSection('income')"
+                class="section-tab flex-1 px-3 py-3.5 text-[10px] font-semibold tracking-[0.16em] uppercase transition-colors duration-200
+                       text-muted border-b-2 border-transparent hover:text-white">
+          Income
+        </button>
+      </div>
+
+      <!-- Book list (reviews mode) -->
+      <div id="sidebar-reviews" class="flex flex-col flex-1 overflow-hidden">
+        <p class="px-4 pt-4 pb-2 text-[10px] font-semibold tracking-[0.18em] uppercase text-muted flex-shrink-0">
+          Submitted Books
+        </p>
+        <div id="book-list" class="flex-1 overflow-y-auto thin-scroll px-2 pb-4 space-y-1">
+          <!-- populated by JS -->
+          <div class="skeleton h-10 w-full"></div>
+          <div class="skeleton h-10 w-full mt-1"></div>
+          <div class="skeleton h-10 w-4/5 mt-1"></div>
+        </div>
+      </div>
+
+      <!-- Writer list (income mode) — hidden by default -->
+      <div id="sidebar-income" class="hidden flex-col flex-1 overflow-hidden">
+        <p class="px-4 pt-4 pb-2 text-[10px] font-semibold tracking-[0.18em] uppercase text-muted flex-shrink-0">
+          Writers
+        </p>
+        <div id="writer-list" class="flex-1 overflow-y-auto thin-scroll px-2 pb-4 space-y-1">
+          <!-- populated by JS -->
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── RIGHT CONTENT AREA ──────────────────────────────────── -->
+    <main class="flex-1 overflow-y-auto thin-scroll">
+
+      <!-- ─── BOOK REVIEWS PANEL ─────────────────────────────── -->
+      <div id="panel-reviews" class="panel active h-full">
+
+        <!-- Empty state: no book selected -->
+        <div id="reviews-empty" class="flex flex-col items-center justify-center h-full text-center px-8">
+          <div class="w-16 h-16 rounded-2xl bg-surface border border-border flex items-center justify-center mb-5">
+            <svg class="w-7 h-7 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.966 8.966 0 00-6 2.292m0-14.25v14.25"/>
+            </svg>
+          </div>
+          <h2 class="font-serif text-2xl text-white mb-2">Select a Book</h2>
+          <p class="text-muted text-sm max-w-xs leading-relaxed">Choose a submitted book from the sidebar to review its chapters and leave feedback.</p>
+        </div>
+
+        <!-- Chapter list view: book selected, no chapter open -->
+        <div id="reviews-chapters" class="hidden p-6 max-w-3xl">
+          <div class="mb-6">
+            <button onclick="clearBookSelection()"
+                    class="inline-flex items-center gap-1.5 text-muted hover:text-white text-xs transition-colors duration-150 mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+              All submitted books
+            </button>
+            <h2 id="book-title-heading" class="font-serif text-3xl text-white mb-1"></h2>
+            <p id="book-author-heading" class="text-muted text-sm"></p>
+          </div>
+          <div id="chapter-list" class="space-y-3"></div>
+        </div>
+
+        <!-- Chapter viewer: chapter content + paragraph comments -->
+        <div id="reviews-viewer" class="hidden flex h-full">
+
+          <!-- Chapter content (scrollable) -->
+          <div class="flex-1 overflow-y-auto thin-scroll p-6 max-w-2xl">
+            <button onclick="closeChapterViewer()"
+                    class="inline-flex items-center gap-1.5 text-muted hover:text-white text-xs transition-colors duration-150 mb-5">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+              Back to chapters
+            </button>
+
+            <!-- Chapter header + action bar -->
+            <div class="flex items-start justify-between gap-4 mb-6">
+              <div>
+                <p id="viewer-chapter-num" class="text-[10px] font-semibold tracking-[0.18em] uppercase text-gold mb-1"></p>
+                <h3 id="viewer-chapter-title" class="font-serif text-2xl text-white"></h3>
+                <p id="viewer-chapter-meta" class="text-muted text-xs mt-1"></p>
+              </div>
+              <div class="flex gap-2 flex-shrink-0">
+                <button id="approve-btn"
+                        class="inline-flex items-center gap-1.5 px-4 py-2 bg-gold/10 hover:bg-gold/20 border border-gold/30 hover:border-gold/60 text-gold text-xs font-semibold rounded-lg transition-all duration-200">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                  Approve
+                </button>
+                <button id="reject-btn"
+                        class="inline-flex items-center gap-1.5 px-4 py-2 bg-crimson/10 hover:bg-crimson/20 border border-crimson/30 hover:border-crimson/60 text-red-400 text-xs font-semibold rounded-lg transition-all duration-200">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 15h2m0 0h2m-2 0v2m0-2v-2M3 12l1.5 1.5M12 3l1.5 1.5M21 12l-1.5 1.5M12 21l-1.5-1.5"/><circle cx="12" cy="12" r="9"/></svg>
+                  Request Revision
+                </button>
+              </div>
+            </div>
+
+            <!-- Paragraph content — injected by JS -->
+            <div id="chapter-content" class="space-y-0"></div>
+          </div>
+
+          <!-- Comment thread sidebar -->
+          <div class="w-72 flex-shrink-0 border-l border-border bg-charcoal/30 overflow-y-auto thin-scroll p-4">
+            <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted mb-4">Comments</p>
+            <div id="comment-thread" class="space-y-3">
+              <p class="text-muted text-xs">No comments yet. Hover a paragraph and click <span class="text-white">+</span> to add one.</p>
+            </div>
+          </div>
+        </div>
+      </div><!-- /panel-reviews -->
+
+      <!-- ─── INCOME MANAGEMENT PANEL ────────────────────────── -->
+      <div id="panel-income" class="panel p-6 max-w-lg">
+        <div class="mb-8">
+          <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-gold mb-2">Income Management</p>
+          <h2 class="font-serif text-3xl text-white">Record Daily Earnings</h2>
+          <p class="text-muted text-sm mt-1">Insert a royalty row into the earnings table for a writer.</p>
+        </div>
+
+        <div class="relative rounded-2xl border border-border bg-surface p-6 shadow-2xl shadow-black/40">
+          <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent"></div>
+
+          <form id="income-form" class="space-y-5" novalidate>
+
+            <div>
+              <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Writer</label>
+              <select id="income-writer"
+                      class="form-input w-full bg-charcoal border border-border text-white text-sm rounded-lg px-4 py-3 transition-all duration-200" required>
+                <option value="">Select a writer…</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Book <span class="text-muted font-normal">(optional)</span></label>
+              <select id="income-book"
+                      class="form-input w-full bg-charcoal border border-border text-white text-sm rounded-lg px-4 py-3 transition-all duration-200">
+                <option value="">No specific book</option>
+              </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Date</label>
+                <input id="income-date" type="date"
+                       class="form-input w-full bg-charcoal border border-border text-white text-sm rounded-lg px-4 py-3 transition-all duration-200" required/>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Amount ($)</label>
+                <input id="income-amount" type="number" step="0.01" min="0" placeholder="0.00"
+                       class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 transition-all duration-200" required/>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Note <span class="text-muted font-normal">(optional)</span></label>
+              <input id="income-note" type="text" placeholder="e.g. Royalty payout week 3"
+                     class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 transition-all duration-200"/>
+            </div>
+
+            <!-- Feedback messages -->
+            <div id="income-error"   class="hidden text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-3"></div>
+            <div id="income-success" class="hidden text-xs text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 rounded-lg px-4 py-3"></div>
+
+            <button type="submit" id="income-submit"
+                    class="w-full flex items-center justify-center gap-2 px-6 py-3.5
+                           bg-gold hover:bg-gold-light text-obsidian text-sm font-semibold
+                           rounded-lg transition-colors duration-200">
+              Record Earnings
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </button>
+
+          </form>
+        </div>
+
+        <!-- Recent earnings log -->
+        <div class="mt-8">
+          <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted mb-3">Recent Entries</p>
+          <div id="recent-earnings" class="space-y-2 text-sm"></div>
+        </div>
+      </div><!-- /panel-income -->
+
+    </main>
+  </div><!-- /layout -->
+
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script>
+    // ── CONFIGURATION ──────────────────────────────────────────
+    const SUPABASE_URL      = 'https://qbqsbdswcqmrxoizgfrw.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_v0fbhx8NkRNxYYVw8VGz_g_7Eqja11K';
+
+    const { createClient } = supabase;
+    const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: true, storage: window.localStorage },
+    });
+
+    // ── HELPERS ────────────────────────────────────────────────
+    const $ = id => document.getElementById(id);
+    const fmt = n => '$' + Number(n ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const escHtml = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+    // ── STATE ──────────────────────────────────────────────────
+    let currentUserId   = null;
+    let selectedBook    = null;   // { id, title, author_id, profiles:{name} }
+    let selectedChapter = null;   // { id, chapter_number, title, content, status, word_count }
+    let allComments     = [];     // comments for selectedChapter
+    let rejectChapterId = null;   // chapter being rejected
+
+    // ── ADMIN AUTH GUARD ───────────────────────────────────────
+    // Two-phase check with safety delay (matches dashboard/index.html pattern).
+    // Additionally verifies is_admin = true; non-admins go to writer dashboard.
+    async function guardAdmin() {
+      const { data: { session: s1 } } = await db.auth.getSession();
+      let session = s1;
+
+      if (!session) {
+        await new Promise(r => setTimeout(r, 800));
+        const { data: { session: s2 } } = await db.auth.getSession();
+        session = s2;
+      }
+
+      if (!session) {
+        window.location.replace('login.html');
+        throw new Error('unauthenticated');
+      }
+
+      // Verify admin flag from profiles table
+      const { data: profile, error } = await db
+        .from('profiles')
+        .select('name, is_admin')
+        .eq('id', session.user.id)
+        .single();
+
+      if (error || !profile?.is_admin) {
+        window.location.replace('index.html');
+        throw new Error('not admin');
+      }
+
+      return { session, profile };
+    }
+
+    // ── SECTION SWITCHING ──────────────────────────────────────
+    function switchSection(section) {
+      // Toggle tab styles
+      ['reviews','income'].forEach(s => {
+        $(`tab-${s}`).classList.toggle('text-gold',    s === section);
+        $(`tab-${s}`).classList.toggle('border-gold',  s === section);
+        $(`tab-${s}`).classList.toggle('text-muted',   s !== section);
+        $(`tab-${s}`).classList.toggle('border-transparent', s !== section);
+        $(`sidebar-${s}`).classList.toggle('hidden', s !== section);
+        $(`sidebar-${s}`).classList.toggle('flex',   s === section);
+        $(`panel-${s}`).classList.toggle('active',   s === section);
+      });
+    }
+
+    // ── BOOK REVIEW FUNCTIONS ──────────────────────────────────
+
+    async function loadSubmittedBooks() {
+      const { data, error } = await db
+        .from('books')
+        .select('id, title, status, author_id, profiles(name)')
+        .eq('status', 'submitted')
+        .order('created_at', { ascending: false });
+
+      const container = $('book-list');
+      if (error || !data?.length) {
+        container.innerHTML = `<p class="text-muted text-xs px-2 pt-2">No submitted books.</p>`;
+        return;
+      }
+
+      container.innerHTML = data.map(b => `
+        <button onclick='selectBook(${JSON.stringify(b)})'
+                class="book-btn w-full text-left px-3 py-2.5 rounded-lg text-sm
+                       text-white/80 hover:text-white hover:bg-surface
+                       border border-transparent hover:border-border
+                       transition-all duration-150">
+          <p class="font-medium truncate">${escHtml(b.title)}</p>
+          <p class="text-muted text-xs truncate">${escHtml(b.profiles?.name ?? 'Unknown')}</p>
+        </button>`
+      ).join('');
+    }
+
+    async function selectBook(book) {
+      selectedBook    = book;
+      selectedChapter = null;
+
+      // Highlight active book in sidebar
+      document.querySelectorAll('.book-btn').forEach(btn => {
+        btn.classList.toggle('bg-surface', btn.textContent.trim().startsWith(book.title.trim()));
+        btn.classList.toggle('border-border', btn.textContent.trim().startsWith(book.title.trim()));
+      });
+
+      $('reviews-empty').classList.add('hidden');
+      $('reviews-viewer').classList.add('hidden');
+      $('reviews-chapters').classList.remove('hidden');
+
+      $('book-title-heading').textContent  = book.title;
+      $('book-author-heading').textContent = `by ${book.profiles?.name ?? 'Unknown'}`;
+      $('chapter-list').innerHTML = '<div class="skeleton h-12 w-full"></div>'.repeat(4);
+
+      const { data, error } = await db
+        .from('chapters')
+        .select('id, chapter_number, title, word_count, status')
+        .eq('book_id', book.id)
+        .order('chapter_number', { ascending: false });
+
+      if (error || !data?.length) {
+        $('chapter-list').innerHTML = `<p class="text-muted text-sm px-2">No chapters found.</p>`;
+        return;
+      }
+
+      const statusBadge = s => {
+        const map = {
+          draft:               'bg-muted/20 text-muted',
+          submitted:           'bg-gold/15 text-gold',
+          approved:            'bg-emerald-400/15 text-emerald-400',
+          revision_requested:  'bg-red-400/15 text-red-400',
+        };
+        return `<span class="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full ${map[s] ?? ''}">${s.replace('_',' ')}</span>`;
+      };
+
+      $('chapter-list').innerHTML = data.map(ch => `
+        <button onclick='openChapter(${JSON.stringify(ch)})'
+                class="w-full text-left rounded-xl border border-border bg-surface
+                       hover:border-gold/30 hover:shadow-lg hover:shadow-gold/5
+                       p-4 transition-all duration-200 group">
+          <div class="flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <p class="text-[10px] font-semibold tracking-[0.16em] uppercase text-muted mb-0.5 group-hover:text-gold/70 transition-colors">
+                Chapter ${ch.chapter_number}
+              </p>
+              <p class="text-white font-medium truncate">${escHtml(ch.title ?? '(Untitled)')}</p>
+              <p class="text-muted text-xs mt-0.5">${ch.word_count.toLocaleString()} words</p>
+            </div>
+            <div class="flex-shrink-0 flex flex-col items-end gap-1.5">
+              ${statusBadge(ch.status)}
+              <svg class="w-4 h-4 text-muted group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+            </div>
+          </div>
+        </button>`
+      ).join('');
+    }
+
+    function clearBookSelection() {
+      selectedBook    = null;
+      selectedChapter = null;
+      $('reviews-chapters').classList.add('hidden');
+      $('reviews-viewer').classList.add('hidden');
+      $('reviews-empty').classList.remove('hidden');
+      document.querySelectorAll('.book-btn').forEach(b => {
+        b.classList.remove('bg-surface','border-border');
+      });
+    }
+
+    async function openChapter(chapter) {
+      selectedChapter = chapter;
+      $('reviews-chapters').classList.add('hidden');
+      $('reviews-viewer').classList.remove('hidden');
+
+      $('viewer-chapter-num').textContent   = `Chapter ${chapter.chapter_number}`;
+      $('viewer-chapter-title').textContent = chapter.title ?? '(Untitled)';
+      $('viewer-chapter-meta').textContent  = `${chapter.word_count.toLocaleString()} words · ${chapter.status.replace('_',' ')}`;
+
+      // Wire approve / reject buttons
+      $('approve-btn').onclick = () => approveChapter(chapter.id);
+      $('reject-btn').onclick  = () => openRejectModal(chapter.id, chapter.title ?? `Chapter ${chapter.chapter_number}`);
+
+      // Disable action buttons if chapter isn't in a reviewable state
+      const reviewable = chapter.status === 'submitted';
+      $('approve-btn').disabled = !reviewable;
+      $('reject-btn').disabled  = !reviewable;
+      $('approve-btn').classList.toggle('opacity-40', !reviewable);
+      $('reject-btn').classList.toggle('opacity-40',  !reviewable);
+
+      // Fetch existing comments for this chapter
+      const { data: comments } = await db
+        .from('comments')
+        .select('id, paragraph_ref, body, resolved, reviewer_id')
+        .eq('chapter_id', chapter.id)
+        .order('created_at', { ascending: true });
+
+      allComments = comments ?? [];
+      renderChapterContent(chapter.content ?? '');
+      renderCommentThread();
+    }
+
+    function closeChapterViewer() {
+      selectedChapter = null;
+      $('reviews-viewer').classList.add('hidden');
+      $('reviews-chapters').classList.remove('hidden');
+    }
+
+    // ── PARAGRAPH RENDERING ────────────────────────────────────
+    function renderChapterContent(rawContent) {
+      const paragraphs = rawContent.split(/\n\n+/).filter(p => p.trim());
+
+      if (!paragraphs.length) {
+        $('chapter-content').innerHTML = `<p class="text-muted text-sm italic">No content yet.</p>`;
+        return;
+      }
+
+      $('chapter-content').innerHTML = paragraphs.map((para, idx) => {
+        const paraComments = allComments.filter(c => c.paragraph_ref === idx);
+        const hasComments  = paraComments.length > 0;
+
+        return `
+          <div class="para-wrap relative py-3 border-b border-border/30 group" data-para="${idx}">
+
+            <!-- Paragraph text -->
+            <p class="text-white/80 leading-relaxed pr-10 text-[15px]">${escHtml(para)}</p>
+
+            <!-- Comment count badge -->
+            ${hasComments ? `
+              <span class="absolute right-10 top-3 text-[10px] font-semibold text-gold bg-gold/10 border border-gold/20 rounded-full px-1.5 py-0.5 leading-none">
+                ${paraComments.length}
+              </span>` : ''}
+
+            <!-- Add comment button (appears on hover) -->
+            <button para-btn class="para-btn absolute right-2 top-3 w-6 h-6 rounded-full
+                                    bg-surface border border-border hover:border-gold/50
+                                    flex items-center justify-center text-muted hover:text-gold
+                                    text-sm leading-none transition-all duration-150"
+                    onclick="toggleCommentForm(${idx})" title="Add comment to paragraph ${idx + 1}">
+              +
+            </button>
+
+            <!-- Inline comment form (hidden by default) -->
+            <div id="cf-${idx}" class="hidden mt-3 bg-charcoal border border-border rounded-lg p-3">
+              <textarea id="ct-${idx}" rows="3" placeholder="Comment on paragraph ${idx + 1}…"
+                        class="form-input w-full bg-obsidian border border-border text-white placeholder-muted text-xs rounded-md px-3 py-2 resize-none transition-all duration-200"></textarea>
+              <div class="flex gap-2 mt-2">
+                <button onclick="submitParagraphComment(${idx})"
+                        class="px-3 py-1.5 bg-gold/10 hover:bg-gold/20 border border-gold/30 text-gold text-xs font-semibold rounded-lg transition-all duration-200">
+                  Post Comment
+                </button>
+                <button onclick="toggleCommentForm(${idx})"
+                        class="px-3 py-1.5 text-muted hover:text-white text-xs rounded-lg transition-colors duration-200">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function toggleCommentForm(idx) {
+      const form = $(`cf-${idx}`);
+      form.classList.toggle('hidden');
+      if (!form.classList.contains('hidden')) $(`ct-${idx}`)?.focus();
+    }
+
+    async function submitParagraphComment(paraIdx) {
+      const body = $(`ct-${paraIdx}`)?.value?.trim();
+      if (!body || !selectedChapter) return;
+
+      const { data, error } = await db.from('comments').insert({
+        chapter_id:    selectedChapter.id,
+        reviewer_id:   currentUserId,
+        paragraph_ref: paraIdx,
+        body,
+      }).select().single();
+
+      if (error) { alert('Error posting comment: ' + error.message); return; }
+
+      allComments.push(data);
+      renderChapterContent(selectedChapter.content ?? '');
+      renderCommentThread();
+      toggleCommentForm(paraIdx);
+      $(`ct-${paraIdx}`).value = '';
+    }
+
+    function renderCommentThread() {
+      const container = $('comment-thread');
+      if (!allComments.length) {
+        container.innerHTML = `<p class="text-muted text-xs">No comments yet. Hover a paragraph and click <span class="text-white">+</span> to add one.</p>`;
+        return;
+      }
+
+      // Group by paragraph_ref (null = general)
+      const sorted = [...allComments].sort((a, b) => (a.paragraph_ref ?? -1) - (b.paragraph_ref ?? -1));
+      container.innerHTML = sorted.map(c => `
+        <div class="rounded-lg border ${c.resolved ? 'border-border/40 opacity-50' : 'border-border'} bg-charcoal/60 p-3">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-[10px] font-semibold uppercase tracking-wide ${c.paragraph_ref !== null ? 'text-gold' : 'text-muted'}">
+              ${c.paragraph_ref !== null ? `¶ Paragraph ${c.paragraph_ref + 1}` : 'General'}
+            </span>
+            ${!c.resolved ? `
+              <button onclick="resolveComment('${c.id}')"
+                      class="text-[10px] text-muted hover:text-emerald-400 transition-colors duration-150 font-medium">
+                Resolve
+              </button>` : '<span class="text-[10px] text-emerald-400/60">Resolved</span>'}
+          </div>
+          <p class="text-white/80 text-xs leading-relaxed">${escHtml(c.body)}</p>
+        </div>`
+      ).join('');
+    }
+
+    async function resolveComment(commentId) {
+      await db.from('comments').update({ resolved: true }).eq('id', commentId);
+      allComments = allComments.map(c => c.id === commentId ? { ...c, resolved: true } : c);
+      renderCommentThread();
+    }
+
+    // ── APPROVE / REJECT ───────────────────────────────────────
+    async function approveChapter(chapterId) {
+      const confirmed = confirm('Mark this chapter as Approved?');
+      if (!confirmed) return;
+
+      const { error } = await db
+        .from('chapters')
+        .update({ status: 'approved', updated_at: new Date().toISOString() })
+        .eq('id', chapterId);
+
+      if (error) { alert('Error: ' + error.message); return; }
+
+      // Update local state and refresh UI
+      selectedChapter.status = 'approved';
+      $('viewer-chapter-meta').textContent =
+        `${selectedChapter.word_count.toLocaleString()} words · approved`;
+      $('approve-btn').disabled = true;
+      $('reject-btn').disabled  = true;
+      $('approve-btn').classList.add('opacity-40');
+      $('reject-btn').classList.add('opacity-40');
+
+      showToast('Chapter approved ✓');
+    }
+
+    function openRejectModal(chapterId, chapterTitle) {
+      rejectChapterId = chapterId;
+      $('reject-modal-subtitle').textContent = `Requesting revision for: "${chapterTitle}"`;
+      $('reject-reason').value = '';
+      $('reject-modal').classList.remove('hidden');
+      $('reject-reason').focus();
+    }
+
+    function closeRejectModal() {
+      $('reject-modal').classList.add('hidden');
+      rejectChapterId = null;
+    }
+
+    $('reject-confirm-btn').onclick = async () => {
+      const reason = $('reject-reason').value.trim();
+      if (!reason) { $('reject-reason').focus(); return; }
+
+      // 1. Insert a general (paragraph_ref = null) comment with the feedback
+      const { error: commentErr } = await db.from('comments').insert({
+        chapter_id:    rejectChapterId,
+        reviewer_id:   currentUserId,
+        paragraph_ref: null,
+        body:          reason,
+      });
+      if (commentErr) { alert('Error saving feedback: ' + commentErr.message); return; }
+
+      // 2. Update chapter status to revision_requested
+      const { error: statusErr } = await db
+        .from('chapters')
+        .update({ status: 'revision_requested', updated_at: new Date().toISOString() })
+        .eq('id', rejectChapterId);
+      if (statusErr) { alert('Error updating status: ' + statusErr.message); return; }
+
+      closeRejectModal();
+
+      if (selectedChapter?.id === rejectChapterId) {
+        selectedChapter.status = 'revision_requested';
+        $('viewer-chapter-meta').textContent =
+          `${selectedChapter.word_count.toLocaleString()} words · revision requested`;
+        $('approve-btn').disabled = true;
+        $('reject-btn').disabled  = true;
+        $('approve-btn').classList.add('opacity-40');
+        $('reject-btn').classList.add('opacity-40');
+
+        // Reflect new comment immediately
+        const { data: freshComments } = await db
+          .from('comments')
+          .select('id, paragraph_ref, body, resolved, reviewer_id')
+          .eq('chapter_id', rejectChapterId)
+          .order('created_at', { ascending: true });
+        allComments = freshComments ?? [];
+        renderCommentThread();
+      }
+
+      showToast('Revision requested — writer notified.');
+    };
+
+    // Close modal on backdrop click
+    $('reject-modal').addEventListener('click', e => {
+      if (e.target === $('reject-modal')) closeRejectModal();
+    });
+
+    // ── INCOME MANAGEMENT ─────────────────────────────────────
+
+    async function loadWriters() {
+      const { data, error } = await db
+        .from('profiles')
+        .select('id, name, email')
+        .eq('is_admin', false)
+        .order('name');
+
+      const select    = $('income-writer');
+      const container = $('writer-list');
+      if (error || !data?.length) {
+        container.innerHTML = `<p class="text-muted text-xs px-2 pt-2">No writers found.</p>`;
+        return;
+      }
+
+      // Populate sidebar writer list
+      container.innerHTML = data.map(w => `
+        <button onclick="selectIncomeWriter('${w.id}', '${escHtml(w.name)}')"
+                data-writer-id="${w.id}"
+                class="income-writer-btn w-full text-left px-3 py-2.5 rounded-lg text-sm
+                       text-white/80 hover:text-white hover:bg-surface border border-transparent
+                       hover:border-border transition-all duration-150">
+          <p class="font-medium truncate">${escHtml(w.name)}</p>
+          <p class="text-muted text-xs truncate">${escHtml(w.email)}</p>
+        </button>`
+      ).join('');
+
+      // Populate writer <select>
+      select.innerHTML = '<option value="">Select a writer…</option>' +
+        data.map(w => `<option value="${w.id}">${escHtml(w.name)}</option>`).join('');
+    }
+
+    function selectIncomeWriter(writerId, writerName) {
+      $('income-writer').value = writerId;
+      document.querySelectorAll('.income-writer-btn').forEach(btn => {
+        const active = btn.dataset.writerId === writerId;
+        btn.classList.toggle('bg-surface',    active);
+        btn.classList.toggle('border-border', active);
+      });
+      loadBooksForWriter(writerId);
+    }
+
+    async function loadBooksForWriter(writerId) {
+      const { data } = await db
+        .from('books')
+        .select('id, title')
+        .eq('author_id', writerId)
+        .order('title');
+
+      const select = $('income-book');
+      select.innerHTML = '<option value="">No specific book</option>' +
+        (data ?? []).map(b => `<option value="${b.id}">${escHtml(b.title)}</option>`).join('');
+    }
+
+    // Writer dropdown change also updates book list
+    $('income-writer').addEventListener('change', e => {
+      if (e.target.value) loadBooksForWriter(e.target.value);
+      else $('income-book').innerHTML = '<option value="">No specific book</option>';
+    });
+
+    async function loadRecentEarnings() {
+      const { data } = await db
+        .from('earnings')
+        .select('id, date, amount_earned, note, profiles(name), books(title)')
+        .order('created_at', { ascending: false })
+        .limit(8);
+
+      const container = $('recent-earnings');
+      if (!data?.length) {
+        container.innerHTML = `<p class="text-muted text-xs">No entries yet.</p>`;
+        return;
+      }
+      container.innerHTML = data.map(e => `
+        <div class="flex items-center justify-between rounded-lg border border-border bg-surface px-4 py-2.5">
+          <div class="min-w-0">
+            <p class="text-white text-sm font-medium truncate">${escHtml(e.profiles?.name ?? '—')}</p>
+            <p class="text-muted text-xs">${e.date} · ${escHtml(e.books?.title ?? 'General')}${e.note ? ' · ' + escHtml(e.note) : ''}</p>
+          </div>
+          <span class="text-gold font-semibold text-sm flex-shrink-0 ml-3">${fmt(e.amount_earned)}</span>
+        </div>`
+      ).join('');
+    }
+
+    $('income-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      $('income-error').classList.add('hidden');
+      $('income-success').classList.add('hidden');
+
+      const writerId = $('income-writer').value;
+      const bookId   = $('income-book').value || null;
+      const date     = $('income-date').value;
+      const amount   = parseFloat($('income-amount').value);
+      const note     = $('income-note').value.trim() || null;
+
+      if (!writerId || !date || isNaN(amount) || amount < 0) {
+        $('income-error').textContent = 'Please fill in Writer, Date, and a valid Amount.';
+        $('income-error').classList.remove('hidden');
+        return;
+      }
+
+      const btn = $('income-submit');
+      btn.disabled = true;
+      btn.textContent = 'Recording…';
+
+      const { error } = await db.from('earnings').insert({
+        author_id:    writerId,
+        book_id:      bookId,
+        date,
+        amount_earned: amount,
+        note,
+      });
+
+      btn.disabled = false;
+      btn.innerHTML = 'Record Earnings <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>';
+
+      if (error) {
+        $('income-error').textContent = error.message;
+        $('income-error').classList.remove('hidden');
+      } else {
+        $('income-success').textContent = `Earnings of ${fmt(amount)} recorded for ${date}.`;
+        $('income-success').classList.remove('hidden');
+        $('income-amount').value = '';
+        $('income-note').value   = '';
+        loadRecentEarnings();
+      }
+    });
+
+    // ── TOAST ──────────────────────────────────────────────────
+    function showToast(msg) {
+      const t = document.createElement('div');
+      t.className = 'fixed bottom-6 right-6 z-[70] px-4 py-3 bg-surface border border-border rounded-xl text-sm text-white shadow-xl shadow-black/50 transition-all duration-300';
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3000);
+    }
+
+    // ── SIGN OUT ───────────────────────────────────────────────
+    $('sign-out-btn').addEventListener('click', async () => {
+      await db.auth.signOut();
+      window.location.replace('login.html');
+    });
+
+    // ── BOOT ───────────────────────────────────────────────────
+    (async () => {
+      // Set today's date as default in income form
+      $('income-date').value = new Date().toISOString().slice(0, 10);
+
+      const { session, profile } = await guardAdmin();
+      currentUserId = session.user.id;
+
+      document.body.style.opacity = '1';
+      $('nav-name').textContent = profile.name;
+
+      // Load data for both panels in parallel
+      await Promise.all([
+        loadSubmittedBooks(),
+        loadWriters(),
+        loadRecentEarnings(),
+      ]);
+    })();
+  </script>
+
+  <!-- Cursor spotlight: gold glow + illuminating grid -->
+  <script>
+    const afsGlow = document.getElementById('afs-glow');
+    const afsGrid = document.getElementById('afs-grid');
+
+    let raf = null;
+    let curX = -9999;
+    let curY = -9999;
+
+    function paint() {
+      const x = curX, y = curY;
+      afsGlow.style.background =
+        `radial-gradient(700px circle at ${x}px ${y}px, rgba(212,175,55,0.07), transparent 40%)`;
+      const mask = `radial-gradient(circle 520px at ${x}px ${y}px, black 0%, transparent 68%)`;
+      afsGrid.style.webkitMaskImage = mask;
+      afsGrid.style.maskImage       = mask;
+      raf = null;
+    }
+
+    window.addEventListener('mousemove', e => {
+      curX = e.clientX; curY = e.clientY;
+      if (!raf) raf = requestAnimationFrame(paint);
+    }, { passive: true });
+
+    document.addEventListener('mouseleave', () => {
+      curX = -9999; curY = -9999;
+      if (!raf) raf = requestAnimationFrame(paint);
+    });
+  </script>
+
+</body>
+</html>
