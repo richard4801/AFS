@@ -105,6 +105,10 @@
 
 <body class="bg-obsidian text-white font-sans antialiased selection:bg-gold selection:text-obsidian">
 
+  <div id="afs-glow" class="pointer-events-none fixed inset-0 transition-opacity duration-500 ease-in-out" style="z-index: 0;"></div>
+
+  <div class="relative z-10">
+
   <!-- ═══════════════════════════════════════════
        NAV
   ═══════════════════════════════════════════ -->
@@ -639,6 +643,26 @@
       </div>
     </div>
   </footer>
+
+  </div><!-- /relative z-10 wrapper -->
+
+  <script>
+    const afsGlow = document.getElementById('afs-glow');
+
+    window.addEventListener('mousemove', (e) => {
+      const x = e.clientX;
+      const y = e.clientY;
+      afsGlow.style.background = `radial-gradient(800px circle at ${x}px ${y}px, rgba(212, 175, 55, 0.08), transparent 40%)`;
+    });
+
+    document.addEventListener('mouseleave', () => {
+      afsGlow.style.opacity = '0';
+    });
+
+    document.addEventListener('mouseenter', () => {
+      afsGlow.style.opacity = '1';
+    });
+  </script>
 
 </body>
 </html>
