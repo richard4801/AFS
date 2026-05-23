@@ -371,7 +371,7 @@
           subscription.unsubscribe();
 
           if (!session) {
-            window.location.replace('login.html');
+            window.location.replace('admin-login.html');
             return reject(new Error('unauthenticated'));
           }
 
@@ -382,7 +382,7 @@
             .single();
 
           if (error || !profile?.is_admin) {
-            window.location.replace('login.html');
+            window.location.replace('admin-login.html');
             return reject(new Error('not admin'));
           }
 
@@ -879,7 +879,7 @@
     // ── SIGN OUT ───────────────────────────────────────────────
     $('sign-out-btn').addEventListener('click', async () => {
       await db.auth.signOut();
-      window.location.replace('login.html');
+      window.location.replace('admin-login.html');
     });
 
     // ── BOOT ───────────────────────────────────────────────────
