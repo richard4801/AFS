@@ -3,20 +3,22 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Sign In — Apex Fiction Studio</title>
+  <title>Admin Access — Apex Fiction Studio</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
           colors: {
-            obsidian: '#121212',
-            charcoal: '#1C1C1C',
-            surface:  '#242424',
-            border:   '#2E2E2E',
-            gold:     '#C9A84C',
-            'gold-light': '#E2C97E',
-            muted:    '#7A7A7A',
+            obsidian:        '#0D0D0D',
+            charcoal:        '#161616',
+            surface:         '#1E1E1E',
+            border:          '#2A2A2A',
+            crimson:         '#A31621',
+            'crimson-light': '#C82333',
+            'crimson-dim':   '#7A1019',
+            gold:            '#C9A84C',
+            muted:           '#6A6A6A',
           },
           fontFamily: {
             sans:  ['Inter', 'system-ui', 'sans-serif'],
@@ -32,26 +34,43 @@
   <style>
     .form-input:focus {
       outline: none;
-      border-color: #C9A84C;
-      box-shadow: 0 0 0 2px rgba(201,168,76,0.15);
+      border-color: #A31621;
+      box-shadow: 0 0 0 2px rgba(163,22,33,0.18);
+    }
+
+    /* Subtle scanline texture */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-image: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.06) 2px,
+        rgba(0,0,0,0.06) 4px
+      );
     }
   </style>
 </head>
+
 <body class="bg-obsidian text-white font-sans antialiased min-h-screen flex items-center justify-center px-4">
 
-  <!-- Layer 1: soft gold radial glow that follows the cursor -->
+  <!-- Crimson radial glow (cursor-tracked) -->
   <div id="afs-glow"
        class="pointer-events-none fixed inset-0"
        style="z-index:0; will-change:background;"></div>
 
-  <!-- Layer 2: faint gold grid, fully masked by default, revealed by cursor -->
+  <!-- Faint grid revealed by cursor (crimson tint) -->
   <div id="afs-grid"
        class="pointer-events-none fixed inset-0"
        style="
          z-index: 0;
          background-image:
-           linear-gradient(rgba(201,168,76,0.13) 1px, transparent 1px),
-           linear-gradient(90deg, rgba(201,168,76,0.13) 1px, transparent 1px);
+           linear-gradient(rgba(163,22,33,0.18) 1px, transparent 1px),
+           linear-gradient(90deg, rgba(163,22,33,0.18) 1px, transparent 1px);
          background-size: 48px 48px;
          -webkit-mask-image: radial-gradient(circle 520px at -9999px -9999px, black 0%, transparent 70%);
          mask-image:         radial-gradient(circle 520px at -9999px -9999px, black 0%, transparent 70%);
@@ -60,19 +79,34 @@
 
   <div class="relative z-10 w-full max-w-sm">
 
-    <!-- Logo -->
+    <!-- Logo + wordmark -->
     <div class="flex items-center justify-center gap-3 mb-10">
-      <span class="w-8 h-8 rounded-sm bg-gold flex items-center justify-center text-obsidian font-serif font-bold">A</span>
-      <span class="font-serif text-xl tracking-wide text-white">Apex Fiction Studio</span>
+      <span class="w-8 h-8 rounded-sm bg-crimson flex items-center justify-center text-white font-serif font-bold text-sm">A</span>
+      <div class="flex flex-col leading-tight">
+        <span class="font-serif text-lg tracking-wide text-white">Apex Fiction Studio</span>
+        <span class="text-[10px] font-semibold tracking-[0.22em] uppercase text-crimson-light">Admin Portal</span>
+      </div>
     </div>
 
     <!-- Card -->
-    <div class="relative rounded-2xl border border-border bg-surface p-8 shadow-2xl shadow-black/60">
-      <!-- Top accent -->
-      <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold to-transparent opacity-40 rounded-full"></div>
+    <div class="relative rounded-2xl border border-border bg-surface p-8 shadow-2xl shadow-black/80">
 
-      <h1 class="font-serif text-2xl text-white mb-1">Writer Sign In</h1>
-      <p class="text-muted text-sm mb-8">Access your private earnings dashboard.</p>
+      <!-- Top accent — crimson instead of gold -->
+      <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-crimson/60 to-transparent rounded-full"></div>
+
+      <!-- Lock icon -->
+      <div class="flex justify-center mb-5">
+        <div class="w-10 h-10 rounded-xl bg-crimson/10 border border-crimson/25 flex items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+               fill="none" stroke="#A31621" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </div>
+      </div>
+
+      <h1 class="font-serif text-2xl text-white mb-1 text-center">Admin Access</h1>
+      <p class="text-muted text-sm mb-8 text-center">Restricted to authorised personnel only.</p>
 
       <form id="login-form" class="space-y-5" novalidate>
 
@@ -82,7 +116,7 @@
           </label>
           <input
             id="email" type="email" autocomplete="email" required
-            placeholder="you@email.com"
+            placeholder="admin@apexfiction.com"
             class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 transition-all duration-200"/>
         </div>
 
@@ -96,23 +130,24 @@
             class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 transition-all duration-200"/>
         </div>
 
-        <!-- Error -->
+        <!-- Error / access denied -->
         <div id="error-msg"
              class="hidden text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-3 leading-relaxed">
         </div>
 
         <button type="submit" id="submit-btn"
                 class="w-full flex items-center justify-center gap-2 px-6 py-3.5
-                       bg-gold hover:bg-gold-light text-obsidian
+                       bg-crimson hover:bg-crimson-light text-white
                        text-sm font-semibold rounded-lg
                        transition-colors duration-200
                        disabled:opacity-50 disabled:cursor-not-allowed">
-          <span id="btn-label">Sign In to Dashboard</span>
-          <svg id="btn-arrow" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <span id="btn-label">Access Dashboard</span>
+          <svg id="btn-arrow" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
           </svg>
-          <!-- Spinner (hidden by default) -->
-          <svg id="btn-spinner" class="hidden animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <svg id="btn-spinner" class="hidden animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg"
+               fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
           </svg>
@@ -121,10 +156,11 @@
       </form>
     </div>
 
+    <!-- Back link -->
     <p class="text-center text-muted text-xs mt-6">
-      Not a member yet?
-      <a href="../index.html#apply" class="text-gold hover:text-gold-light transition-colors duration-150">
-        Apply to the Collective →
+      Not an admin?
+      <a href="login.html" class="text-white/50 hover:text-white transition-colors duration-150">
+        Writer sign in →
       </a>
     </p>
   </div>
@@ -132,22 +168,14 @@
   <!-- Supabase JS SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    // ── CONFIGURATION ────────────────────────────────────────────
-    // Replace these with your actual Supabase project values.
-    // Find them in: Supabase Dashboard → Project Settings → API
     const SUPABASE_URL      = 'https://qbqsbdswcqmrxoizgfrw.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_v0fbhx8NkRNxYYVw8VGz_g_7Eqja11K';
-    // ─────────────────────────────────────────────────────────────
 
     const { createClient } = supabase;
     const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: {
-        persistSession: true,
-        storage: window.localStorage,
-      },
+      auth: { persistSession: true, storage: window.localStorage },
     });
 
-    // ── FORM LOGIC ───────────────────────────────────────────────
     const form    = document.getElementById('login-form');
     const errBox  = document.getElementById('error-msg');
     const btn     = document.getElementById('submit-btn');
@@ -157,9 +185,15 @@
 
     function setLoading(on) {
       btn.disabled = on;
-      label.textContent = on ? 'Signing in…' : 'Sign In to Dashboard';
+      label.textContent = on ? 'Verifying…' : 'Access Dashboard';
       arrow.classList.toggle('hidden', on);
       spinner.classList.toggle('hidden', !on);
+    }
+
+    function showError(msg) {
+      errBox.textContent = msg;
+      errBox.classList.remove('hidden');
+      setLoading(false);
     }
 
     form.addEventListener('submit', async (e) => {
@@ -170,32 +204,44 @@
       const email    = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
 
-      const { error } = await db.auth.signInWithPassword({ email, password });
+      const { data: authData, error } = await db.auth.signInWithPassword({ email, password });
 
       if (error) {
-        errBox.textContent = error.message;
-        errBox.classList.remove('hidden');
-        setLoading(false);
-      } else {
-        window.location.replace('index.html');
+        showError(error.message);
+        return;
       }
+
+      // Verify the account actually has admin rights
+      const { data: profile } = await db
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', authData.user.id)
+        .single();
+
+      if (!profile?.is_admin) {
+        // Sign them back out — they authenticated but aren't an admin
+        await db.auth.signOut();
+        showError('Access denied. This portal is for authorised admins only.');
+        return;
+      }
+
+      window.location.replace('admin.html');
     });
   </script>
 
-  <!-- Cursor spotlight: gold glow + illuminating grid -->
+  <!-- Cursor spotlight: crimson glow + illuminating grid -->
   <script>
     const afsGlow = document.getElementById('afs-glow');
     const afsGrid = document.getElementById('afs-grid');
 
-    let raf = null;
+    let raf  = null;
     let curX = -9999;
     let curY = -9999;
 
     function paint() {
-      const x = curX;
-      const y = curY;
+      const x = curX, y = curY;
       afsGlow.style.background =
-        `radial-gradient(700px circle at ${x}px ${y}px, rgba(212,175,55,0.07), transparent 40%)`;
+        `radial-gradient(700px circle at ${x}px ${y}px, rgba(163,22,33,0.09), transparent 40%)`;
       const mask = `radial-gradient(circle 520px at ${x}px ${y}px, black 0%, transparent 68%)`;
       afsGrid.style.webkitMaskImage = mask;
       afsGrid.style.maskImage       = mask;
