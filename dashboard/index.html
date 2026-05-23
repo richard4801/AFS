@@ -234,12 +234,17 @@
 
   <script>
     // ── CONFIGURATION ─────────────────────────────────────────────
-    const SUPABASE_URL      = 'https://YOUR_PROJECT_ID.supabase.co';
-    const SUPABASE_ANON_KEY = 'YOUR_ANON_PUBLIC_KEY';
+    const SUPABASE_URL      = 'https://qbqsbdswcqmrxoizgfrw.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_v0fbhx8NkRNxYYVw8VGz_g_7Eqja11K';
     // ─────────────────────────────────────────────────────────────
 
     const { createClient } = supabase;
-    const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: true,
+        storage: window.localStorage,
+      },
+    });
 
     // ── HELPERS ───────────────────────────────────────────────────
     const fmt = (n) =>
