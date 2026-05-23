@@ -16,7 +16,6 @@
             border:   '#2E2E2E',
             gold:     '#C9A84C',
             'gold-light': '#E2C97E',
-            crimson:  '#A31621',
             muted:    '#7A7A7A',
           },
           fontFamily: {
@@ -31,7 +30,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
   <style>
-    /* Skeleton loading shimmer */
     @keyframes shimmer {
       0%   { background-position: -400px 0; }
       100% { background-position:  400px 0; }
@@ -42,506 +40,977 @@
       animation: shimmer 1.6s ease-in-out infinite;
       border-radius: 6px;
     }
+    .form-input:focus {
+      outline: none;
+      border-color: #C9A84C;
+      box-shadow: 0 0 0 2px rgba(201,168,76,0.15);
+    }
+    #editor-content:focus { outline: none; border-color: #C9A84C; box-shadow: 0 0 0 2px rgba(201,168,76,0.15); }
+    #editor-content:disabled { opacity: 0.6; cursor: not-allowed; }
+    .thin-scroll::-webkit-scrollbar       { width: 4px; }
+    .thin-scroll::-webkit-scrollbar-track { background: transparent; }
+    .thin-scroll::-webkit-scrollbar-thumb { background: #2E2E2E; border-radius: 4px; }
   </style>
 </head>
 
 <body class="bg-obsidian text-white font-sans antialiased" style="opacity:0;">
 
-  <!-- ── AUTH GUARD ─────────────────────────────────────────────
-       The entire page body is hidden until the auth check resolves.
-       If no session exists the user is immediately redirected to login.html.
-  ───────────────────────────────────────────────────────────── -->
+  <div id="afs-glow" class="pointer-events-none fixed inset-0" style="z-index:0; will-change:background;"></div>
+  <div id="afs-grid" class="pointer-events-none fixed inset-0"
+       style="z-index:0;
+              background-image: linear-gradient(rgba(201,168,76,0.13) 1px, transparent 1px),
+                                linear-gradient(90deg,rgba(201,168,76,0.13) 1px, transparent 1px);
+              background-size: 48px 48px;
+              -webkit-mask-image: radial-gradient(circle 520px at -9999px -9999px,black 0%,transparent 70%);
+              mask-image: radial-gradient(circle 520px at -9999px -9999px,black 0%,transparent 70%);
+              will-change: mask-image,-webkit-mask-image;"></div>
 
-  <!-- Layer 1: soft gold radial glow that follows the cursor -->
-  <div id="afs-glow"
-       class="pointer-events-none fixed inset-0"
-       style="z-index:0; will-change:background;"></div>
-
-  <!-- Layer 2: faint gold grid, fully masked by default, revealed by cursor -->
-  <div id="afs-grid"
-       class="pointer-events-none fixed inset-0"
-       style="
-         z-index: 0;
-         background-image:
-           linear-gradient(rgba(201,168,76,0.13) 1px, transparent 1px),
-           linear-gradient(90deg, rgba(201,168,76,0.13) 1px, transparent 1px);
-         background-size: 48px 48px;
-         -webkit-mask-image: radial-gradient(circle 520px at -9999px -9999px, black 0%, transparent 70%);
-         mask-image:         radial-gradient(circle 520px at -9999px -9999px, black 0%, transparent 70%);
-         will-change: mask-image, -webkit-mask-image;
-       "></div>
-
-  <!-- ── NAV (pill, dashboard variant) ─────────────────────────── -->
+  <!-- NAV -->
   <header class="fixed top-5 inset-x-0 z-50 flex justify-center px-5 pointer-events-none">
-    <nav class="pointer-events-auto
-                flex items-center justify-between gap-6
-                w-full max-w-4xl
-                rounded-full
-                bg-obsidian/70 backdrop-blur-md
-                border border-white/10
-                shadow-xl shadow-black/60
-                px-4 py-2.5">
-
-      <!-- Logo -->
+    <nav class="pointer-events-auto flex items-center justify-between gap-6 w-full max-w-4xl rounded-full bg-obsidian/70 backdrop-blur-md border border-white/10 shadow-xl shadow-black/60 px-4 py-2.5">
       <div class="flex items-center gap-2.5 flex-shrink-0">
         <span class="w-6 h-6 rounded-sm bg-gold flex items-center justify-center text-obsidian font-serif font-bold text-xs">A</span>
-        <span class="font-serif text-base tracking-wide text-white whitespace-nowrap">Apex Fiction Studio</span>
+        <span class="hidden sm:inline font-serif text-base tracking-wide text-white whitespace-nowrap">Apex Fiction Studio</span>
       </div>
-
-      <!-- Right: writer name + sign out -->
       <div class="flex items-center gap-4">
         <span id="nav-name" class="hidden sm:block text-muted text-sm truncate max-w-[180px]"></span>
         <button id="sign-out-btn"
-                class="flex-shrink-0 inline-flex items-center gap-1.5
-                       px-4 py-1.5 text-sm font-medium
-                       text-muted hover:text-white
-                       border border-border hover:border-white/20
-                       rounded-full transition-all duration-200">
+                class="flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium text-muted hover:text-white border border-border hover:border-white/20 rounded-full transition-all duration-200">
           Sign Out
           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-            <polyline points="16 17 21 12 16 7"/>
-            <line x1="21" y1="12" x2="9" y2="12"/>
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
           </svg>
         </button>
       </div>
     </nav>
   </header>
 
-  <!-- ── MAIN CONTENT ───────────────────────────────────────────── -->
+  <!-- MAIN -->
   <main class="relative z-10 max-w-4xl mx-auto px-5 pt-28 pb-20">
 
     <!-- Page header -->
     <div class="mb-10">
       <p class="text-[11px] font-medium tracking-[0.22em] uppercase text-gold mb-2">Writer Dashboard</p>
       <h1 class="font-serif text-4xl text-white leading-tight">
-        Good morning, <span id="greeting-name" class="italic">Writer</span>.
+        Good to see you, <span id="greeting-name" class="italic">Writer</span>.
       </h1>
       <p class="text-muted text-sm mt-1" id="today-date"></p>
     </div>
 
-    <!-- ── STATS GRID ──────────────────────────────────────────── -->
+    <!-- STATS -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-
-      <!-- Monthly Earnings -->
       <div class="rounded-2xl border border-border bg-surface p-5 relative overflow-hidden">
         <div class="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent"></div>
         <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-3">This Month</p>
-        <p id="stat-monthly" class="font-serif text-3xl text-white">
-          <span class="skeleton inline-block w-24 h-8">&nbsp;</span>
-        </p>
+        <p id="stat-monthly" class="font-serif text-3xl text-white"><span class="skeleton inline-block w-24 h-8">&nbsp;</span></p>
         <p class="text-muted text-xs mt-1">in royalties</p>
       </div>
-
-      <!-- All-Time Earnings -->
       <div class="rounded-2xl border border-border bg-surface p-5 relative overflow-hidden">
         <div class="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent"></div>
         <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-3">All-Time</p>
-        <p id="stat-alltime" class="font-serif text-3xl text-white">
-          <span class="skeleton inline-block w-24 h-8">&nbsp;</span>
-        </p>
+        <p id="stat-alltime" class="font-serif text-3xl text-white"><span class="skeleton inline-block w-24 h-8">&nbsp;</span></p>
         <p class="text-muted text-xs mt-1">total accrued</p>
       </div>
-
-      <!-- Total Words -->
       <div class="rounded-2xl border border-border bg-surface p-5 relative overflow-hidden">
         <div class="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent"></div>
         <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-3">Words Written</p>
-        <p id="stat-words" class="font-serif text-3xl text-white">
-          <span class="skeleton inline-block w-20 h-8">&nbsp;</span>
-        </p>
-        <p class="text-muted text-xs mt-1">across all projects</p>
+        <p id="stat-words" class="font-serif text-3xl text-white"><span class="skeleton inline-block w-20 h-8">&nbsp;</span></p>
+        <p class="text-muted text-xs mt-1">across all chapters</p>
       </div>
-
-      <!-- Milestone Progress -->
       <div class="rounded-2xl border border-border bg-surface p-5 relative overflow-hidden">
         <div class="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent"></div>
         <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-3">$120 Bonus</p>
-        <p id="stat-milestone-label" class="font-serif text-3xl text-white">
-          <span class="skeleton inline-block w-16 h-8">&nbsp;</span>
-        </p>
-        <!-- Progress bar -->
+        <p id="stat-milestone-label" class="font-serif text-3xl text-white"><span class="skeleton inline-block w-16 h-8">&nbsp;</span></p>
         <div class="mt-2 h-1 bg-charcoal rounded-full overflow-hidden">
           <div id="milestone-bar" class="h-full bg-gold rounded-full transition-all duration-700" style="width:0%"></div>
         </div>
         <p id="stat-milestone-sub" class="text-muted text-xs mt-1">toward 30k words</p>
       </div>
-
     </div>
 
-    <!-- ── EARNINGS CHART ──────────────────────────────────────── -->
-    <div class="rounded-2xl border border-border bg-surface p-6 mb-6 relative overflow-hidden">
+    <!-- CHART -->
+    <div class="rounded-2xl border border-border bg-surface p-6 mb-8 relative overflow-hidden">
       <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent"></div>
-
       <div class="flex items-center justify-between mb-6">
         <div>
           <h2 class="font-serif text-xl text-white">Daily Earnings</h2>
           <p class="text-muted text-xs mt-0.5">Last 30 days — updated every morning</p>
         </div>
-        <span id="chart-total-badge"
-              class="hidden text-xs font-medium text-gold border border-gold/20 bg-gold/5 rounded-full px-3 py-1">
-        </span>
+        <span id="chart-total-badge" class="hidden text-xs font-medium text-gold border border-gold/20 bg-gold/5 rounded-full px-3 py-1"></span>
       </div>
-
       <div class="relative h-64">
-        <!-- Skeleton bars while data loads -->
-        <div id="chart-skeleton" class="absolute inset-0 flex items-end gap-1.5 pb-6 px-1">
-          <!-- Generated by JS -->
-        </div>
+        <div id="chart-skeleton" class="absolute inset-0 flex items-end gap-1.5 pb-6 px-1"></div>
         <canvas id="earnings-chart" class="hidden"></canvas>
       </div>
     </div>
 
-    <!-- ── PROJECTS TABLE ──────────────────────────────────────── -->
-    <div class="rounded-2xl border border-border bg-surface relative overflow-hidden">
-      <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent"></div>
+    <!-- MY BOOKS SECTION -->
+    <div id="books-section">
 
-      <div class="px-6 py-5 border-b border-border">
-        <h2 class="font-serif text-xl text-white">Your Projects</h2>
-        <p class="text-muted text-xs mt-0.5">Live revenue across your active works</p>
+      <!-- ── VIEW: Book grid ── -->
+      <div id="view-books">
+        <div class="flex items-center justify-between mb-5">
+          <div>
+            <h2 class="font-serif text-2xl text-white">My Books</h2>
+            <p class="text-muted text-xs mt-0.5">Manage your manuscripts</p>
+          </div>
+          <button onclick="openNewBookModal()"
+                  class="inline-flex items-center gap-1.5 px-4 py-2 bg-gold/10 hover:bg-gold/20 border border-gold/30 hover:border-gold/60 text-gold text-xs font-semibold rounded-lg transition-all duration-200">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            New Book
+          </button>
+        </div>
+        <div id="books-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="skeleton h-40 rounded-2xl"></div>
+          <div class="skeleton h-40 rounded-2xl"></div>
+        </div>
       </div>
 
-      <!-- Table -->
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead>
-            <tr class="border-b border-border text-left">
-              <th class="px-6 py-3 text-[10px] font-semibold tracking-[0.18em] uppercase text-muted">Title</th>
-              <th class="px-6 py-3 text-[10px] font-semibold tracking-[0.18em] uppercase text-muted text-right">Words</th>
-              <th class="px-6 py-3 text-[10px] font-semibold tracking-[0.18em] uppercase text-muted text-right">Revenue</th>
-              <th class="px-6 py-3 text-[10px] font-semibold tracking-[0.18em] uppercase text-muted text-right">Your 50%</th>
-            </tr>
-          </thead>
-          <tbody id="projects-tbody">
-            <!-- Skeleton rows -->
-            <tr class="border-b border-border/50">
-              <td class="px-6 py-4"><span class="skeleton inline-block w-48 h-4">&nbsp;</span></td>
-              <td class="px-6 py-4 text-right"><span class="skeleton inline-block w-16 h-4">&nbsp;</span></td>
-              <td class="px-6 py-4 text-right"><span class="skeleton inline-block w-16 h-4">&nbsp;</span></td>
-              <td class="px-6 py-4 text-right"><span class="skeleton inline-block w-16 h-4">&nbsp;</span></td>
-            </tr>
-            <tr class="border-b border-border/50">
-              <td class="px-6 py-4"><span class="skeleton inline-block w-36 h-4">&nbsp;</span></td>
-              <td class="px-6 py-4 text-right"><span class="skeleton inline-block w-16 h-4">&nbsp;</span></td>
-              <td class="px-6 py-4 text-right"><span class="skeleton inline-block w-16 h-4">&nbsp;</span></td>
-              <td class="px-6 py-4 text-right"><span class="skeleton inline-block w-16 h-4">&nbsp;</span></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+      <!-- ── VIEW: Chapter list ── -->
+      <div id="view-chapters" class="hidden">
+        <button onclick="showBooksView()"
+                class="inline-flex items-center gap-1.5 text-muted hover:text-white text-xs transition-colors mb-5">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+          My Books
+        </button>
 
-    <!-- Footer note -->
-    <p class="text-center text-muted text-xs mt-8 leading-relaxed">
+        <!-- Book header -->
+        <div class="flex items-start gap-4 mb-6">
+          <img id="ch-cover" class="hidden w-14 h-20 object-cover rounded-lg flex-shrink-0 border border-border"/>
+          <div>
+            <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-gold mb-1">Book</p>
+            <h2 id="ch-title" class="font-serif text-2xl text-white"></h2>
+            <p id="ch-status" class="text-muted text-xs mt-0.5"></p>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-serif text-lg text-white">Chapters</h3>
+          <button id="add-chapter-btn" onclick="showEditorView(null)"
+                  class="inline-flex items-center gap-1.5 px-4 py-2 bg-gold/10 hover:bg-gold/20 border border-gold/30 hover:border-gold/60 text-gold text-xs font-semibold rounded-lg transition-all duration-200">
+            + Add Chapter
+          </button>
+        </div>
+        <div id="chapters-list" class="space-y-3">
+          <div class="skeleton h-16 rounded-xl"></div>
+          <div class="skeleton h-16 rounded-xl"></div>
+        </div>
+
+        <!-- Writer's own edit requests for this book -->
+        <div id="my-requests-section" class="hidden mt-8">
+          <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted mb-3">Your Edit Requests</p>
+          <div id="my-requests-list" class="space-y-3"></div>
+        </div>
+      </div>
+
+      <!-- ── VIEW: Chapter editor / viewer ── -->
+      <div id="view-editor" class="hidden">
+        <button onclick="showChaptersView()"
+                class="inline-flex items-center gap-1.5 text-muted hover:text-white text-xs transition-colors mb-5">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+          Chapters
+        </button>
+
+        <div class="relative rounded-2xl border border-border bg-surface p-6 space-y-5">
+          <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent"></div>
+
+          <!-- Chapter heading -->
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p id="editor-chapter-num" class="text-[10px] font-semibold tracking-[0.18em] uppercase text-gold mb-1"></p>
+              <h2 id="editor-heading" class="font-serif text-2xl text-white">New Chapter</h2>
+            </div>
+            <!-- Read-only: Request Edit button -->
+            <div id="editor-readonly-actions" class="hidden">
+              <button id="request-edit-btn" onclick="openEditRequestModal()"
+                      class="inline-flex items-center gap-1.5 px-4 py-2 bg-gold/10 hover:bg-gold/20 border border-gold/30 hover:border-gold/60 text-gold text-xs font-semibold rounded-lg transition-all duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Request Edit
+              </button>
+            </div>
+          </div>
+
+          <!-- Chapter title -->
+          <div>
+            <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">
+              Chapter Title <span class="text-muted font-normal">(optional)</span>
+            </label>
+            <input id="editor-chapter-title" type="text" placeholder="e.g. The Encounter"
+                   class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 transition-all duration-200"/>
+          </div>
+
+          <!-- Docx upload (edit mode only) -->
+          <div id="docx-section">
+            <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">
+              Upload Word Document <span class="text-muted font-normal">(auto-converts to plain text)</span>
+            </label>
+            <div id="docx-dropzone"
+                 class="border-2 border-dashed border-border hover:border-gold/40 rounded-lg p-6 text-center cursor-pointer transition-colors duration-200 group">
+              <svg class="w-8 h-8 mx-auto mb-2 text-muted group-hover:text-gold/70 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m6.75 12-3-3m0 0-3 3m3-3v6m-1.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9z"/>
+              </svg>
+              <p class="text-sm text-muted group-hover:text-white/70 transition-colors">
+                Drag & drop a <span class="text-white">.docx</span> file, or <span class="text-gold">browse</span>
+              </p>
+              <p id="docx-filename" class="text-xs text-gold mt-1 hidden"></p>
+              <input type="file" id="docx-input" accept=".docx" class="hidden"/>
+            </div>
+          </div>
+
+          <!-- Content textarea -->
+          <div>
+            <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">
+              Chapter Content
+            </label>
+            <textarea id="editor-content" rows="22"
+                      placeholder="Start writing your chapter here, or upload a .docx above to auto-fill…"
+                      class="w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 resize-y transition-all duration-200 leading-relaxed thin-scroll"></textarea>
+            <div class="flex items-center justify-between mt-1.5">
+              <p id="editor-status-label" class="text-muted text-xs"></p>
+              <p id="editor-word-count" class="text-muted text-xs">0 words</p>
+            </div>
+          </div>
+
+          <!-- Error -->
+          <div id="editor-error" class="hidden text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-3"></div>
+
+          <!-- Edit-mode actions -->
+          <div id="editor-actions" class="flex flex-wrap gap-3">
+            <button onclick="saveChapter('draft')"
+                    class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-surface hover:bg-charcoal border border-border hover:border-white/20 text-white text-sm font-medium rounded-lg transition-all duration-200">
+              Save Draft
+            </button>
+            <button onclick="saveChapter('submitted')"
+                    class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gold hover:bg-gold-light text-obsidian text-sm font-semibold rounded-lg transition-colors duration-200">
+              Submit for Review
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /books-section -->
+
+    <p class="text-center text-muted text-xs mt-10 leading-relaxed">
       Earnings data refreshed daily before 9 AM. Questions?
-      <a href="mailto:support@apexfictionstudio.com" class="text-gold/70 hover:text-gold transition-colors">
-        Contact your editor.
-      </a>
+      <a href="mailto:support@apexfictionstudio.com" class="text-gold/70 hover:text-gold transition-colors">Contact your editor.</a>
     </p>
-
   </main>
 
-  <!-- Supabase + Chart.js -->
+  <!-- ── NEW BOOK MODAL ───────────────────────────────────────── -->
+  <div id="new-book-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center px-4"
+       style="background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);">
+    <div class="relative w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-2xl shadow-black/60 max-h-[90vh] overflow-y-auto thin-scroll">
+      <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent"></div>
+      <h3 class="font-serif text-xl text-white mb-1">New Book</h3>
+      <p class="text-muted text-xs mb-5">Start a new manuscript in your collection.</p>
+
+      <!-- Cover upload -->
+      <div class="mb-4">
+        <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">
+          Cover Image <span class="text-muted font-normal">(1,600 × 2,400 px)</span>
+        </label>
+        <div id="cover-zone" class="relative rounded-xl border-2 border-dashed border-border hover:border-gold/40 transition-colors cursor-pointer overflow-hidden"
+             onclick="document.getElementById('cover-input').click()">
+          <img id="cover-preview" class="hidden w-full max-h-48 object-cover"/>
+          <div id="cover-prompt" class="p-8 text-center">
+            <svg class="w-8 h-8 mx-auto mb-2 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/>
+            </svg>
+            <p class="text-sm text-muted">Click to upload cover</p>
+            <p class="text-xs text-muted/60 mt-0.5">JPG, PNG or WEBP</p>
+          </div>
+          <input type="file" id="cover-input" accept="image/*" class="hidden"/>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Book Title</label>
+          <input id="new-book-title" type="text" placeholder="e.g. The Alpha's Forbidden Mate"
+                 class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 transition-all duration-200"/>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">
+            Description <span class="text-muted font-normal">(optional)</span>
+          </label>
+          <textarea id="new-book-description" rows="3" placeholder="Brief synopsis of your book…"
+                    class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 resize-none transition-all duration-200"></textarea>
+        </div>
+
+        <div id="new-book-error" class="hidden text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-3"></div>
+
+        <div class="flex gap-3">
+          <button onclick="createBook()"
+                  class="flex-1 px-4 py-2.5 bg-gold hover:bg-gold-light text-obsidian text-sm font-semibold rounded-lg transition-colors duration-200">
+            Create Book
+          </button>
+          <button onclick="closeNewBookModal()"
+                  class="px-4 py-2.5 border border-border hover:border-white/20 text-muted hover:text-white text-sm rounded-lg transition-all duration-200">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── EDIT REQUEST MODAL ───────────────────────────────────── -->
+  <div id="edit-request-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center px-4"
+       style="background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);">
+    <div class="relative w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-2xl shadow-black/60">
+      <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent"></div>
+      <h3 class="font-serif text-xl text-white mb-1">Request to Edit</h3>
+      <p id="edit-request-subtitle" class="text-muted text-xs mb-4">Tell the admin why you need to edit this chapter.</p>
+      <textarea id="edit-request-reason" rows="4"
+                placeholder="e.g. I found a continuity error in this chapter that affects the plot…"
+                class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 resize-none transition-all duration-200"></textarea>
+      <div id="edit-request-error" class="hidden mt-3 text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-3"></div>
+      <div class="flex gap-3 mt-4">
+        <button onclick="submitEditRequest()"
+                class="flex-1 px-4 py-2.5 bg-gold hover:bg-gold-light text-obsidian text-sm font-semibold rounded-lg transition-colors duration-200">
+          Send Request
+        </button>
+        <button onclick="closeEditRequestModal()"
+                class="px-4 py-2.5 border border-border hover:border-white/20 text-muted hover:text-white text-sm rounded-lg transition-all duration-200">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
 
   <script>
-    // ── CONFIGURATION ─────────────────────────────────────────────
     const SUPABASE_URL      = 'https://qbqsbdswcqmrxoizgfrw.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_v0fbhx8NkRNxYYVw8VGz_g_7Eqja11K';
-    // ─────────────────────────────────────────────────────────────
 
     const { createClient } = supabase;
     const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: {
-        persistSession: true,
-        storage: window.localStorage,
-      },
+      auth: { persistSession: true, storage: window.localStorage },
     });
 
-    // ── HELPERS ───────────────────────────────────────────────────
-    const fmt = (n) =>
-      '$' + Number(n ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const $  = id => document.getElementById(id);
+    const fmt  = n  => '$' + Number(n ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const fmtK = n  => n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n);
+    const escHtml = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const countWords = t => t.trim() ? t.trim().split(/\s+/).length : 0;
 
-    const fmtK = (n) =>
-      n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n);
+    // ── STATE ──────────────────────────────────────────────────
+    let currentUserId       = null;
+    let selectedBook        = null;
+    let editingChapter      = null;   // null = new chapter, obj = editing existing draft
+    let pendingEditChapterId = null;
+    let pendingCoverFile    = null;
 
-    function todayLabel() {
-      return new Date().toLocaleDateString('en-US', {
-        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-      });
-    }
-
-    // Render skeleton chart placeholder bars
-    function buildChartSkeleton() {
-      const el = document.getElementById('chart-skeleton');
-      el.innerHTML = Array.from({ length: 30 }, (_, i) => {
-        const h = 20 + Math.random() * 60;
-        return `<div class="skeleton flex-1 rounded-t" style="height:${h}%"></div>`;
-      }).join('');
-    }
-
-    // ── AUTH GUARD ────────────────────────────────────────────────
-    // Uses onAuthStateChange + INITIAL_SESSION — the only reliable signal
-    // that Supabase has fully settled its auth state, including any
-    // in-flight token refresh network request. getSession() + setTimeout
-    // was removed because it can still race on slower connections.
+    // ── AUTH ───────────────────────────────────────────────────
     function guardAuth() {
       return new Promise((resolve, reject) => {
         const { data: { subscription } } = db.auth.onAuthStateChange((event, session) => {
           if (event !== 'INITIAL_SESSION') return;
           subscription.unsubscribe();
-          if (session) {
-            resolve(session);
-          } else {
-            window.location.replace('login.html');
-            reject(new Error('unauthenticated'));
-          }
+          if (session) { resolve(session); }
+          else { window.location.replace('login.html'); reject(new Error('unauthenticated')); }
         });
       });
     }
 
-    // ── DATA FETCHING ─────────────────────────────────────────────
+    // ── STATS DATA ─────────────────────────────────────────────
     async function fetchProfile(userId) {
-      const { data, error } = await db
-        .from('profiles')
-        .select('name, email')
-        .eq('id', userId)
-        .single();
-      if (error) throw error;
+      const { data } = await db.from('profiles').select('name, email').eq('id', userId).single();
       return data;
     }
 
-    async function fetchProjects(userId) {
-      const { data, error } = await db
-        .from('projects')
-        .select('id, title, word_count, revenue_generated')
-        .eq('writer_id', userId)
-        .order('revenue_generated', { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    }
-
     async function fetchEarnings30Days(userId) {
-      const since = new Date();
-      since.setDate(since.getDate() - 29);
-      const isoDate = since.toISOString().slice(0, 10);
-
-      const { data, error } = await db
-        .from('earnings')
+      const since = new Date(); since.setDate(since.getDate() - 29);
+      const { data } = await db.from('earnings')
         .select('date, amount_earned')
-        .eq('writer_id', userId)
-        .gte('date', isoDate)
+        .eq('author_id', userId)
+        .gte('date', since.toISOString().slice(0, 10))
         .order('date', { ascending: true });
-      if (error) throw error;
       return data ?? [];
     }
 
     async function fetchAllTimeTotal(userId) {
-      const { data, error } = await db
-        .from('earnings')
-        .select('amount_earned')
-        .eq('writer_id', userId);
-      if (error) throw error;
-      return (data ?? []).reduce((sum, r) => sum + parseFloat(r.amount_earned), 0);
+      const { data } = await db.from('earnings').select('amount_earned').eq('author_id', userId);
+      return (data ?? []).reduce((s, r) => s + parseFloat(r.amount_earned), 0);
     }
 
-    // ── RENDER HELPERS ────────────────────────────────────────────
-    function renderStats({ monthly, allTime, totalWords, milestoneTarget }) {
-      document.getElementById('stat-monthly').textContent  = fmt(monthly);
-      document.getElementById('stat-alltime').textContent  = fmt(allTime);
-      document.getElementById('stat-words').textContent    = fmtK(totalWords);
-
-      const pct = Math.min(100, Math.round((totalWords / milestoneTarget) * 100));
-      document.getElementById('stat-milestone-label').textContent = pct + '%';
-      document.getElementById('milestone-bar').style.width = pct + '%';
-      document.getElementById('stat-milestone-sub').textContent =
-        totalWords >= milestoneTarget
-          ? '✓ Bonus unlocked!'
-          : `${fmtK(totalWords)} / ${fmtK(milestoneTarget)} words`;
+    async function fetchTotalWordCount(userId) {
+      const { data } = await db.from('chapters').select('word_count').eq('author_id', userId);
+      return (data ?? []).reduce((s, c) => s + (c.word_count || 0), 0);
     }
 
-    function renderProjects(projects) {
-      const tbody = document.getElementById('projects-tbody');
-      if (!projects.length) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="4" class="px-6 py-10 text-center text-muted text-sm">
-              No projects yet — your editor will set these up after onboarding.
-            </td>
-          </tr>`;
-        return;
-      }
-      tbody.innerHTML = projects.map(p => `
-        <tr class="border-b border-border/40 hover:bg-white/[0.02] transition-colors duration-150">
-          <td class="px-6 py-4 text-white font-medium">${p.title}</td>
-          <td class="px-6 py-4 text-right text-muted">${p.word_count.toLocaleString()}</td>
-          <td class="px-6 py-4 text-right text-muted">${fmt(p.revenue_generated)}</td>
-          <td class="px-6 py-4 text-right text-gold font-semibold">${fmt(p.revenue_generated * 0.5)}</td>
-        </tr>`
-      ).join('');
+    // ── STATS RENDER ───────────────────────────────────────────
+    function renderStats({ monthly, allTime, totalWords }) {
+      $('stat-monthly').textContent = fmt(monthly);
+      $('stat-alltime').textContent = fmt(allTime);
+      $('stat-words').textContent   = fmtK(totalWords);
+      const target = 30000;
+      const pct = Math.min(100, Math.round((totalWords / target) * 100));
+      $('stat-milestone-label').textContent = pct + '%';
+      $('milestone-bar').style.width = pct + '%';
+      $('stat-milestone-sub').textContent = totalWords >= target
+        ? '✓ Bonus unlocked!'
+        : `${fmtK(totalWords)} / ${fmtK(target)} words`;
     }
 
     function renderChart(rawRows) {
-      // Build a complete 30-day date map (fill zeros for days with no earnings)
       const map = {};
       rawRows.forEach(r => { map[r.date] = parseFloat(r.amount_earned); });
-
-      const labels = [];
-      const values = [];
+      const labels = [], values = [];
       for (let i = 29; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
+        const d = new Date(); d.setDate(d.getDate() - i);
         const key = d.toISOString().slice(0, 10);
         labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
         values.push(map[key] ?? 0);
       }
-
       const total30 = values.reduce((a, b) => a + b, 0);
-      const badge = document.getElementById('chart-total-badge');
+      const badge = $('chart-total-badge');
       badge.textContent = fmt(total30) + ' over 30 days';
       badge.classList.remove('hidden');
-
-      // Hide skeleton, show canvas
-      document.getElementById('chart-skeleton').classList.add('hidden');
-      const canvas = document.getElementById('earnings-chart');
+      $('chart-skeleton').classList.add('hidden');
+      const canvas = $('earnings-chart');
       canvas.classList.remove('hidden');
-
       new Chart(canvas, {
         type: 'line',
-        data: {
-          labels,
-          datasets: [{
-            label: 'Earnings',
-            data: values,
-            borderColor: '#C9A84C',
-            backgroundColor: (ctx) => {
-              const gradient = ctx.chart.ctx.createLinearGradient(0, 0, 0, ctx.chart.height);
-              gradient.addColorStop(0,   'rgba(201,168,76,0.18)');
-              gradient.addColorStop(1,   'rgba(201,168,76,0)');
-              return gradient;
-            },
-            borderWidth: 2,
-            pointRadius: 3,
-            pointHoverRadius: 6,
-            pointBackgroundColor: '#C9A84C',
-            pointBorderColor: '#121212',
-            pointBorderWidth: 1.5,
-            tension: 0.4,
-            fill: true,
-          }],
-        },
+        data: { labels, datasets: [{
+          label: 'Earnings', data: values,
+          borderColor: '#C9A84C',
+          backgroundColor: ctx => {
+            const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, ctx.chart.height);
+            g.addColorStop(0, 'rgba(201,168,76,0.18)'); g.addColorStop(1, 'rgba(201,168,76,0)');
+            return g;
+          },
+          borderWidth: 2, pointRadius: 3, pointHoverRadius: 6,
+          pointBackgroundColor: '#C9A84C', pointBorderColor: '#121212', pointBorderWidth: 1.5,
+          tension: 0.4, fill: true,
+        }]},
         options: {
-          responsive: true,
-          maintainAspectRatio: false,
+          responsive: true, maintainAspectRatio: false,
           interaction: { mode: 'index', intersect: false },
           plugins: {
             legend: { display: false },
-            tooltip: {
-              backgroundColor: '#242424',
-              borderColor: '#2E2E2E',
-              borderWidth: 1,
-              titleColor: '#7A7A7A',
-              bodyColor: '#ffffff',
-              padding: 10,
-              callbacks: {
-                label: (ctx) => `  ${fmt(ctx.raw)}`,
-              },
-            },
+            tooltip: { backgroundColor:'#242424', borderColor:'#2E2E2E', borderWidth:1,
+              titleColor:'#7A7A7A', bodyColor:'#ffffff', padding:10,
+              callbacks: { label: ctx => `  ${fmt(ctx.raw)}` } },
           },
           scales: {
-            x: {
-              grid:  { color: 'rgba(255,255,255,0.04)', drawBorder: false },
-              ticks: { color: '#7A7A7A', font: { size: 10 }, maxTicksLimit: 8 },
-              border: { display: false },
-            },
-            y: {
-              grid:  { color: 'rgba(255,255,255,0.04)', drawBorder: false },
-              ticks: { color: '#7A7A7A', font: { size: 10 }, callback: (v) => '$' + v },
-              border: { display: false },
-              beginAtZero: true,
-            },
+            x: { grid:{ color:'rgba(255,255,255,0.04)' }, ticks:{ color:'#7A7A7A', font:{size:10}, maxTicksLimit:8 }, border:{display:false} },
+            y: { grid:{ color:'rgba(255,255,255,0.04)' }, ticks:{ color:'#7A7A7A', font:{size:10}, callback:v=>'$'+v }, border:{display:false}, beginAtZero:true },
           },
         },
       });
     }
 
-    // ── SIGN OUT ──────────────────────────────────────────────────
-    document.getElementById('sign-out-btn').addEventListener('click', async () => {
+    // ── VIEW SWITCHING ─────────────────────────────────────────
+    function showBooksView() {
+      $('view-books').classList.remove('hidden');
+      $('view-chapters').classList.add('hidden');
+      $('view-editor').classList.add('hidden');
+      selectedBook = null; editingChapter = null;
+      loadBooks();
+    }
+
+    function showChaptersView() {
+      $('view-books').classList.add('hidden');
+      $('view-chapters').classList.remove('hidden');
+      $('view-editor').classList.add('hidden');
+      editingChapter = null;
+      loadChapters(selectedBook.id);
+    }
+
+    function showEditorView(chapter) {
+      editingChapter = (chapter && (chapter.status === 'draft' || chapter.status === 'revision_requested'))
+        ? chapter : null;
+      const isReadOnly = chapter && editingChapter === null;
+
+      $('view-books').classList.add('hidden');
+      $('view-chapters').classList.add('hidden');
+      $('view-editor').classList.remove('hidden');
+
+      const chNum = chapter ? `Chapter ${chapter.chapter_number}` : `Chapter ${window._nextChNum || '—'}`;
+      $('editor-chapter-num').textContent  = chNum;
+      $('editor-heading').textContent      = chapter ? (chapter.title || '(Untitled)') : 'New Chapter';
+      $('editor-chapter-title').value      = chapter?.title || '';
+      $('editor-content').value            = chapter?.content || '';
+      $('editor-word-count').textContent   = countWords(chapter?.content || '') + ' words';
+      $('editor-status-label').textContent = chapter ? `Status: ${chapter.status.replace('_',' ')}` : '';
+
+      $('editor-chapter-title').disabled = isReadOnly;
+      $('editor-content').disabled       = isReadOnly;
+      $('docx-section').classList.toggle('hidden', isReadOnly);
+      $('editor-actions').classList.toggle('hidden', isReadOnly);
+      $('editor-readonly-actions').classList.toggle('hidden', !isReadOnly);
+      $('editor-error').classList.add('hidden');
+
+      if (isReadOnly) {
+        pendingEditChapterId = chapter.id;
+        // Check if a request is already pending
+        db.from('edit_requests')
+          .select('id, status')
+          .eq('chapter_id', chapter.id)
+          .eq('status', 'pending')
+          .maybeSingle()
+          .then(({ data }) => {
+            const btn = $('request-edit-btn');
+            if (data) {
+              btn.textContent = 'Request Pending';
+              btn.disabled = true;
+              btn.classList.replace('bg-gold/10','bg-surface');
+              btn.classList.replace('border-gold/30','border-border');
+              btn.classList.replace('text-gold','text-muted');
+            }
+          });
+      }
+    }
+
+    // ── BOOKS ──────────────────────────────────────────────────
+    async function loadBooks() {
+      const { data } = await db.from('books')
+        .select('id, title, description, cover_url, status, created_at')
+        .eq('author_id', currentUserId)
+        .order('created_at', { ascending: false });
+      renderBooks(data ?? []);
+    }
+
+    function renderBooks(books) {
+      const grid = $('books-grid');
+      if (!books.length) {
+        grid.innerHTML = `
+          <div class="col-span-2 rounded-2xl border border-dashed border-border p-12 text-center">
+            <div class="w-14 h-14 rounded-2xl bg-surface border border-border flex items-center justify-center mx-auto mb-4">
+              <svg class="w-6 h-6 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.966 8.966 0 00-6 2.292m0-14.25v14.25"/>
+              </svg>
+            </div>
+            <h3 class="font-serif text-xl text-white mb-1">No books yet</h3>
+            <p class="text-muted text-sm">Click <span class="text-gold">New Book</span> to start your first manuscript.</p>
+          </div>`;
+        return;
+      }
+
+      const statusBadge = s => {
+        const map = { draft:'bg-muted/20 text-muted', submitted:'bg-gold/15 text-gold', approved:'bg-emerald-400/15 text-emerald-400' };
+        return `<span class="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full ${map[s]||'bg-muted/10 text-muted'}">${s}</span>`;
+      };
+
+      grid.innerHTML = books.map(b => `
+        <button onclick='openBook(${JSON.stringify(b)})'
+                class="text-left rounded-2xl border border-border bg-surface hover:border-gold/30 hover:shadow-lg hover:shadow-gold/5 transition-all duration-200 overflow-hidden group">
+          ${b.cover_url
+            ? `<img src="${escHtml(b.cover_url)}" class="w-full h-40 object-cover" alt=""/>`
+            : `<div class="w-full h-40 bg-charcoal flex items-center justify-center">
+                 <span class="font-serif text-4xl text-muted/40">${escHtml(b.title[0]||'?')}</span>
+               </div>`}
+          <div class="p-4">
+            <div class="flex items-start justify-between gap-2 mb-1">
+              <p class="font-medium text-white text-sm leading-snug group-hover:text-gold transition-colors truncate">${escHtml(b.title)}</p>
+              ${statusBadge(b.status)}
+            </div>
+            ${b.description ? `<p class="text-muted text-xs mt-1 line-clamp-2">${escHtml(b.description)}</p>` : ''}
+          </div>
+        </button>`
+      ).join('');
+    }
+
+    function openBook(book) {
+      selectedBook = book;
+      $('ch-title').textContent  = book.title;
+      $('ch-status').textContent = 'Status: ' + book.status;
+      if (book.cover_url) {
+        $('ch-cover').src = book.cover_url;
+        $('ch-cover').classList.remove('hidden');
+      } else {
+        $('ch-cover').classList.add('hidden');
+      }
+      showChaptersView();
+    }
+
+    async function createBook() {
+      const title = $('new-book-title').value.trim();
+      const description = $('new-book-description').value.trim() || null;
+      const errBox = $('new-book-error');
+      errBox.classList.add('hidden');
+
+      if (!title) {
+        errBox.textContent = 'Book title is required.';
+        errBox.classList.remove('hidden');
+        return;
+      }
+
+      // Insert book first (get ID for cover path)
+      const { data: book, error } = await db.from('books').insert({
+        author_id: currentUserId, title, description,
+      }).select().single();
+
+      if (error) { errBox.textContent = error.message; errBox.classList.remove('hidden'); return; }
+
+      // Upload cover if selected
+      if (pendingCoverFile) {
+        const ext  = pendingCoverFile.name.split('.').pop();
+        const path = `${currentUserId}/${book.id}.${ext}`;
+        const { error: upErr } = await db.storage.from('covers').upload(path, pendingCoverFile, { upsert: true });
+        if (!upErr) {
+          const { data: { publicUrl } } = db.storage.from('covers').getPublicUrl(path);
+          await db.from('books').update({ cover_url: publicUrl }).eq('id', book.id);
+        }
+      }
+
+      closeNewBookModal();
+      showToast('Book created!');
+      loadBooks();
+    }
+
+    function openNewBookModal() {
+      $('new-book-title').value = '';
+      $('new-book-description').value = '';
+      $('new-book-error').classList.add('hidden');
+      $('cover-preview').classList.add('hidden');
+      $('cover-prompt').classList.remove('hidden');
+      pendingCoverFile = null;
+      $('new-book-modal').classList.remove('hidden');
+      $('new-book-title').focus();
+    }
+
+    function closeNewBookModal() {
+      $('new-book-modal').classList.add('hidden');
+      pendingCoverFile = null;
+    }
+
+    $('new-book-modal').addEventListener('click', e => {
+      if (e.target === $('new-book-modal')) closeNewBookModal();
+    });
+
+    $('cover-input').addEventListener('change', e => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      pendingCoverFile = file;
+      const url = URL.createObjectURL(file);
+      $('cover-preview').src = url;
+      $('cover-preview').classList.remove('hidden');
+      $('cover-prompt').classList.add('hidden');
+    });
+
+    // ── CHAPTERS ───────────────────────────────────────────────
+    async function loadChapters(bookId) {
+      $('chapters-list').innerHTML = '<div class="skeleton h-16 rounded-xl"></div>'.repeat(3);
+
+      const [{ data: chapters }, { data: myReqs }] = await Promise.all([
+        db.from('chapters')
+          .select('id, chapter_number, title, content, word_count, status')
+          .eq('book_id', bookId)
+          .order('chapter_number', { ascending: true }),
+        db.from('edit_requests')
+          .select('id, chapter_id, status, admin_reply, created_at')
+          .eq('author_id', currentUserId)
+          .order('created_at', { ascending: false }),
+      ]);
+
+      const chapterList = chapters ?? [];
+      const requests    = myReqs ?? [];
+
+      // Next chapter number (for new chapter)
+      const maxNum = chapterList.reduce((m, c) => Math.max(m, c.chapter_number), 0);
+      window._nextChNum = maxNum + 1;
+
+      renderChapters(chapterList, requests);
+      renderMyRequests(requests.filter(r =>
+        chapterList.some(c => c.id === r.chapter_id)
+      ), chapterList);
+    }
+
+    function renderChapters(chapters, requests) {
+      const container = $('chapters-list');
+
+      if (!chapters.length) {
+        container.innerHTML = `<p class="text-muted text-sm px-2">No chapters yet — click <span class="text-gold">Add Chapter</span> to start.</p>`;
+        return;
+      }
+
+      const reqMap = {};
+      requests.forEach(r => {
+        if (!reqMap[r.chapter_id] || r.status === 'pending') reqMap[r.chapter_id] = r;
+      });
+
+      const statusBadge = s => {
+        const map = { draft:'bg-muted/20 text-muted', submitted:'bg-gold/15 text-gold', approved:'bg-emerald-400/15 text-emerald-400', revision_requested:'bg-red-400/15 text-red-400' };
+        return `<span class="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full ${map[s]||''}">${s.replace('_',' ')}</span>`;
+      };
+
+      container.innerHTML = chapters.map(ch => {
+        const isEditable = ch.status === 'draft' || ch.status === 'revision_requested';
+        const req = reqMap[ch.id];
+        const hasPending = req?.status === 'pending';
+
+        const actionBtn = isEditable
+          ? `<button onclick='showEditorView(${JSON.stringify(ch)})' class="text-[10px] font-semibold text-gold hover:text-gold-light transition-colors">Edit</button>`
+          : hasPending
+            ? `<span class="text-[10px] font-semibold text-muted">Request Pending</span>`
+            : `<button onclick='showEditorView(${JSON.stringify(ch)})' class="text-[10px] font-semibold text-white/50 hover:text-white transition-colors">View / Edit Request</button>`;
+
+        return `
+          <div class="rounded-xl border border-border bg-surface p-4 hover:border-white/10 transition-all duration-200">
+            <div class="flex items-center justify-between gap-3">
+              <div class="min-w-0">
+                <p class="text-[10px] font-semibold tracking-wide uppercase text-muted mb-0.5">Chapter ${ch.chapter_number}</p>
+                <p class="text-white font-medium truncate">${escHtml(ch.title || '(Untitled)')}</p>
+                <p class="text-muted text-xs mt-0.5">${(ch.word_count||0).toLocaleString()} words</p>
+              </div>
+              <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
+                ${statusBadge(ch.status)}
+                ${actionBtn}
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function renderMyRequests(bookRequests, chapters) {
+      const section = $('my-requests-section');
+      const list    = $('my-requests-list');
+
+      if (!bookRequests.length) { section.classList.add('hidden'); return; }
+      section.classList.remove('hidden');
+
+      const chMap = {};
+      chapters.forEach(c => { chMap[c.id] = c; });
+
+      const statusStyle = { pending:'text-gold', approved:'text-emerald-400', rejected:'text-red-400' };
+
+      list.innerHTML = bookRequests.map(r => {
+        const ch = chMap[r.chapter_id];
+        return `
+          <div class="rounded-xl border border-border bg-charcoal/60 p-4">
+            <div class="flex items-start justify-between gap-2 mb-2">
+              <p class="text-white text-sm font-medium">Chapter ${ch?.chapter_number || '—'} — ${escHtml(ch?.title || 'Untitled')}</p>
+              <span class="text-[10px] font-semibold uppercase ${statusStyle[r.status]||'text-muted'}">${r.status}</span>
+            </div>
+            ${r.admin_reply
+              ? `<div class="mt-2 p-3 rounded-lg bg-surface border border-border">
+                   <p class="text-[10px] font-semibold uppercase text-muted mb-1">Admin Reply</p>
+                   <p class="text-white/80 text-xs leading-relaxed">${escHtml(r.admin_reply)}</p>
+                 </div>`
+              : '<p class="text-muted text-xs">Awaiting admin review.</p>'}
+          </div>`;
+      }).join('');
+    }
+
+    async function saveChapter(statusToSave) {
+      const title   = $('editor-chapter-title').value.trim() || null;
+      const content = $('editor-content').value.trim();
+      const errBox  = $('editor-error');
+      errBox.classList.add('hidden');
+
+      if (!content) {
+        errBox.textContent = 'Chapter content cannot be empty.';
+        errBox.classList.remove('hidden');
+        return;
+      }
+
+      const words = countWords(content);
+
+      if (editingChapter) {
+        // Update existing draft
+        const { error } = await db.from('chapters').update({
+          title, content, word_count: words, status: statusToSave, updated_at: new Date().toISOString(),
+        }).eq('id', editingChapter.id);
+        if (error) { errBox.textContent = error.message; errBox.classList.remove('hidden'); return; }
+      } else {
+        // Insert new chapter
+        const { data: existing } = await db.from('chapters')
+          .select('chapter_number')
+          .eq('book_id', selectedBook.id)
+          .order('chapter_number', { ascending: false })
+          .limit(1);
+        const chapterNumber = (existing?.[0]?.chapter_number || 0) + 1;
+
+        const { error } = await db.from('chapters').insert({
+          book_id: selectedBook.id, author_id: currentUserId,
+          chapter_number: chapterNumber, title, content,
+          word_count: words, status: statusToSave,
+        });
+        if (error) { errBox.textContent = error.message; errBox.classList.remove('hidden'); return; }
+      }
+
+      showToast(statusToSave === 'submitted' ? 'Chapter submitted for review ✓' : 'Draft saved ✓');
+      showChaptersView();
+    }
+
+    // ── EDIT REQUEST ───────────────────────────────────────────
+    function openEditRequestModal() {
+      $('edit-request-reason').value = '';
+      $('edit-request-error').classList.add('hidden');
+      const ch = editingChapter || { chapter_number: '?' };
+      $('edit-request-subtitle').textContent = `Chapter ${ch.chapter_number || '?'} — explain why you need to revise this.`;
+      $('edit-request-modal').classList.remove('hidden');
+      $('edit-request-reason').focus();
+    }
+
+    function closeEditRequestModal() {
+      $('edit-request-modal').classList.add('hidden');
+    }
+
+    $('edit-request-modal').addEventListener('click', e => {
+      if (e.target === $('edit-request-modal')) closeEditRequestModal();
+    });
+
+    async function submitEditRequest() {
+      const reason = $('edit-request-reason').value.trim();
+      const errBox = $('edit-request-error');
+      errBox.classList.add('hidden');
+
+      if (!reason) {
+        errBox.textContent = 'Please explain why you need to edit this chapter.';
+        errBox.classList.remove('hidden');
+        return;
+      }
+
+      const { error } = await db.from('edit_requests').insert({
+        chapter_id: pendingEditChapterId,
+        author_id:  currentUserId,
+        reason,
+      });
+
+      if (error) { errBox.textContent = error.message; errBox.classList.remove('hidden'); return; }
+
+      closeEditRequestModal();
+      showToast('Edit request sent to admin.');
+
+      // Update button state immediately
+      const btn = $('request-edit-btn');
+      btn.textContent = 'Request Pending';
+      btn.disabled = true;
+    }
+
+    // ── DOCX UPLOAD ────────────────────────────────────────────
+    $('docx-dropzone').addEventListener('click', () => $('docx-input').click());
+
+    $('docx-dropzone').addEventListener('dragover', e => {
+      e.preventDefault();
+      $('docx-dropzone').classList.add('border-gold/40');
+    });
+    $('docx-dropzone').addEventListener('dragleave', () => {
+      $('docx-dropzone').classList.remove('border-gold/40');
+    });
+    $('docx-dropzone').addEventListener('drop', e => {
+      e.preventDefault();
+      $('docx-dropzone').classList.remove('border-gold/40');
+      const file = e.dataTransfer.files?.[0];
+      if (file) processDocx(file);
+    });
+
+    $('docx-input').addEventListener('change', e => {
+      const file = e.target.files?.[0];
+      if (file) processDocx(file);
+    });
+
+    async function processDocx(file) {
+      $('docx-filename').textContent = file.name;
+      $('docx-filename').classList.remove('hidden');
+      try {
+        const buffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawValue({ arrayBuffer: buffer });
+        $('editor-content').value = result.value;
+        updateWordCount();
+        showToast('Document converted — review below.');
+      } catch (e) {
+        showToast('Could not read .docx file.');
+      }
+    }
+
+    function updateWordCount() {
+      $('editor-word-count').textContent = countWords($('editor-content').value) + ' words';
+    }
+
+    $('editor-content').addEventListener('input', updateWordCount);
+
+    // ── TOAST ──────────────────────────────────────────────────
+    function showToast(msg) {
+      const t = document.createElement('div');
+      t.className = 'fixed bottom-6 right-6 z-[70] px-4 py-3 bg-surface border border-border rounded-xl text-sm text-white shadow-xl shadow-black/50 transition-opacity duration-300';
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3000);
+    }
+
+    // ── SIGN OUT ───────────────────────────────────────────────
+    $('sign-out-btn').addEventListener('click', async () => {
       await db.auth.signOut();
       window.location.replace('login.html');
     });
 
-    // ── BOOT ──────────────────────────────────────────────────────
+    // ── BOOT ───────────────────────────────────────────────────
+    function buildChartSkeleton() {
+      $('chart-skeleton').innerHTML = Array.from({ length: 30 }, () => {
+        const h = 20 + Math.random() * 60;
+        return `<div class="skeleton flex-1 rounded-t" style="height:${h}%"></div>`;
+      }).join('');
+    }
+
     (async () => {
       buildChartSkeleton();
-      document.getElementById('today-date').textContent = todayLabel();
+      $('today-date').textContent = new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
 
-      // 1. Auth guard — exits if unauthenticated.
-      // Reveal the page only after auth has settled to prevent flash.
       const session = await guardAuth();
       document.body.style.opacity = '1';
-      const userId  = session.user.id;
+      currentUserId = session.user.id;
 
-      // 2. Kick off all data requests in parallel
-      const [profile, projects, earnings30, allTime] = await Promise.all([
-        fetchProfile(userId),
-        fetchProjects(userId),
-        fetchEarnings30Days(userId),
-        fetchAllTimeTotal(userId),
+      const [profile, earnings30, allTime, totalWords] = await Promise.all([
+        fetchProfile(currentUserId),
+        fetchEarnings30Days(currentUserId),
+        fetchAllTimeTotal(currentUserId),
+        fetchTotalWordCount(currentUserId),
       ]);
 
-      // 3. Hydrate greeting + nav
-      const firstName = (profile.name || 'Writer').split(' ')[0];
-      document.getElementById('greeting-name').textContent = firstName;
-      document.getElementById('nav-name').textContent      = profile.name;
+      const firstName = (profile?.name || 'Writer').split(' ')[0];
+      $('greeting-name').textContent = firstName;
+      $('nav-name').textContent = profile?.name || '';
 
-      // 4. Compute stats
-      const now       = new Date();
-      const monthKey  = now.toISOString().slice(0, 7); // "YYYY-MM"
-      const monthly   = earnings30
-        .filter(r => r.date.startsWith(monthKey))
-        .reduce((sum, r) => sum + parseFloat(r.amount_earned), 0);
+      const monthly = earnings30
+        .filter(r => r.date.startsWith(new Date().toISOString().slice(0, 7)))
+        .reduce((s, r) => s + parseFloat(r.amount_earned), 0);
 
-      const totalWords = projects.reduce((sum, p) => sum + (p.word_count || 0), 0);
-
-      renderStats({ monthly, allTime, totalWords, milestoneTarget: 30000 });
-      renderProjects(projects);
+      renderStats({ monthly, allTime, totalWords });
       renderChart(earnings30);
+      await loadBooks();
     })();
   </script>
 
-  <!-- Cursor spotlight: gold glow + illuminating grid -->
+  <!-- Cursor spotlight: mobile drift / desktop cursor -->
   <script>
     const afsGlow = document.getElementById('afs-glow');
     const afsGrid = document.getElementById('afs-grid');
 
-    let raf = null;
-    let curX = -9999;
-    let curY = -9999;
-
-    function paint() {
-      const x = curX;
-      const y = curY;
+    function paintAt(x, y) {
       afsGlow.style.background =
         `radial-gradient(700px circle at ${x}px ${y}px, rgba(212,175,55,0.07), transparent 40%)`;
       const mask = `radial-gradient(circle 520px at ${x}px ${y}px, black 0%, transparent 68%)`;
       afsGrid.style.webkitMaskImage = mask;
       afsGrid.style.maskImage       = mask;
-      raf = null;
     }
 
-    window.addEventListener('mousemove', (e) => {
-      curX = e.clientX;
-      curY = e.clientY;
-      if (!raf) raf = requestAnimationFrame(paint);
-    }, { passive: true });
-
-    document.addEventListener('mouseleave', () => {
-      curX = -9999;
-      curY = -9999;
-      if (!raf) raf = requestAnimationFrame(paint);
-    });
+    if (window.matchMedia('(pointer: coarse)').matches) {
+      (function drift(ts) {
+        paintAt(
+          window.innerWidth  * (0.5 + 0.35 * Math.sin(ts / 13000 * Math.PI * 2)),
+          window.innerHeight * (0.5 + 0.28 * Math.sin(ts / 19000 * Math.PI * 2))
+        );
+        requestAnimationFrame(drift);
+      })(0);
+    } else {
+      let raf = null, curX = -9999, curY = -9999;
+      function paint() { paintAt(curX, curY); raf = null; }
+      window.addEventListener('mousemove', e => {
+        curX = e.clientX; curY = e.clientY;
+        if (!raf) raf = requestAnimationFrame(paint);
+      }, { passive: true });
+      document.addEventListener('mouseleave', () => {
+        curX = -9999; curY = -9999;
+        if (!raf) raf = requestAnimationFrame(paint);
+      });
+    }
   </script>
 
 </body>
