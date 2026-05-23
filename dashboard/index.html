@@ -280,7 +280,7 @@
       if (s1) return s1;
 
       // Safety delay — gives an in-flight token refresh time to land
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
       const { data: { session: s2 } } = await db.auth.getSession();
       if (s2) return s2;
