@@ -52,11 +52,24 @@
        If no session exists the user is immediately redirected to login.html.
   ───────────────────────────────────────────────────────────── -->
 
-  <!-- Background atmosphere -->
-  <div class="pointer-events-none fixed inset-0 overflow-hidden" style="z-index:0;">
-    <div class="absolute top-0 right-0 w-[600px] h-[400px] rounded-full bg-gold/4 blur-[140px]"></div>
-    <div class="absolute bottom-0 left-0 w-[400px] h-[300px] rounded-full bg-gold/3 blur-[100px]"></div>
-  </div>
+  <!-- Layer 1: soft gold radial glow that follows the cursor -->
+  <div id="afs-glow"
+       class="pointer-events-none fixed inset-0"
+       style="z-index:0; will-change:background;"></div>
+
+  <!-- Layer 2: faint gold grid, fully masked by default, revealed by cursor -->
+  <div id="afs-grid"
+       class="pointer-events-none fixed inset-0"
+       style="
+         z-index: 0;
+         background-image:
+           linear-gradient(rgba(201,168,76,0.13) 1px, transparent 1px),
+           linear-gradient(90deg, rgba(201,168,76,0.13) 1px, transparent 1px);
+         background-size: 48px 48px;
+         -webkit-mask-image: radial-gradient(circle 520px at -9999px -9999px, black 0%, transparent 70%);
+         mask-image:         radial-gradient(circle 520px at -9999px -9999px, black 0%, transparent 70%);
+         will-change: mask-image, -webkit-mask-image;
+       "></div>
 
   <!-- ── NAV (pill, dashboard variant) ─────────────────────────── -->
   <header class="fixed top-5 inset-x-0 z-50 flex justify-center px-5 pointer-events-none">
@@ -503,6 +516,39 @@
       renderProjects(projects);
       renderChart(earnings30);
     })();
+  </script>
+
+  <!-- Cursor spotlight: gold glow + illuminating grid -->
+  <script>
+    const afsGlow = document.getElementById('afs-glow');
+    const afsGrid = document.getElementById('afs-grid');
+
+    let raf = null;
+    let curX = -9999;
+    let curY = -9999;
+
+    function paint() {
+      const x = curX;
+      const y = curY;
+      afsGlow.style.background =
+        `radial-gradient(700px circle at ${x}px ${y}px, rgba(212,175,55,0.07), transparent 40%)`;
+      const mask = `radial-gradient(circle 520px at ${x}px ${y}px, black 0%, transparent 68%)`;
+      afsGrid.style.webkitMaskImage = mask;
+      afsGrid.style.maskImage       = mask;
+      raf = null;
+    }
+
+    window.addEventListener('mousemove', (e) => {
+      curX = e.clientX;
+      curY = e.clientY;
+      if (!raf) raf = requestAnimationFrame(paint);
+    }, { passive: true });
+
+    document.addEventListener('mouseleave', () => {
+      curX = -9999;
+      curY = -9999;
+      if (!raf) raf = requestAnimationFrame(paint);
+    });
   </script>
 
 </body>

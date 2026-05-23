@@ -39,12 +39,26 @@
 </head>
 <body class="bg-obsidian text-white font-sans antialiased min-h-screen flex items-center justify-center px-4">
 
-  <!-- Background glow -->
-  <div class="pointer-events-none fixed inset-0 overflow-hidden">
-    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full bg-gold/5 blur-[120px]"></div>
-  </div>
+  <!-- Layer 1: soft gold radial glow that follows the cursor -->
+  <div id="afs-glow"
+       class="pointer-events-none fixed inset-0"
+       style="z-index:0; will-change:background;"></div>
 
-  <div class="relative w-full max-w-sm">
+  <!-- Layer 2: faint gold grid, fully masked by default, revealed by cursor -->
+  <div id="afs-grid"
+       class="pointer-events-none fixed inset-0"
+       style="
+         z-index: 0;
+         background-image:
+           linear-gradient(rgba(201,168,76,0.13) 1px, transparent 1px),
+           linear-gradient(90deg, rgba(201,168,76,0.13) 1px, transparent 1px);
+         background-size: 48px 48px;
+         -webkit-mask-image: radial-gradient(circle 520px at -9999px -9999px, black 0%, transparent 70%);
+         mask-image:         radial-gradient(circle 520px at -9999px -9999px, black 0%, transparent 70%);
+         will-change: mask-image, -webkit-mask-image;
+       "></div>
+
+  <div class="relative z-10 w-full max-w-sm">
 
     <!-- Logo -->
     <div class="flex items-center justify-center gap-3 mb-10">
@@ -166,6 +180,39 @@
         // Session cookie is set automatically by the Supabase client
         window.location.replace('index.html');
       }
+    });
+  </script>
+
+  <!-- Cursor spotlight: gold glow + illuminating grid -->
+  <script>
+    const afsGlow = document.getElementById('afs-glow');
+    const afsGrid = document.getElementById('afs-grid');
+
+    let raf = null;
+    let curX = -9999;
+    let curY = -9999;
+
+    function paint() {
+      const x = curX;
+      const y = curY;
+      afsGlow.style.background =
+        `radial-gradient(700px circle at ${x}px ${y}px, rgba(212,175,55,0.07), transparent 40%)`;
+      const mask = `radial-gradient(circle 520px at ${x}px ${y}px, black 0%, transparent 68%)`;
+      afsGrid.style.webkitMaskImage = mask;
+      afsGrid.style.maskImage       = mask;
+      raf = null;
+    }
+
+    window.addEventListener('mousemove', (e) => {
+      curX = e.clientX;
+      curY = e.clientY;
+      if (!raf) raf = requestAnimationFrame(paint);
+    }, { passive: true });
+
+    document.addEventListener('mouseleave', () => {
+      curX = -9999;
+      curY = -9999;
+      if (!raf) raf = requestAnimationFrame(paint);
     });
   </script>
 
