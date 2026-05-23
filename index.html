@@ -127,26 +127,47 @@
   <div class="relative z-10">
 
   <!-- ═══════════════════════════════════════════
-       NAV
+       NAV — floating pill
   ═══════════════════════════════════════════ -->
-  <nav class="fixed top-0 left-0 right-0 z-50 bg-obsidian/80 backdrop-blur-md border-b border-border">
-    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-      <div class="flex items-center gap-3">
+  <!-- Outer wrapper: full-width, pointer-events-none so the transparent
+       areas around the pill never swallow clicks on the page beneath -->
+  <header class="fixed top-5 inset-x-0 z-50 flex justify-center px-5 pointer-events-none">
+    <nav class="pointer-events-auto
+                flex items-center justify-between gap-6
+                w-full max-w-xl
+                rounded-full
+                bg-obsidian/70 backdrop-blur-md
+                border border-white/10
+                shadow-xl shadow-black/60
+                px-4 py-2.5
+                transition-shadow duration-300">
+
+      <!-- Logo -->
+      <div class="flex items-center gap-2.5 flex-shrink-0">
         <span class="w-6 h-6 rounded-sm bg-gold flex items-center justify-center text-obsidian font-serif font-bold text-xs">A</span>
-        <span class="font-serif text-lg tracking-wide text-white">Apex Fiction Studio</span>
+        <span class="font-serif text-base tracking-wide text-white whitespace-nowrap">Apex Fiction Studio</span>
       </div>
+
+      <!-- CTA -->
       <a href="#apply"
-         class="hidden sm:inline-flex items-center gap-2 px-5 py-2 bg-gold/10 hover:bg-gold/20 border border-gold/30 hover:border-gold/60 text-gold text-sm font-medium rounded transition-all duration-200">
+         class="flex-shrink-0 inline-flex items-center gap-2
+                px-4 py-1.5
+                bg-gold/10 hover:bg-gold/20
+                border border-gold/30 hover:border-gold/60
+                text-gold text-sm font-medium
+                rounded-full
+                transition-all duration-200">
         Apply Now
       </a>
-    </div>
-  </nav>
+
+    </nav>
+  </header>
 
 
   <!-- ═══════════════════════════════════════════
        1. HERO
   ═══════════════════════════════════════════ -->
-  <section class="relative min-h-screen flex flex-col items-center justify-center text-center px-6 pt-24 pb-20">
+  <section class="relative min-h-screen flex flex-col items-center justify-center text-center px-6 pt-32 pb-20">
 
     <!-- Background radial glow -->
     <div class="absolute inset-0 pointer-events-none overflow-hidden">
