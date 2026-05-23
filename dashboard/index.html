@@ -398,11 +398,12 @@
     const countWords = t => t.trim() ? t.trim().split(/\s+/).length : 0;
 
     // ── STATE ──────────────────────────────────────────────────
-    let currentUserId       = null;
-    let selectedBook        = null;
-    let editingChapter      = null;   // null = new chapter, obj = editing existing draft
+    let currentUserId        = null;
+    let selectedBook         = null;
+    let editingChapter       = null;   // null = new chapter, obj = editing existing draft
+    let viewingChapter       = null;   // read-only chapter currently open
     let pendingEditChapterId = null;
-    let pendingCoverFile    = null;
+    let pendingCoverFile     = null;
 
     // ── AUTH ───────────────────────────────────────────────────
     function guardAuth() {
@@ -524,6 +525,7 @@
     function showEditorView(chapter) {
       editingChapter = (chapter && (chapter.status === 'draft' || chapter.status === 'revision_requested'))
         ? chapter : null;
+      viewingChapter = null;
       const isReadOnly = chapter && editingChapter === null;
 
       $('view-books').classList.add('hidden');
@@ -546,6 +548,7 @@
       $('editor-error').classList.add('hidden');
 
       if (isReadOnly) {
+        viewingChapter = chapter;
         pendingEditChapterId = chapter.id;
         // Check if a request is already pending
         db.from('edit_requests')
@@ -842,7 +845,7 @@
     function openEditRequestModal() {
       $('edit-request-reason').value = '';
       $('edit-request-error').classList.add('hidden');
-      const ch = editingChapter || { chapter_number: '?' };
+      const ch = viewingChapter || editingChapter || { chapter_number: '?' };
       $('edit-request-subtitle').textContent = `Chapter ${ch.chapter_number || '?'} — explain why you need to revise this.`;
       $('edit-request-modal').classList.remove('hidden');
       $('edit-request-reason').focus();
