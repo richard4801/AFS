@@ -282,30 +282,23 @@
     }
 
     // ── AUTH GUARD ────────────────────────────────────────────────
-    // Two-phase check with a safety delay.
-    //
-    // Phase 1: call getSession() immediately. On a fresh page load,
-    // Supabase reads the stored token from localStorage. If that token
-    // is expired it fires a background refresh network request, and
-    // getSession() can return null before that request finishes.
-    //
-    // Phase 2: if Phase 1 returns null we wait 800 ms to let any
-    // in-flight token refresh complete, then call getSession() once
-    // more. Only if the session is still null after this settled check
-    // do we treat the user as definitively unauthenticated and redirect.
-    async function guardAuth() {
-      const { data: { session: s1 } } = await db.auth.getSession();
-      if (s1) return s1;
-
-      // Safety delay — gives an in-flight token refresh time to land
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      const { data: { session: s2 } } = await db.auth.getSession();
-      if (s2) return s2;
-
-      // Still null after the delay: definitively unauthenticated
-      window.location.replace('login.html');
-      throw new Error('unauthenticated');
+    // Uses onAuthStateChange + INITIAL_SESSION — the only reliable signal
+    // that Supabase has fully settled its auth state, including any
+    // in-flight token refresh network request. getSession() + setTimeout
+    // was removed because it can still race on slower connections.
+    function guardAuth() {
+      return new Promise((resolve, reject) => {
+        const { data: { subscription } } = db.auth.onAuthStateChange((event, session) => {
+          if (event !== 'INITIAL_SESSION') return;
+          subscription.unsubscribe();
+          if (session) {
+            resolve(session);
+          } else {
+            window.location.replace('login.html');
+            reject(new Error('unauthenticated'));
+          }
+        });
+      });
     }
 
     // ── DATA FETCHING ─────────────────────────────────────────────
