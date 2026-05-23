@@ -234,31 +234,34 @@
     const afsGlow = document.getElementById('afs-glow');
     const afsGrid = document.getElementById('afs-grid');
 
-    let raf  = null;
-    let curX = -9999;
-    let curY = -9999;
-
-    function paint() {
-      const x = curX, y = curY;
+    function paintAt(x, y) {
       afsGlow.style.background =
         `radial-gradient(700px circle at ${x}px ${y}px, rgba(163,22,33,0.09), transparent 40%)`;
       const mask = `radial-gradient(circle 520px at ${x}px ${y}px, black 0%, transparent 68%)`;
       afsGrid.style.webkitMaskImage = mask;
       afsGrid.style.maskImage       = mask;
-      raf = null;
     }
 
-    window.addEventListener('mousemove', (e) => {
-      curX = e.clientX;
-      curY = e.clientY;
-      if (!raf) raf = requestAnimationFrame(paint);
-    }, { passive: true });
-
-    document.addEventListener('mouseleave', () => {
-      curX = -9999;
-      curY = -9999;
-      if (!raf) raf = requestAnimationFrame(paint);
-    });
+    if (window.matchMedia('(pointer: coarse)').matches) {
+      (function drift(ts) {
+        paintAt(
+          window.innerWidth  * (0.5 + 0.35 * Math.sin(ts / 13000 * Math.PI * 2)),
+          window.innerHeight * (0.5 + 0.28 * Math.sin(ts / 19000 * Math.PI * 2))
+        );
+        requestAnimationFrame(drift);
+      })(0);
+    } else {
+      let raf = null, curX = -9999, curY = -9999;
+      function paint() { paintAt(curX, curY); raf = null; }
+      window.addEventListener('mousemove', e => {
+        curX = e.clientX; curY = e.clientY;
+        if (!raf) raf = requestAnimationFrame(paint);
+      }, { passive: true });
+      document.addEventListener('mouseleave', () => {
+        curX = -9999; curY = -9999;
+        if (!raf) raf = requestAnimationFrame(paint);
+      });
+    }
   </script>
 
 </body>
