@@ -170,14 +170,25 @@
       const email    = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
 
-      const { error } = await db.auth.signInWithPassword({ email, password });
+      const { data: authData, error } = await db.auth.signInWithPassword({ email, password });
 
       if (error) {
         errBox.textContent = error.message;
         errBox.classList.remove('hidden');
         setLoading(false);
+        return;
+      }
+
+      // Check admin flag and redirect accordingly
+      const { data: profile } = await db
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', authData.user.id)
+        .single();
+
+      if (profile?.is_admin) {
+        window.location.replace('admin.html');
       } else {
-        // Session cookie is set automatically by the Supabase client
         window.location.replace('index.html');
       }
     });

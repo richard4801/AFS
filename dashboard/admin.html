@@ -65,7 +65,7 @@
   </style>
 </head>
 
-<body class="bg-obsidian text-white font-sans antialiased overflow-hidden h-screen" style="opacity:0;">
+<body class="bg-obsidian text-white font-sans antialiased min-h-screen" style="opacity:0;">
 
   <!-- ── CURSOR SPOTLIGHT ───────────────────────────────────── -->
   <div id="afs-glow"
@@ -92,13 +92,13 @@
                 shadow-xl shadow-black/60 px-4 py-2.5">
       <div class="flex items-center gap-2.5 flex-shrink-0">
         <span class="w-6 h-6 rounded-sm bg-gold flex items-center justify-center text-obsidian font-serif font-bold text-xs">A</span>
-        <span class="font-serif text-base tracking-wide text-white whitespace-nowrap">Apex Fiction Studio</span>
+        <span class="hidden sm:inline font-serif text-base tracking-wide text-white whitespace-nowrap">Apex Fiction Studio</span>
         <span class="ml-2 text-[10px] font-semibold tracking-[0.18em] uppercase text-gold border border-gold/25 bg-gold/8 rounded-full px-2.5 py-0.5">Admin</span>
       </div>
       <div class="flex items-center gap-4">
         <span id="nav-name" class="hidden sm:block text-muted text-sm truncate max-w-[180px]"></span>
         <a href="index.html"
-           class="flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium
+           class="hidden sm:inline-flex flex-shrink-0 items-center gap-1.5 px-4 py-1.5 text-sm font-medium
                   text-muted hover:text-white border border-border hover:border-white/20
                   rounded-full transition-all duration-200">
           Writer View
@@ -143,10 +143,10 @@
 
   <!-- ── MAIN LAYOUT ────────────────────────────────────────── -->
   <!-- pt accounts for the pill nav (~80px) -->
-  <div class="relative z-10 flex h-screen pt-20">
+  <div class="relative z-10 flex flex-col md:flex-row md:h-screen pt-20">
 
     <!-- ── LEFT SIDEBAR ───────────────────────────────────────── -->
-    <aside class="flex flex-col w-64 flex-shrink-0 border-r border-border bg-charcoal/40 backdrop-blur-sm overflow-hidden">
+    <aside class="flex flex-col border-b md:border-b-0 md:w-64 md:flex-shrink-0 md:border-r border-border bg-charcoal/40 backdrop-blur-sm md:overflow-hidden">
 
       <!-- Section toggle tabs -->
       <div class="flex border-b border-border flex-shrink-0">
@@ -169,7 +169,7 @@
         <p class="px-4 pt-4 pb-2 text-[10px] font-semibold tracking-[0.18em] uppercase text-muted flex-shrink-0">
           Submitted Books
         </p>
-        <div id="book-list" class="flex-1 overflow-y-auto thin-scroll px-2 pb-4 space-y-1">
+        <div id="book-list" class="overflow-y-auto thin-scroll px-2 pb-4 space-y-1 max-h-44 md:max-h-none md:flex-1">
           <!-- populated by JS -->
           <div class="skeleton h-10 w-full"></div>
           <div class="skeleton h-10 w-full mt-1"></div>
@@ -182,7 +182,7 @@
         <p class="px-4 pt-4 pb-2 text-[10px] font-semibold tracking-[0.18em] uppercase text-muted flex-shrink-0">
           Writers
         </p>
-        <div id="writer-list" class="flex-1 overflow-y-auto thin-scroll px-2 pb-4 space-y-1">
+        <div id="writer-list" class="overflow-y-auto thin-scroll px-2 pb-4 space-y-1 max-h-44 md:max-h-none md:flex-1">
           <!-- populated by JS -->
         </div>
       </div>
@@ -192,10 +192,10 @@
     <main class="flex-1 overflow-y-auto thin-scroll">
 
       <!-- ─── BOOK REVIEWS PANEL ─────────────────────────────── -->
-      <div id="panel-reviews" class="panel active h-full">
+      <div id="panel-reviews" class="panel active md:h-full">
 
         <!-- Empty state: no book selected -->
-        <div id="reviews-empty" class="flex flex-col items-center justify-center h-full text-center px-8">
+        <div id="reviews-empty" class="flex flex-col items-center justify-center min-h-[50vh] md:h-full text-center px-8">
           <div class="w-16 h-16 rounded-2xl bg-surface border border-border flex items-center justify-center mb-5">
             <svg class="w-7 h-7 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.966 8.966 0 00-6 2.292m0-14.25v14.25"/>
@@ -220,10 +220,10 @@
         </div>
 
         <!-- Chapter viewer: chapter content + paragraph comments -->
-        <div id="reviews-viewer" class="hidden flex h-full">
+        <div id="reviews-viewer" class="hidden flex flex-col md:flex-row md:h-full">
 
           <!-- Chapter content (scrollable) -->
-          <div class="flex-1 overflow-y-auto thin-scroll p-6 max-w-2xl">
+          <div class="flex-1 overflow-y-auto thin-scroll p-4 md:p-6 md:max-w-2xl">
             <button onclick="closeChapterViewer()"
                     class="inline-flex items-center gap-1.5 text-muted hover:text-white text-xs transition-colors duration-150 mb-5">
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
@@ -231,7 +231,7 @@
             </button>
 
             <!-- Chapter header + action bar -->
-            <div class="flex items-start justify-between gap-4 mb-6">
+            <div class="flex flex-wrap items-start justify-between gap-3 mb-6">
               <div>
                 <p id="viewer-chapter-num" class="text-[10px] font-semibold tracking-[0.18em] uppercase text-gold mb-1"></p>
                 <h3 id="viewer-chapter-title" class="font-serif text-2xl text-white"></h3>
@@ -256,7 +256,7 @@
           </div>
 
           <!-- Comment thread sidebar -->
-          <div class="w-72 flex-shrink-0 border-l border-border bg-charcoal/30 overflow-y-auto thin-scroll p-4">
+          <div class="md:w-72 md:flex-shrink-0 border-t md:border-t-0 md:border-l border-border bg-charcoal/30 overflow-y-auto thin-scroll p-4">
             <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted mb-4">Comments</p>
             <div id="comment-thread" class="space-y-3">
               <p class="text-muted text-xs">No comments yet. Hover a paragraph and click <span class="text-white">+</span> to add one.</p>
@@ -266,7 +266,7 @@
       </div><!-- /panel-reviews -->
 
       <!-- ─── INCOME MANAGEMENT PANEL ────────────────────────── -->
-      <div id="panel-income" class="panel p-6 max-w-lg">
+      <div id="panel-income" class="panel p-4 md:p-6 md:max-w-lg">
         <div class="mb-8">
           <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-gold mb-2">Income Management</p>
           <h2 class="font-serif text-3xl text-white">Record Daily Earnings</h2>
@@ -294,7 +294,7 @@
               </select>
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Date</label>
                 <input id="income-date" type="date"
@@ -364,46 +364,28 @@
     let rejectChapterId = null;   // chapter being rejected
 
     // ── ADMIN AUTH GUARD ───────────────────────────────────────
-    // Uses onAuthStateChange + INITIAL_SESSION rather than getSession().
-    //
-    // getSession() can return null while Supabase is still refreshing
-    // an expired access token — even with an 800ms safety delay this
-    // race can lose on slow connections. INITIAL_SESSION fires exactly
-    // once after Supabase has fully resolved auth state (including any
-    // pending network refresh), so it is the only reliable signal to
-    // act on. There is no ping-pong risk here because login.html does
-    // not auto-redirect back to admin.html.
     function guardAdmin() {
       return new Promise((resolve, reject) => {
         const { data: { subscription } } = db.auth.onAuthStateChange(async (event, session) => {
           if (event !== 'INITIAL_SESSION') return;
           subscription.unsubscribe();
 
-          console.log('[AFS Admin] INITIAL_SESSION fired. session:', session ? 'FOUND (uid=' + session.user.id + ')' : 'NULL');
-
           if (!session) {
-            console.error('[AFS Admin] REDIRECT REASON: No session — user is not logged in.');
             window.location.replace('login.html');
             return reject(new Error('unauthenticated'));
           }
 
-          // Verify is_admin flag from the database — client-side flags
-          // are not trustworthy; this is the authoritative check.
           const { data: profile, error } = await db
             .from('profiles')
             .select('name, is_admin')
             .eq('id', session.user.id)
             .single();
 
-          console.log('[AFS Admin] profiles query result — profile:', profile, '| error:', error);
-
           if (error || !profile?.is_admin) {
-            console.error('[AFS Admin] REDIRECT REASON:', error ? 'profiles query error: ' + error.message : 'is_admin is false for this account.');
             window.location.replace('login.html');
             return reject(new Error('not admin'));
           }
 
-          console.log('[AFS Admin] Admin verified. Loading dashboard…');
           resolve({ session, profile });
         });
       });
