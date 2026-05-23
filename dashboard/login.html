@@ -128,11 +128,15 @@
     const { createClient } = supabase;
     const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Skip login screen if a session already exists
-    (async () => {
-      const { data: { session } } = await db.auth.getSession();
-      if (session) window.location.replace('index.html');
-    })();
+    // Skip login screen if a session already exists.
+    // Same INITIAL_SESSION pattern — avoids acting before a token
+    // refresh that is still in-flight has a chance to complete.
+    const { data: { subscription: initSub } } = db.auth.onAuthStateChange((event, session) => {
+      if (event === 'INITIAL_SESSION') {
+        initSub.unsubscribe();
+        if (session) window.location.replace('index.html');
+      }
+    });
 
     // ── FORM LOGIC ───────────────────────────────────────────────
     const form    = document.getElementById('login-form');

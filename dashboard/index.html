@@ -45,7 +45,7 @@
   </style>
 </head>
 
-<body class="bg-obsidian text-white font-sans antialiased">
+<body class="bg-obsidian text-white font-sans antialiased" style="opacity:0;">
 
   <!-- ── AUTH GUARD ─────────────────────────────────────────────
        The entire page body is hidden until the auth check resolves.
@@ -264,14 +264,25 @@
     }
 
     // ── AUTH GUARD ────────────────────────────────────────────────
-    // Runs before any data fetching. Bounces unauthenticated visitors.
-    async function guardAuth() {
-      const { data: { session } } = await db.auth.getSession();
-      if (!session) {
-        window.location.replace('login.html');
-        throw new Error('unauthenticated'); // halt further execution
-      }
-      return session;
+    // Uses onAuthStateChange + INITIAL_SESSION instead of getSession().
+    // getSession() can resolve null while a token refresh is still
+    // in-flight, causing a spurious redirect. INITIAL_SESSION fires
+    // exactly once after Supabase has fully settled the auth state
+    // (including any pending refresh), so it is safe to act on.
+    function guardAuth() {
+      return new Promise((resolve, reject) => {
+        const { data: { subscription } } = db.auth.onAuthStateChange((event, session) => {
+          if (event === 'INITIAL_SESSION') {
+            subscription.unsubscribe();
+            if (session) {
+              resolve(session);
+            } else {
+              window.location.replace('login.html');
+              reject(new Error('unauthenticated'));
+            }
+          }
+        });
+      });
     }
 
     // ── DATA FETCHING ─────────────────────────────────────────────
@@ -450,8 +461,10 @@
       buildChartSkeleton();
       document.getElementById('today-date').textContent = todayLabel();
 
-      // 1. Auth guard — exits if unauthenticated
+      // 1. Auth guard — exits if unauthenticated.
+      // Reveal the page only after auth has settled to prevent flash.
       const session = await guardAuth();
+      document.body.style.opacity = '1';
       const userId  = session.user.id;
 
       // 2. Kick off all data requests in parallel
