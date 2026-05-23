@@ -364,36 +364,42 @@
     let rejectChapterId = null;   // chapter being rejected
 
     // ── ADMIN AUTH GUARD ───────────────────────────────────────
-    // Two-phase check with safety delay (matches dashboard/index.html pattern).
-    // Additionally verifies is_admin = true; non-admins go to writer dashboard.
-    async function guardAdmin() {
-      const { data: { session: s1 } } = await db.auth.getSession();
-      let session = s1;
+    // Uses onAuthStateChange + INITIAL_SESSION rather than getSession().
+    //
+    // getSession() can return null while Supabase is still refreshing
+    // an expired access token — even with an 800ms safety delay this
+    // race can lose on slow connections. INITIAL_SESSION fires exactly
+    // once after Supabase has fully resolved auth state (including any
+    // pending network refresh), so it is the only reliable signal to
+    // act on. There is no ping-pong risk here because login.html does
+    // not auto-redirect back to admin.html.
+    function guardAdmin() {
+      return new Promise((resolve, reject) => {
+        const { data: { subscription } } = db.auth.onAuthStateChange(async (event, session) => {
+          if (event !== 'INITIAL_SESSION') return;
+          subscription.unsubscribe();
 
-      if (!session) {
-        await new Promise(r => setTimeout(r, 800));
-        const { data: { session: s2 } } = await db.auth.getSession();
-        session = s2;
-      }
+          if (!session) {
+            window.location.replace('login.html');
+            return reject(new Error('unauthenticated'));
+          }
 
-      if (!session) {
-        window.location.replace('login.html');
-        throw new Error('unauthenticated');
-      }
+          // Verify is_admin flag from the database — client-side flags
+          // are not trustworthy; this is the authoritative check.
+          const { data: profile, error } = await db
+            .from('profiles')
+            .select('name, is_admin')
+            .eq('id', session.user.id)
+            .single();
 
-      // Verify admin flag from profiles table
-      const { data: profile, error } = await db
-        .from('profiles')
-        .select('name, is_admin')
-        .eq('id', session.user.id)
-        .single();
+          if (error || !profile?.is_admin) {
+            window.location.replace('index.html');
+            return reject(new Error('not admin'));
+          }
 
-      if (error || !profile?.is_admin) {
-        window.location.replace('index.html');
-        throw new Error('not admin');
-      }
-
-      return { session, profile };
+          resolve({ session, profile });
+        });
+      });
     }
 
     // ── SECTION SWITCHING ──────────────────────────────────────
