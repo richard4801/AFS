@@ -379,7 +379,10 @@
           if (event !== 'INITIAL_SESSION') return;
           subscription.unsubscribe();
 
+          console.log('[AFS Admin] INITIAL_SESSION fired. session:', session ? 'FOUND (uid=' + session.user.id + ')' : 'NULL');
+
           if (!session) {
+            console.error('[AFS Admin] REDIRECT REASON: No session — user is not logged in.');
             window.location.replace('login.html');
             return reject(new Error('unauthenticated'));
           }
@@ -392,13 +395,15 @@
             .eq('id', session.user.id)
             .single();
 
+          console.log('[AFS Admin] profiles query result — profile:', profile, '| error:', error);
+
           if (error || !profile?.is_admin) {
-            // Redirect directly to login, not index.html, to avoid a
-            // second redirect hop that would itself race on getSession().
+            console.error('[AFS Admin] REDIRECT REASON:', error ? 'profiles query error: ' + error.message : 'is_admin is false for this account.');
             window.location.replace('login.html');
             return reject(new Error('not admin'));
           }
 
+          console.log('[AFS Admin] Admin verified. Loading dashboard…');
           resolve({ session, profile });
         });
       });
