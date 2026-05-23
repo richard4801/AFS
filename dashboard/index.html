@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard — Apex Fiction Studio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            obsidian: '#121212',
+            charcoal: '#1C1C1C',
+            surface:  '#242424',
+            border:   '#2E2E2E',
+            gold:     '#C9A84C',
+            'gold-light': '#E2C97E',
+            crimson:  '#A31621',
+            muted:    '#7A7A7A',
+          },
+          fontFamily: {
+            sans:  ['Inter', 'system-ui', 'sans-serif'],
+            serif: ['"DM Serif Display"', 'Georgia', 'serif'],
+          },
+        },
+      },
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    /* Skeleton loading shimmer */
+    @keyframes shimmer {
+      0%   { background-position: -400px 0; }
+      100% { background-position:  400px 0; }
+    }
+    .skeleton {
+      background: linear-gradient(90deg, #1C1C1C 25%, #2a2a2a 50%, #1C1C1C 75%);
+      background-size: 800px 100%;
+      animation: shimmer 1.6s ease-in-out infinite;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+
+<body class="bg-obsidian text-white font-sans antialiased">
+
+  <!-- ── AUTH GUARD ─────────────────────────────────────────────
+       The entire page body is hidden until the auth check resolves.
+       If no session exists the user is immediately redirected to login.html.
+  ───────────────────────────────────────────────────────────── -->
+
+  <!-- Background atmosphere -->
+  <div class="pointer-events-none fixed inset-0 overflow-hidden" style="z-index:0;">
+    <div class="absolute top-0 right-0 w-[600px] h-[400px] rounded-full bg-gold/4 blur-[140px]"></div>
+    <div class="absolute bottom-0 left-0 w-[400px] h-[300px] rounded-full bg-gold/3 blur-[100px]"></div>
+  </div>
+
+  <!-- ── NAV (pill, dashboard variant) ─────────────────────────── -->
+  <header class="fixed top-5 inset-x-0 z-50 flex justify-center px-5 pointer-events-none">
+    <nav class="pointer-events-auto
+                flex items-center justify-between gap-6
+                w-full max-w-4xl
+                rounded-full
+                bg-obsidian/70 backdrop-blur-md
+                border border-white/10
+                shadow-xl shadow-black/60
+                px-4 py-2.5">
+
+      <!-- Logo -->
+      <div class="flex items-center gap-2.5 flex-shrink-0">
+        <span class="w-6 h-6 rounded-sm bg-gold flex items-center justify-center text-obsidian font-serif font-bold text-xs">A</span>
+        <span class="font-serif text-base tracking-wide text-white whitespace-nowrap">Apex Fiction Studio</span>
+      </div>
+
+      <!-- Right: writer name + sign out -->
+      <div class="flex items-center gap-4">
+        <span id="nav-name" class="hidden sm:block text-muted text-sm truncate max-w-[180px]"></span>
+        <button id="sign-out-btn"
+                class="flex-shrink-0 inline-flex items-center gap-1.5
+                       px-4 py-1.5 text-sm font-medium
+                       text-muted hover:text-white
+                       border border-border hover:border-white/20
+                       rounded-full transition-all duration-200">
+          Sign Out
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <!-- ── MAIN CONTENT ───────────────────────────────────────────── -->
+  <main class="relative z-10 max-w-4xl mx-auto px-5 pt-28 pb-20">
+
+    <!-- Page header -->
+    <div class="mb-10">
+      <p class="text-[11px] font-medium tracking-[0.22em] uppercase text-gold mb-2">Writer Dashboard</p>
+      <h1 class="font-serif text-4xl text-white leading-tight">
+        Good morning, <span id="greeting-name" class="italic">Writer</span>.
+      </h1>
+      <p class="text-muted text-sm mt-1" id="today-date"></p>
+    </div>
+
+    <!-- ── STATS GRID ──────────────────────────────────────────── -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+
+      <!-- Monthly Earnings -->
+      <div class="rounded-2xl border border-border bg-surface p-5 relative overflow-hidden">
+        <div class="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent"></div>
+        <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-3">This Month</p>
+        <p id="stat-monthly" class="font-serif text-3xl text-white">
+          <span class="skeleton inline-block w-24 h-8">&nbsp;</span>
+        </p>
+        <p class="text-muted text-xs mt-1">in royalties</p>
+      </div>
+
+      <!-- All-Time Earnings -->
+      <div class="rounded-2xl border border-border bg-surface p-5 relative overflow-hidden">
+        <div class="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent"></div>
+        <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-3">All-Time</p>
+        <p id="stat-alltime" class="font-serif text-3xl text-white">
+          <span class="skeleton inline-block w-24 h-8">&nbsp;</span>
+        </p>
+        <p class="text-muted text-xs mt-1">total accrued</p>
+      </div>
+
+      <!-- Total Words -->
+      <div class="rounded-2xl border border-border bg-surface p-5 relative overflow-hidden">
+        <div class="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent"></div>
+        <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-3">Words Written</p>
+        <p id="stat-words" class="font-serif text-3xl text-white">
+          <span class="skeleton inline-block w-20 h-8">&nbsp;</span>
+        </p>
+        <p class="text-muted text-xs mt-1">across all projects</p>
+      </div>
+
+      <!-- Milestone Progress -->
+      <div class="rounded-2xl border border-border bg-surface p-5 relative overflow-hidden">
+        <div class="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent"></div>
+        <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-3">$120 Bonus</p>
+        <p id="stat-milestone-label" class="font-serif text-3xl text-white">
+          <span class="skeleton inline-block w-16 h-8">&nbsp;</span>
+        </p>
+        <!-- Progress bar -->
+        <div class="mt-2 h-1 bg-charcoal rounded-full overflow-hidden">
+          <div id="milestone-bar" class="h-full bg-gold rounded-full transition-all duration-700" style="width:0%"></div>
+        </div>
+        <p id="stat-milestone-sub" class="text-muted text-xs mt-1">toward 30k words</p>
+      </div>
+
+    </div>
+
+    <!-- ── EARNINGS CHART ──────────────────────────────────────── -->
+    <div class="rounded-2xl border border-border bg-surface p-6 mb-6 relative overflow-hidden">
+      <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent"></div>
+
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h2 class="font-serif text-xl text-white">Daily Earnings</h2>
+          <p class="text-muted text-xs mt-0.5">Last 30 days — updated every morning</p>
+        </div>
+        <span id="chart-total-badge"
+              class="hidden text-xs font-medium text-gold border border-gold/20 bg-gold/5 rounded-full px-3 py-1">
+        </span>
+      </div>
+
+      <div class="relative h-64">
+        <!-- Skeleton bars while data loads -->
+        <div id="chart-skeleton" class="absolute inset-0 flex items-end gap-1.5 pb-6 px-1">
+          <!-- Generated by JS -->
+        </div>
+        <canvas id="earnings-chart" class="hidden"></canvas>
+      </div>
+    </div>
+
+    <!-- ── PROJECTS TABLE ──────────────────────────────────────── -->
+    <div class="rounded-2xl border border-border bg-surface relative overflow-hidden">
+      <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent"></div>
+
+      <div class="px-6 py-5 border-b border-border">
+        <h2 class="font-serif text-xl text-white">Your Projects</h2>
+        <p class="text-muted text-xs mt-0.5">Live revenue across your active works</p>
+      </div>
+
+      <!-- Table -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-border text-left">
+              <th class="px-6 py-3 text-[10px] font-semibold tracking-[0.18em] uppercase text-muted">Title</th>
+              <th class="px-6 py-3 text-[10px] font-semibold tracking-[0.18em] uppercase text-muted text-right">Words</th>
+              <th class="px-6 py-3 text-[10px] font-semibold tracking-[0.18em] uppercase text-muted text-right">Revenue</th>
+              <th class="px-6 py-3 text-[10px] font-semibold tracking-[0.18em] uppercase text-muted text-right">Your 50%</th>
+            </tr>
+          </thead>
+          <tbody id="projects-tbody">
+            <!-- Skeleton rows -->
+            <tr class="border-b border-border/50">
+              <td class="px-6 py-4"><span class="skeleton inline-block w-48 h-4">&nbsp;</span></td>
+              <td class="px-6 py-4 text-right"><span class="skeleton inline-block w-16 h-4">&nbsp;</span></td>
+              <td class="px-6 py-4 text-right"><span class="skeleton inline-block w-16 h-4">&nbsp;</span></td>
+              <td class="px-6 py-4 text-right"><span class="skeleton inline-block w-16 h-4">&nbsp;</span></td>
+            </tr>
+            <tr class="border-b border-border/50">
+              <td class="px-6 py-4"><span class="skeleton inline-block w-36 h-4">&nbsp;</span></td>
+              <td class="px-6 py-4 text-right"><span class="skeleton inline-block w-16 h-4">&nbsp;</span></td>
+              <td class="px-6 py-4 text-right"><span class="skeleton inline-block w-16 h-4">&nbsp;</span></td>
+              <td class="px-6 py-4 text-right"><span class="skeleton inline-block w-16 h-4">&nbsp;</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Footer note -->
+    <p class="text-center text-muted text-xs mt-8 leading-relaxed">
+      Earnings data refreshed daily before 9 AM. Questions?
+      <a href="mailto:support@apexfictionstudio.com" class="text-gold/70 hover:text-gold transition-colors">
+        Contact your editor.
+      </a>
+    </p>
+
+  </main>
+
+  <!-- Supabase + Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+
+  <script>
+    // ── CONFIGURATION ─────────────────────────────────────────────
+    const SUPABASE_URL      = 'https://YOUR_PROJECT_ID.supabase.co';
+    const SUPABASE_ANON_KEY = 'YOUR_ANON_PUBLIC_KEY';
+    // ─────────────────────────────────────────────────────────────
+
+    const { createClient } = supabase;
+    const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ── HELPERS ───────────────────────────────────────────────────
+    const fmt = (n) =>
+      '$' + Number(n ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const fmtK = (n) =>
+      n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n);
+
+    function todayLabel() {
+      return new Date().toLocaleDateString('en-US', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+      });
+    }
+
+    // Render skeleton chart placeholder bars
+    function buildChartSkeleton() {
+      const el = document.getElementById('chart-skeleton');
+      el.innerHTML = Array.from({ length: 30 }, (_, i) => {
+        const h = 20 + Math.random() * 60;
+        return `<div class="skeleton flex-1 rounded-t" style="height:${h}%"></div>`;
+      }).join('');
+    }
+
+    // ── AUTH GUARD ────────────────────────────────────────────────
+    // Runs before any data fetching. Bounces unauthenticated visitors.
+    async function guardAuth() {
+      const { data: { session } } = await db.auth.getSession();
+      if (!session) {
+        window.location.replace('login.html');
+        throw new Error('unauthenticated'); // halt further execution
+      }
+      return session;
+    }
+
+    // ── DATA FETCHING ─────────────────────────────────────────────
+    async function fetchProfile(userId) {
+      const { data, error } = await db
+        .from('profiles')
+        .select('name, email')
+        .eq('id', userId)
+        .single();
+      if (error) throw error;
+      return data;
+    }
+
+    async function fetchProjects(userId) {
+      const { data, error } = await db
+        .from('projects')
+        .select('id, title, word_count, revenue_generated')
+        .eq('writer_id', userId)
+        .order('revenue_generated', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    }
+
+    async function fetchEarnings30Days(userId) {
+      const since = new Date();
+      since.setDate(since.getDate() - 29);
+      const isoDate = since.toISOString().slice(0, 10);
+
+      const { data, error } = await db
+        .from('earnings')
+        .select('date, amount_earned')
+        .eq('writer_id', userId)
+        .gte('date', isoDate)
+        .order('date', { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    }
+
+    async function fetchAllTimeTotal(userId) {
+      const { data, error } = await db
+        .from('earnings')
+        .select('amount_earned')
+        .eq('writer_id', userId);
+      if (error) throw error;
+      return (data ?? []).reduce((sum, r) => sum + parseFloat(r.amount_earned), 0);
+    }
+
+    // ── RENDER HELPERS ────────────────────────────────────────────
+    function renderStats({ monthly, allTime, totalWords, milestoneTarget }) {
+      document.getElementById('stat-monthly').textContent  = fmt(monthly);
+      document.getElementById('stat-alltime').textContent  = fmt(allTime);
+      document.getElementById('stat-words').textContent    = fmtK(totalWords);
+
+      const pct = Math.min(100, Math.round((totalWords / milestoneTarget) * 100));
+      document.getElementById('stat-milestone-label').textContent = pct + '%';
+      document.getElementById('milestone-bar').style.width = pct + '%';
+      document.getElementById('stat-milestone-sub').textContent =
+        totalWords >= milestoneTarget
+          ? '✓ Bonus unlocked!'
+          : `${fmtK(totalWords)} / ${fmtK(milestoneTarget)} words`;
+    }
+
+    function renderProjects(projects) {
+      const tbody = document.getElementById('projects-tbody');
+      if (!projects.length) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="4" class="px-6 py-10 text-center text-muted text-sm">
+              No projects yet — your editor will set these up after onboarding.
+            </td>
+          </tr>`;
+        return;
+      }
+      tbody.innerHTML = projects.map(p => `
+        <tr class="border-b border-border/40 hover:bg-white/[0.02] transition-colors duration-150">
+          <td class="px-6 py-4 text-white font-medium">${p.title}</td>
+          <td class="px-6 py-4 text-right text-muted">${p.word_count.toLocaleString()}</td>
+          <td class="px-6 py-4 text-right text-muted">${fmt(p.revenue_generated)}</td>
+          <td class="px-6 py-4 text-right text-gold font-semibold">${fmt(p.revenue_generated * 0.5)}</td>
+        </tr>`
+      ).join('');
+    }
+
+    function renderChart(rawRows) {
+      // Build a complete 30-day date map (fill zeros for days with no earnings)
+      const map = {};
+      rawRows.forEach(r => { map[r.date] = parseFloat(r.amount_earned); });
+
+      const labels = [];
+      const values = [];
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const key = d.toISOString().slice(0, 10);
+        labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+        values.push(map[key] ?? 0);
+      }
+
+      const total30 = values.reduce((a, b) => a + b, 0);
+      const badge = document.getElementById('chart-total-badge');
+      badge.textContent = fmt(total30) + ' over 30 days';
+      badge.classList.remove('hidden');
+
+      // Hide skeleton, show canvas
+      document.getElementById('chart-skeleton').classList.add('hidden');
+      const canvas = document.getElementById('earnings-chart');
+      canvas.classList.remove('hidden');
+
+      new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Earnings',
+            data: values,
+            borderColor: '#C9A84C',
+            backgroundColor: (ctx) => {
+              const gradient = ctx.chart.ctx.createLinearGradient(0, 0, 0, ctx.chart.height);
+              gradient.addColorStop(0,   'rgba(201,168,76,0.18)');
+              gradient.addColorStop(1,   'rgba(201,168,76,0)');
+              return gradient;
+            },
+            borderWidth: 2,
+            pointRadius: 3,
+            pointHoverRadius: 6,
+            pointBackgroundColor: '#C9A84C',
+            pointBorderColor: '#121212',
+            pointBorderWidth: 1.5,
+            tension: 0.4,
+            fill: true,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#242424',
+              borderColor: '#2E2E2E',
+              borderWidth: 1,
+              titleColor: '#7A7A7A',
+              bodyColor: '#ffffff',
+              padding: 10,
+              callbacks: {
+                label: (ctx) => `  ${fmt(ctx.raw)}`,
+              },
+            },
+          },
+          scales: {
+            x: {
+              grid:  { color: 'rgba(255,255,255,0.04)', drawBorder: false },
+              ticks: { color: '#7A7A7A', font: { size: 10 }, maxTicksLimit: 8 },
+              border: { display: false },
+            },
+            y: {
+              grid:  { color: 'rgba(255,255,255,0.04)', drawBorder: false },
+              ticks: { color: '#7A7A7A', font: { size: 10 }, callback: (v) => '$' + v },
+              border: { display: false },
+              beginAtZero: true,
+            },
+          },
+        },
+      });
+    }
+
+    // ── SIGN OUT ──────────────────────────────────────────────────
+    document.getElementById('sign-out-btn').addEventListener('click', async () => {
+      await db.auth.signOut();
+      window.location.replace('login.html');
+    });
+
+    // ── BOOT ──────────────────────────────────────────────────────
+    (async () => {
+      buildChartSkeleton();
+      document.getElementById('today-date').textContent = todayLabel();
+
+      // 1. Auth guard — exits if unauthenticated
+      const session = await guardAuth();
+      const userId  = session.user.id;
+
+      // 2. Kick off all data requests in parallel
+      const [profile, projects, earnings30, allTime] = await Promise.all([
+        fetchProfile(userId),
+        fetchProjects(userId),
+        fetchEarnings30Days(userId),
+        fetchAllTimeTotal(userId),
+      ]);
+
+      // 3. Hydrate greeting + nav
+      const firstName = (profile.name || 'Writer').split(' ')[0];
+      document.getElementById('greeting-name').textContent = firstName;
+      document.getElementById('nav-name').textContent      = profile.name;
+
+      // 4. Compute stats
+      const now       = new Date();
+      const monthKey  = now.toISOString().slice(0, 7); // "YYYY-MM"
+      const monthly   = earnings30
+        .filter(r => r.date.startsWith(monthKey))
+        .reduce((sum, r) => sum + parseFloat(r.amount_earned), 0);
+
+      const totalWords = projects.reduce((sum, p) => sum + (p.word_count || 0), 0);
+
+      renderStats({ monthly, allTime, totalWords, milestoneTarget: 30000 });
+      renderProjects(projects);
+      renderChart(earnings30);
+    })();
+  </script>
+
+</body>
+</html>

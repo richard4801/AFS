@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign In — Apex Fiction Studio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            obsidian: '#121212',
+            charcoal: '#1C1C1C',
+            surface:  '#242424',
+            border:   '#2E2E2E',
+            gold:     '#C9A84C',
+            'gold-light': '#E2C97E',
+            muted:    '#7A7A7A',
+          },
+          fontFamily: {
+            sans:  ['Inter', 'system-ui', 'sans-serif'],
+            serif: ['"DM Serif Display"', 'Georgia', 'serif'],
+          },
+        },
+      },
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    .form-input:focus {
+      outline: none;
+      border-color: #C9A84C;
+      box-shadow: 0 0 0 2px rgba(201,168,76,0.15);
+    }
+  </style>
+</head>
+<body class="bg-obsidian text-white font-sans antialiased min-h-screen flex items-center justify-center px-4">
+
+  <!-- Background glow -->
+  <div class="pointer-events-none fixed inset-0 overflow-hidden">
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full bg-gold/5 blur-[120px]"></div>
+  </div>
+
+  <div class="relative w-full max-w-sm">
+
+    <!-- Logo -->
+    <div class="flex items-center justify-center gap-3 mb-10">
+      <span class="w-8 h-8 rounded-sm bg-gold flex items-center justify-center text-obsidian font-serif font-bold">A</span>
+      <span class="font-serif text-xl tracking-wide text-white">Apex Fiction Studio</span>
+    </div>
+
+    <!-- Card -->
+    <div class="relative rounded-2xl border border-border bg-surface p-8 shadow-2xl shadow-black/60">
+      <!-- Top accent -->
+      <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold to-transparent opacity-40 rounded-full"></div>
+
+      <h1 class="font-serif text-2xl text-white mb-1">Writer Sign In</h1>
+      <p class="text-muted text-sm mb-8">Access your private earnings dashboard.</p>
+
+      <form id="login-form" class="space-y-5" novalidate>
+
+        <div>
+          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2" for="email">
+            Email Address
+          </label>
+          <input
+            id="email" type="email" autocomplete="email" required
+            placeholder="you@email.com"
+            class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 transition-all duration-200"/>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2" for="password">
+            Password
+          </label>
+          <input
+            id="password" type="password" autocomplete="current-password" required
+            placeholder="••••••••"
+            class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 transition-all duration-200"/>
+        </div>
+
+        <!-- Error -->
+        <div id="error-msg"
+             class="hidden text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-3 leading-relaxed">
+        </div>
+
+        <button type="submit" id="submit-btn"
+                class="w-full flex items-center justify-center gap-2 px-6 py-3.5
+                       bg-gold hover:bg-gold-light text-obsidian
+                       text-sm font-semibold rounded-lg
+                       transition-colors duration-200
+                       disabled:opacity-50 disabled:cursor-not-allowed">
+          <span id="btn-label">Sign In to Dashboard</span>
+          <svg id="btn-arrow" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+          </svg>
+          <!-- Spinner (hidden by default) -->
+          <svg id="btn-spinner" class="hidden animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+          </svg>
+        </button>
+
+      </form>
+    </div>
+
+    <p class="text-center text-muted text-xs mt-6">
+      Not a member yet?
+      <a href="../index.html#apply" class="text-gold hover:text-gold-light transition-colors duration-150">
+        Apply to the Collective →
+      </a>
+    </p>
+  </div>
+
+  <!-- Supabase JS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // ── CONFIGURATION ────────────────────────────────────────────
+    // Replace these with your actual Supabase project values.
+    // Find them in: Supabase Dashboard → Project Settings → API
+    const SUPABASE_URL      = 'https://YOUR_PROJECT_ID.supabase.co';
+    const SUPABASE_ANON_KEY = 'YOUR_ANON_PUBLIC_KEY';
+    // ─────────────────────────────────────────────────────────────
+
+    const { createClient } = supabase;
+    const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Skip login screen if a session already exists
+    (async () => {
+      const { data: { session } } = await db.auth.getSession();
+      if (session) window.location.replace('index.html');
+    })();
+
+    // ── FORM LOGIC ───────────────────────────────────────────────
+    const form    = document.getElementById('login-form');
+    const errBox  = document.getElementById('error-msg');
+    const btn     = document.getElementById('submit-btn');
+    const label   = document.getElementById('btn-label');
+    const arrow   = document.getElementById('btn-arrow');
+    const spinner = document.getElementById('btn-spinner');
+
+    function setLoading(on) {
+      btn.disabled = on;
+      label.textContent = on ? 'Signing in…' : 'Sign In to Dashboard';
+      arrow.classList.toggle('hidden', on);
+      spinner.classList.toggle('hidden', !on);
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errBox.classList.add('hidden');
+      setLoading(true);
+
+      const email    = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+
+      const { error } = await db.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        errBox.textContent = error.message;
+        errBox.classList.remove('hidden');
+        setLoading(false);
+      } else {
+        // Session cookie is set automatically by the Supabase client
+        window.location.replace('index.html');
+      }
+    });
+  </script>
+
+</body>
+</html>
