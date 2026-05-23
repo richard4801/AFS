@@ -346,10 +346,10 @@
       });
     }
 
-    // ── BOOK LIST (submitted + pending edit requests) ──────────
+    // ── BOOK LIST (books with submitted chapters + pending edit requests) ──
     async function loadBooksForReview() {
-      const [{ data: submitted }, { data: editReqs }] = await Promise.all([
-        db.from('books').select('id, title, status, author_id, profiles(name)').eq('status', 'submitted'),
+      const [{ data: submittedChaps }, { data: editReqs }] = await Promise.all([
+        db.from('chapters').select('book_id').eq('status', 'submitted'),
         db.from('edit_requests').select('id, chapter_id, chapters(book_id)').eq('status', 'pending'),
       ]);
 
@@ -360,24 +360,23 @@
         if (bid) reqCount[bid] = (reqCount[bid] || 0) + 1;
       });
 
-      // Build merged book list
-      const submittedIds = new Set((submitted || []).map(b => b.id));
-      const extraIds = Object.keys(reqCount).filter(id => !submittedIds.has(id));
-
-      let allBooks = (submitted || []).map(b => ({ ...b, pendingCount: reqCount[b.id] || 0 }));
-
-      if (extraIds.length) {
-        const { data: extra } = await db.from('books')
-          .select('id, title, status, author_id, profiles(name)')
-          .in('id', extraIds);
-        (extra || []).forEach(b => allBooks.push({ ...b, pendingCount: reqCount[b.id] || 0 }));
-      }
+      // Collect all book IDs that need attention
+      const bookIds = new Set([
+        ...(submittedChaps || []).map(c => c.book_id).filter(Boolean),
+        ...Object.keys(reqCount),
+      ]);
 
       const container = $('book-list');
-      if (!allBooks.length) {
+      if (!bookIds.size) {
         container.innerHTML = `<p class="text-muted text-xs px-2 pt-2">No books need attention.</p>`;
         return;
       }
+
+      const { data: books } = await db.from('books')
+        .select('id, title, status, author_id, profiles(name)')
+        .in('id', [...bookIds]);
+
+      const allBooks = (books || []).map(b => ({ ...b, pendingCount: reqCount[b.id] || 0 }));
 
       container.innerHTML = allBooks.map(b => `
         <button onclick='selectBook(${JSON.stringify(b)})'
@@ -581,13 +580,18 @@
       $('approve-btn').classList.toggle('opacity-40', !reviewable);
       $('reject-btn').classList.toggle('opacity-40',  !reviewable);
 
-      const { data: comments } = await db.from('comments')
-        .select('id, paragraph_ref, body, resolved, reviewer_id')
-        .eq('chapter_id', chapter.id)
-        .order('created_at', { ascending: true });
+      $('chapter-content').innerHTML = '<p class="text-muted text-sm">Loading…</p>';
+
+      const [{ data: fullChapter }, { data: comments }] = await Promise.all([
+        db.from('chapters').select('content').eq('id', chapter.id).single(),
+        db.from('comments')
+          .select('id, paragraph_ref, body, resolved, reviewer_id')
+          .eq('chapter_id', chapter.id)
+          .order('created_at', { ascending: true }),
+      ]);
 
       allComments = comments ?? [];
-      renderChapterContent(chapter.content ?? '');
+      renderChapterContent(fullChapter?.content ?? '');
       renderCommentThread();
     }
 
@@ -721,7 +725,7 @@
 
     // ── INCOME ─────────────────────────────────────────────────
     async function loadWriters() {
-      const { data } = await db.from('profiles').select('id, name, email').eq('is_admin', false).order('name');
+      const { data } = await db.from('profiles').select('id, name, email').order('name');
       const select = $('income-writer'), container = $('writer-list');
       if (!data?.length) { container.innerHTML = `<p class="text-muted text-xs px-2 pt-2">No writers found.</p>`; return; }
       container.innerHTML = data.map(w => `
