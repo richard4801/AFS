@@ -126,7 +126,12 @@
     // ─────────────────────────────────────────────────────────────
 
     const { createClient } = supabase;
-    const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: true,
+        storage: window.localStorage,
+      },
+    });
 
     // ── FORM LOGIC ───────────────────────────────────────────────
     const form    = document.getElementById('login-form');
