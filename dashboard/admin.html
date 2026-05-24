@@ -45,7 +45,9 @@
     .prose-editor::placeholder { color:rgba(122,122,122,0.4); font-style:italic; font-family:inherit; }
     @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:.4} }
     .notif-dot { width:8px;height:8px;border-radius:50%;background:#C9A84C;flex-shrink:0;animation:pulse-dot 1.8s ease-in-out infinite; }
-    .para-changed { background:rgba(201,168,76,0.07); border-left:2px solid rgba(201,168,76,0.55); padding-left:0.85em; }
+    .para-changed { border-left:2px solid rgba(201,168,76,0.3); padding-left:0.85em; }
+    .diff-add { background:rgba(201,168,76,0.38); font-weight:700; border-radius:3px; padding:0 1px; }
+    .diff-del { text-decoration:line-through; color:rgba(239,68,68,0.65); font-style:italic; }
     .fs-tool-btn { padding:2px 9px; border-radius:5px; font-size:11px; font-weight:700; color:rgba(255,255,255,0.6); background:transparent; border:1px solid transparent; cursor:pointer; transition:all .15s; line-height:1.8; }
     .fs-tool-btn:hover { background:rgba(255,255,255,0.07); border-color:rgba(255,255,255,0.12); color:#fff; }
     .fs-tool-btn.active { background:rgba(163,22,33,0.18); border-color:rgba(163,22,33,0.4); color:#C82333; }
@@ -978,6 +980,93 @@
       return blocks;
     }
 
+    // ── WORD-LEVEL DIFF ─────────────────────────────────────────────
+    function tokenize(text) {
+      return text.match(/\S+|\s+/g) || [];
+    }
+
+    function computeLCS(a, b) {
+      const m = a.length, n = b.length;
+      if (m * n > 60000) return null; // perf guard
+      const dp = Array.from({length: m+1}, () => new Int32Array(n+1));
+      for (let i = 1; i <= m; i++)
+        for (let j = 1; j <= n; j++)
+          dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1]+1 : Math.max(dp[i-1][j], dp[i][j-1]);
+      const ops = []; let i = m, j = n;
+      while (i > 0 || j > 0) {
+        if (i > 0 && j > 0 && a[i-1] === b[j-1]) { ops.unshift('='); i--; j--; }
+        else if (j > 0 && (i === 0 || dp[i][j-1] >= dp[i-1][j])) { ops.unshift('+'); j--; }
+        else { ops.unshift('-'); i--; }
+      }
+      return ops;
+    }
+
+    function wordDiffHtml(oldText, newText, addCls, delCls) {
+      if (!oldText) return '<span class="' + addCls + '">' + escHtml(newText) + '</span>';
+      const ot = tokenize(oldText), nt = tokenize(newText);
+      const ops = computeLCS(ot, nt);
+      if (!ops) return '<span class="' + addCls + '">' + escHtml(newText) + '</span>';
+      let html = '', oi = 0, ni = 0;
+      for (const op of ops) {
+        if (op === '=') { html += escHtml(nt[ni]); oi++; ni++; }
+        else if (op === '+') { html += '<span class="' + addCls + '">' + escHtml(nt[ni]) + '</span>'; ni++; }
+        else { html += '<span class="' + delCls + '">' + escHtml(ot[oi]) + '</span>'; oi++; }
+      }
+      return html;
+    }
+
+    function buildDocDiffParas(editedContent, snapshotContent) {
+      const getParas = html => {
+        if (!html) return [];
+        if (/<p[\s>]/i.test(html)) {
+          const d = document.createElement('div'); d.innerHTML = html;
+          return Array.from(d.querySelectorAll('p')).map(p => p.textContent || '');
+        }
+        return html.split(/\n\n+|\n/).map(s => s.trim()).filter(Boolean);
+      };
+      const np = getParas(editedContent), op = getParas(snapshotContent || '');
+      return np.map((nPara, i) => {
+        const oPara = op[i] ?? null;
+        const inner = oPara ? wordDiffHtml(oPara, nPara, 'mark', 'del') : '<mark>' + escHtml(nPara) + '</mark>';
+        return '<p>' + inner + '</p>';
+      }).join('');
+    }
+
+    function generateRevisionDoc(chNum, chTitle, bookTitle, reason, editedContent, snapshotContent) {
+      const paraHtml = buildDocDiffParas(editedContent, snapshotContent);
+      const dateStr  = new Date().toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'});
+      const feedbackBlock = reason
+        ? '<div class="section">Admin Feedback</div><div class="feedback">' + escHtml(reason).replace(/\n/g,'<br>') + '</div>'
+        : '';
+      const docHtml = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<title>Revision – Chapter ${chNum}</title>
+<style>
+body{font-family:Georgia,'Times New Roman',serif;max-width:680px;margin:0 auto;padding:60px 80px;color:#1a1a1a;font-size:12pt;line-height:1.9;background:#fff}
+h1{font-size:22pt;font-weight:400;margin-bottom:6px}
+.sub{color:#666;font-size:10pt;margin-bottom:36px;border-bottom:1px solid #ddd;padding-bottom:14px}
+.section{font-weight:700;font-size:8.5pt;text-transform:uppercase;letter-spacing:.14em;color:#888;margin:28px 0 10px}
+.feedback{background:#fffbea;border-left:3px solid #c9a84c;padding:14px 18px;border-radius:0 4px 4px 0;margin-bottom:28px;white-space:pre-wrap}
+p{margin:0 0 1.4em;text-align:justify}
+mark{background:rgba(201,168,76,.45);font-weight:700;border-radius:2px;padding:0 1px}
+del{text-decoration:line-through;color:#cc3333;opacity:.75}
+.legend{font-size:9pt;color:#999;margin-top:48px;border-top:1px solid #eee;padding-top:12px}
+</style></head>
+<body>
+<h1>${escHtml(chTitle || 'Chapter ' + chNum)}</h1>
+<div class="sub">${escHtml(bookTitle || '')} &nbsp;·&nbsp; Chapter ${chNum} &nbsp;·&nbsp; Revision Requested &nbsp;·&nbsp; ${dateStr}</div>
+${feedbackBlock}
+<div class="section">Submitted Version — Changes Highlighted</div>
+${paraHtml}
+<div class="legend"><mark>Gold bold = added/changed words.</mark> &nbsp; <del>Strikethrough = removed words.</del></div>
+</body></html>`;
+      const blob = new Blob([docHtml], { type: 'application/msword' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url; a.download = 'revision-ch' + chNum + '.doc'; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
     function renderChapterContent(raw, snapshot) {
       // Detect HTML content (saved by rich-text editor)
       const isHtml = raw && /<p[\s>]/i.test(raw);
@@ -1008,9 +1097,23 @@
         const idx = pIdx++;
         if (block.type === 'title') return '<h4 class="prose-title">' + (block.html || escHtml(block.text || '')) + '</h4>';
         const curParaIdx = paraIdx++;
-        const blockHtml = block.html !== undefined ? block.html : escHtml(block.text || '');
+        const rawHtml   = block.html !== undefined ? block.html : escHtml(block.text || '');
         const snapVal   = snapParas ? (snapParas[curParaIdx] ?? null) : null;
-        const isChanged = snapParas !== null && (curParaIdx >= snapParas.length || blockHtml !== snapVal);
+        const isChanged = snapParas !== null && (curParaIdx >= snapParas.length || rawHtml !== snapVal);
+        // Get plain-text versions for word-level diff
+        let blockHtml;
+        if (isChanged && snapParas !== null) {
+          const newDiv = document.createElement('div'); newDiv.innerHTML = rawHtml;
+          const newText = newDiv.textContent || '';
+          if (snapVal !== null) {
+            const oldDiv = document.createElement('div'); oldDiv.innerHTML = snapVal;
+            blockHtml = wordDiffHtml(oldDiv.textContent || '', newText, 'diff-add', 'diff-del');
+          } else {
+            blockHtml = '<span class="diff-add">' + escHtml(newText) + '</span>';
+          }
+        } else {
+          blockHtml = rawHtml;
+        }
         const cnt = allComments.filter(c => c.paragraph_ref === idx && !c.resolved).length;
         const changedCls = isChanged ? ' para-changed' : '';
         return '<div class="para-wrap relative py-2 border-b border-border/20 group' + changedCls + '" data-para="' + idx + '">'
@@ -1239,6 +1342,10 @@
       const snapshot       = chapterData?.content_snapshot ?? null;
       const chNum          = chapterData?.chapter_number ?? selectedChapter?.chapter_number ?? '';
       const chTitle        = chapterData?.title ?? selectedChapter?.title ?? '';
+      const bookTitle      = selectedBook?.title ?? '';
+
+      // Generate & auto-download revision doc before reverting content
+      generateRevisionDoc(chNum, chTitle, bookTitle, reason, editedContent, snapshot);
 
       const updatePayload = { status: 'revision_requested', updated_at: new Date().toISOString() };
       if (snapshot) {
