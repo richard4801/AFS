@@ -128,6 +128,24 @@
     </div>
   </div>
 
+  <!-- ADMIN PARAGRAPH COMMENT POPOVER -->
+  <div id="admin-pop" class="hidden fixed z-[150] rounded-2xl border border-border bg-surface shadow-2xl shadow-black/70 flex flex-col" style="width:288px;max-height:360px;">
+    <div class="flex items-center justify-between px-4 pt-3.5 pb-2.5 border-b border-border/50 flex-shrink-0">
+      <span id="admin-pop-label" class="text-[10px] font-semibold uppercase tracking-widest text-crimson-light"></span>
+      <button onclick="closeCommentPopover()" class="text-muted hover:text-white text-lg leading-none w-5 h-5 flex items-center justify-center">×</button>
+    </div>
+    <div id="admin-pop-thread" class="flex-1 overflow-y-auto px-4 py-3 thin-scroll"></div>
+    <div class="px-4 pb-4 pt-2 border-t border-border/40 flex-shrink-0">
+      <input type="hidden" id="admin-pop-para" value=""/>
+      <textarea id="admin-pop-input" rows="2" placeholder="Add a comment on this paragraph…"
+                class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-xs rounded-lg px-3 py-2 resize-none transition-all"></textarea>
+      <button onclick="postPopoverComment()"
+              class="mt-2 w-full px-3 py-1.5 bg-crimson/10 hover:bg-crimson/20 border border-crimson/30 text-crimson-light text-xs font-semibold rounded-lg transition-all">
+        Post Comment
+      </button>
+    </div>
+  </div>
+
   <!-- LAYOUT -->
   <div class="relative z-10 flex flex-col md:flex-row md:h-screen pt-20">
 
@@ -686,30 +704,40 @@
       if (/^chapter\b/i.test(text)) return true;
       if (/^part\b/i.test(text)) return true;
       if (/^(prologue|epilogue|interlude|foreword|afterword)$/i.test(text)) return true;
-      if (/^\d+[.:\s]*\S{0,40}$/.test(text) && text.split(/\s+/).length <= 5) return true;
-      if (/^[IVXLCDM]+[.:\s]*\S{0,40}$/.test(text) && text.split(/\s+/).length <= 5) return true;
+      if (/^\d+[.:]?\s*\S{0,40}$/.test(text) && text.split(/\s+/).length <= 5) return true;
       if (text === text.toUpperCase() && /[A-Z]/.test(text) && text.length <= 60) return true;
       return false;
     }
 
     function formatContent(raw) {
       if (!raw?.trim()) return [];
-      const t = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
-      const rawBlocks = t.split(/\n\n+/);
+      const lines = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+      const paraTexts = [];
+      let cur = '';
+      for (const line of lines) {
+        const t = line.trim();
+        if (!t) { if (cur) { paraTexts.push(cur); cur = ''; } continue; }
+        if (/^[-*_~=]{3,}$/.test(t) || t === '* * *') {
+          if (cur) { paraTexts.push(cur); cur = ''; }
+          paraTexts.push('---'); continue;
+        }
+        if (!cur) { cur = t; continue; }
+        const prevEnds = /[.!?"'""'')\]]$/.test(cur);
+        const nextCaps = /^[A-Z"'"'(\[]/.test(t);
+        if (prevEnds && nextCaps) { paraTexts.push(cur); cur = t; }
+        else { cur += ' ' + t; }
+      }
+      if (cur) paraTexts.push(cur);
       const blocks = [];
-      for (let i = 0; i < rawBlocks.length; i++) {
-        const block = rawBlocks[i].trim();
-        if (!block) continue;
-        if (/^[\*\-_~]{3,}$/.test(block) || block === '* * *') { blocks.push({ type:'break' }); continue; }
-        const joined = block.split('\n').map(l => l.trim()).filter(Boolean).join(' ');
-        const prevType = blocks.length ? blocks[blocks.length - 1].type : 'start';
-        const atBoundary = blocks.length === 0 || prevType === 'break';
-        const noTermPunct = !/[.!?]$/.test(joined);
-        const wordCount = joined.split(/\s+/).length;
-        if (atBoundary && noTermPunct && wordCount <= 8 && isLikelyTitle(joined)) {
-          blocks.push({ type:'title', text: joined });
+      for (const text of paraTexts) {
+        if (text === '---') { blocks.push({ type:'break' }); continue; }
+        const prev = blocks.length ? blocks[blocks.length - 1].type : 'start';
+        const atBoundary = !blocks.length || prev === 'break';
+        const wc = text.split(/\s+/).length;
+        if (atBoundary && wc <= 8 && !/[.!?]$/.test(text) && isLikelyTitle(text)) {
+          blocks.push({ type:'title', text });
         } else {
-          blocks.push({ type:'para', text: joined });
+          blocks.push({ type:'para', text });
         }
       }
       return blocks;
@@ -718,38 +746,29 @@
     function renderChapterContent(raw) {
       const blocks = formatContent(raw);
       if (!blocks.length) {
-        $('chapter-content').innerHTML = `<p class="text-muted text-sm italic">No content yet.</p>`;
+        $('chapter-content').innerHTML = '<p class="text-muted text-sm italic">No content yet.</p>';
         return;
       }
       let pIdx = 0;
       $('chapter-content').innerHTML = blocks.map(block => {
-        if (block.type === 'break') return `<div class="scene-break">* * *</div>`;
+        if (block.type === 'break') return '<div class="scene-break">* * *</div>';
         const idx = pIdx++;
-        if (block.type === 'title') {
-          return `<h4 class="prose-title">${escHtml(block.text)}</h4>`;
-        }
-        const pComments = allComments.filter(c => c.paragraph_ref === idx && !c.resolved);
-        return `
-          <div class="para-wrap relative py-2 border-b border-border/20 group" data-para="${idx}">
-            <p class="prose-para pr-14">${escHtml(block.text)}</p>
-            ${pComments.length
-              ? `<button class="para-comment-badge absolute right-10 top-3 text-[10px] font-semibold text-crimson-light bg-crimson/10 hover:bg-crimson/20 border border-crimson/20 rounded-full px-1.5 py-0.5 leading-none transition-colors"
-                         onclick="highlightComments(${idx})" title="View ${pComments.length} comment(s)">${pComments.length}</button>`
-              : ''}
-            <button class="para-btn absolute right-2 top-3 w-6 h-6 rounded-full bg-surface border border-border hover:border-crimson/50 flex items-center justify-center text-muted hover:text-crimson-light text-sm leading-none transition-all"
-                    onclick="toggleCommentForm(${idx})">+</button>
-            <div id="cf-${idx}" class="hidden mt-3 bg-charcoal border border-border rounded-lg p-3">
-              <textarea id="ct-${idx}" rows="3" placeholder="Comment on paragraph ${idx+1}…"
-                        class="form-input w-full bg-obsidian border border-border text-white placeholder-muted text-xs rounded-md px-3 py-2 resize-none transition-all"></textarea>
-              <div class="flex gap-2 mt-2">
-                <button onclick="submitParagraphComment(${idx})"
-                        class="px-3 py-1.5 bg-crimson/10 hover:bg-crimson/20 border border-crimson/30 text-crimson-light text-xs font-semibold rounded-lg transition-all">Post</button>
-                <button onclick="toggleCommentForm(${idx})" class="px-3 py-1.5 text-muted hover:text-white text-xs rounded-lg transition-colors">Cancel</button>
-              </div>
-            </div>
-          </div>`;
+        if (block.type === 'title') return '<h4 class="prose-title">' + escHtml(block.text) + '</h4>';
+        const cnt = allComments.filter(c => c.paragraph_ref === idx && !c.resolved).length;
+        return '<div class="para-wrap relative py-2 border-b border-border/20 group" data-para="' + idx + '">'
+          + '<p class="prose-para pr-14">' + escHtml(block.text) + '</p>'
+          + (cnt ? '<button class="para-comment-badge absolute right-10 top-3 text-[10px] font-semibold text-crimson-light bg-crimson/10 hover:bg-crimson/20 border border-crimson/20 rounded-full px-1.5 py-0.5 leading-none transition-colors" onclick="openCommentPopover(' + idx + ',this)">' + cnt + '</button>' : '')
+          + '<button class="para-btn absolute right-2 top-3 w-6 h-6 rounded-full bg-surface border border-border hover:border-crimson/50 flex items-center justify-center text-muted hover:text-crimson-light text-sm leading-none transition-all" onclick="openCommentForm(' + idx + ',this)">+</button>'
+          + '<div id="cf-' + idx + '" class="hidden mt-3 bg-charcoal border border-border rounded-lg p-3">'
+          + '<textarea id="ct-' + idx + '" rows="3" placeholder="Comment on paragraph ' + (idx+1) + '…" class="form-input w-full bg-obsidian border border-border text-white placeholder-muted text-xs rounded-md px-3 py-2 resize-none transition-all"></textarea>'
+          + '<div class="flex gap-2 mt-2">'
+          + '<button onclick="submitParagraphComment(' + idx + ')" class="px-3 py-1.5 bg-crimson/10 hover:bg-crimson/20 border border-crimson/30 text-crimson-light text-xs font-semibold rounded-lg transition-all">Post</button>'
+          + '<button onclick="toggleCommentForm(' + idx + ')" class="px-3 py-1.5 text-muted hover:text-white text-xs rounded-lg transition-colors">Cancel</button>'
+          + '</div></div></div>';
       }).join('');
     }
+
+    function openCommentForm(idx, btn) { closeCommentPopover(); toggleCommentForm(idx); }
 
     function toggleCommentForm(idx) {
       const f = $(`cf-${idx}`);
@@ -758,12 +777,12 @@
     }
 
     async function submitParagraphComment(paraIdx) {
-      const body = $(`ct-${paraIdx}`)?.value?.trim();
+      const body = document.getElementById('ct-' + paraIdx)?.value?.trim();
       if (!body || !selectedChapter) return;
       const { data, error } = await db.from('comments').insert({
         chapter_id: selectedChapter.id, reviewer_id: currentUserId, paragraph_ref: paraIdx, body,
       }).select().single();
-      if (error) { alert('Error: ' + error.message); return; }
+      if (error) { showToast('Error: ' + error.message); return; }
       allComments.push(data);
       renderChapterContent(selectedChapter.content);
       renderCommentThread();
@@ -816,22 +835,74 @@
       renderChapterContent(selectedChapter?.content ?? '');
     }
 
-    function highlightComments(paraIdx) {
-      const panel = document.querySelector('#view-chapter > div:last-child');
-      if (panel) panel.scrollIntoView({ behavior:'smooth', block:'start' });
-      setTimeout(() => {
-        const cards = document.querySelectorAll(`[data-para-ref="${paraIdx}"]`);
-        if (!cards.length) return;
-        cards.forEach((card, i) => {
-          setTimeout(() => {
-            card.scrollIntoView({ behavior:'smooth', block:'nearest' });
-            card.style.boxShadow = '0 0 0 2px rgba(163,22,33,0.55)';
-            card.style.borderColor = 'rgba(163,22,33,0.55)';
-            setTimeout(() => { card.style.boxShadow = ''; card.style.borderColor = ''; }, 2000);
-          }, i * 80);
-        });
-      }, 380);
+    // ── ADMIN PARAGRAPH COMMENT POPOVER ─────────────────────────────
+    let _popPara = null;
+
+    function openCommentPopover(paraIdx, triggerEl) {
+      if (_popPara === paraIdx) { closeCommentPopover(); return; }
+      _popPara = paraIdx;
+      const pop = $('admin-pop');
+      $('admin-pop-label').textContent = 'Paragraph ' + (paraIdx + 1);
+      renderAdminPopoverThread(paraIdx);
+      $('admin-pop-input').value = '';
+      $('admin-pop-para').value = paraIdx;
+      const rect = triggerEl.getBoundingClientRect();
+      const pw = 288;
+      let top = rect.bottom + 8;
+      let left = rect.left;
+      if (left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+      if (top + 320 > window.innerHeight - 12) top = rect.top - 320 - 8;
+      pop.style.top = Math.max(8, top) + 'px';
+      pop.style.left = Math.max(8, left) + 'px';
+      pop.classList.remove('hidden');
     }
+
+    function renderAdminPopoverThread(paraIdx) {
+      const comments = allComments.filter(c => c.paragraph_ref === paraIdx);
+      $('admin-pop-thread').innerHTML = comments.length
+        ? comments.map(c =>
+            '<div class="border-b border-border/30 pb-2.5 mb-2.5 last:border-0 last:pb-0 last:mb-0">'
+            + '<p class="text-white/85 text-xs leading-relaxed">' + escHtml(c.body) + '</p>'
+            + (!c.resolved
+              ? '<button onclick="resolveFromPopover(\'' + c.id + '\',' + paraIdx + ')" class="mt-1.5 text-[10px] text-emerald-400/70 hover:text-emerald-400 transition-colors font-medium">Mark Resolved</button>'
+              : '<span class="text-[10px] text-emerald-400/50 mt-1 block">Resolved</span>')
+            + '</div>'
+          ).join('')
+        : '<p class="text-muted text-xs">No comments on this paragraph.</p>';
+    }
+
+    function closeCommentPopover() { $('admin-pop').classList.add('hidden'); _popPara = null; }
+
+    async function resolveFromPopover(commentId, paraIdx) {
+      await db.from('comments').update({ resolved: true }).eq('id', commentId);
+      allComments = allComments.map(c => c.id === commentId ? { ...c, resolved: true } : c);
+      renderAdminPopoverThread(paraIdx);
+      renderCommentThread();
+      renderChapterContent(selectedChapter?.content ?? '');
+    }
+
+    async function postPopoverComment() {
+      const body = $('admin-pop-input').value.trim();
+      const paraIdx = parseInt($('admin-pop-para').value);
+      if (!body || !selectedChapter) return;
+      const { data, error } = await db.from('comments').insert({
+        chapter_id: selectedChapter.id, reviewer_id: currentUserId,
+        paragraph_ref: paraIdx, body,
+      }).select().single();
+      if (error) { showToast('Error: ' + error.message); return; }
+      allComments.push(data);
+      $('admin-pop-input').value = '';
+      renderAdminPopoverThread(paraIdx);
+      renderCommentThread();
+      renderChapterContent(selectedChapter.content);
+    }
+
+    document.addEventListener('click', e => {
+      const pop = $('admin-pop');
+      if (!pop?.classList.contains('hidden') && !pop.contains(e.target) && !e.target.closest('.para-comment-badge')) {
+        closeCommentPopover();
+      }
+    });
 
     // ── APPROVE / REJECT ────────────────────────────────────────────
     async function approveChapter(chapterId) {
