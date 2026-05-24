@@ -536,7 +536,9 @@
     // ── STATE ──────────────────────────────────────────────────
     let currentUserId  = null;
     let selectedBook   = null;
-    let editingChapter = null;   // null = new chapter, obj = existing chapter being edited
+    let editingChapter = null;
+    const _bookReg  = new Map(); // id → book (avoids JSON-in-onclick; safe with apostrophes)
+    const _chapReg  = new Map(); // id → chapter
     let pendingCoverFile = null;
 
     // ── AUTH ───────────────────────────────────────────────────
@@ -645,6 +647,7 @@
       $('view-chapters').classList.add('hidden');
       $('view-editor').classList.add('hidden');
       selectedBook = null; editingChapter = null;
+      _writerChapterComments = []; _originalChapterContent = ''; _hasExistingSnapshot = false;
       loadBooks();
     }
 
@@ -653,6 +656,7 @@
       $('view-chapters').classList.remove('hidden');
       $('view-editor').classList.add('hidden');
       editingChapter = null;
+      _writerChapterComments = []; _originalChapterContent = ''; _hasExistingSnapshot = false;
       loadChapters(selectedBook.id);
     }
 
@@ -662,8 +666,9 @@
     let _originalChapterContent = '';
     let _hasExistingSnapshot    = false;
 
-    function showEditorView(chapter) {
-      editingChapter        = chapter || null;
+    function showEditorView(chOrId) {
+      const chapter = (typeof chOrId === 'string') ? (_chapReg.get(chOrId) ?? null) : (chOrId || null);
+      editingChapter        = chapter;
       _writerEditModeActive = false;
       _originalChapterContent = '';
       _hasExistingSnapshot    = false;
@@ -729,9 +734,13 @@
           db.from('comments').select('id,paragraph_ref,body,resolved,created_at')
             .eq('chapter_id', chapter.id).order('created_at', { ascending: true }),
         ]).then(([{ data: full }, { data: comments }]) => {
+          if (!full) {
+            $('editor-read-mode').innerHTML = '<p class="text-red-400 text-sm">Failed to load chapter content. Please go back and try again.</p>';
+            return;
+          }
           _writerChapterComments  = comments ?? [];
-          _originalChapterContent = full?.content || '';
-          _hasExistingSnapshot    = !!full?.content_snapshot;
+          _originalChapterContent = full.content || '';
+          _hasExistingSnapshot    = !!full.content_snapshot;
           $('editor-chapter-title').value    = chapter?.title || '';
           $('editor-content').value          = full?.content || '';
           $('editor-word-count').textContent = countWords(full?.content || '') + ' words';
@@ -903,7 +912,9 @@
       renderBooks(data ?? []);
     }
 
-    async function quickNewChapter(book) {
+    async function quickNewChapter(id) {
+      const book = (typeof id === 'object') ? id : _bookReg.get(id);
+      if (!book) return;
       selectedBook = book;
       if (book.cover_url) {
         $('ch-cover').src = book.cover_url; $('ch-cover').classList.remove('hidden');
@@ -952,7 +963,7 @@
         const dateStr = ts ? new Date(ts).toLocaleString('sv-SE',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}).replace('T',' ') : '';
         const sCls = statusMap[b.status] || statusMap.draft;
         const sLabel = b.status === 'approved' || b.status === 'published' ? 'Active' : b.status.charAt(0).toUpperCase() + b.status.slice(1).replace('_',' ');
-        const bJson = escHtml(JSON.stringify(b));
+        _bookReg.set(b.id, b);
         const coverHtml = b.cover_url
           ? '<img src="' + escHtml(b.cover_url) + '" class="w-20 h-full min-h-28 object-cover rounded-xl border border-border shadow-lg"/>'
           : '<div class="w-20 h-full min-h-28 bg-charcoal rounded-xl border border-border flex items-center justify-center shadow-lg"><span class="font-serif text-3xl text-muted/30">' + escHtml(b.title[0]||'?') + '</span></div>';
@@ -962,7 +973,7 @@
           + '<div class="flex items-center justify-between px-4 py-2 border-b border-border/40">'
           + '<span class="text-muted/60 text-[11px]">Last Update: ' + dateStr + '</span>'
           + '</div>'
-          + '<div class="p-4 flex gap-4 items-stretch cursor-pointer active:bg-white/5 transition-colors" onclick=\'openBook(' + bJson + ')\'>'
+          + '<div class="p-4 flex gap-4 items-stretch cursor-pointer active:bg-white/5 transition-colors" onclick=\'openBook(\"' + b.id + '\")\'>'  
           + '<div class="relative flex-shrink-0 self-stretch">' + coverHtml + signedBadge + '</div>'
           + '<div class="flex-1 min-w-0">'
           + '<h3 class="font-semibold text-white text-base leading-snug mb-2.5 line-clamp-2">' + escHtml(b.title) + '</h3>'
@@ -979,12 +990,14 @@
           + '</div>'
           + '</div>'
           + '<div class="px-4 pb-4">'
-          + '<button onclick="event.stopPropagation();quickNewChapter(' + bJson + ')" class="w-full py-2.5 rounded-xl text-sm font-medium bg-crimson/90 hover:bg-crimson text-white transition-colors">+ Add new chapter</button>'
+          + '<button onclick="event.stopPropagation();quickNewChapter(&quot;' + b.id + '&quot;)" class="w-full py-2.5 rounded-xl text-sm font-medium bg-crimson/90 hover:bg-crimson text-white transition-colors">+ Add new chapter</button>'
           + '</div>'
           + '</div>';
       }).join('');
     }
-    function openBook(book) {
+    function openBook(id) {
+      const book = (typeof id === 'object') ? id : _bookReg.get(id);
+      if (!book) return;
       selectedBook = book;
       $('ch-title').textContent  = book.title;
       $('ch-status').textContent = 'Status: ' + book.status;
@@ -1108,8 +1121,9 @@
         return '<span class="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full ' + (map[s]||'bg-muted/10 text-muted') + '">' + s.replace('_',' ') + '</span>';
       };
       container.innerHTML = chapters.map(ch => {
+        _chapReg.set(ch.id, ch);
         const isLocked = selectedBook?.locked_from_chapter && ch.chapter_number >= selectedBook.locked_from_chapter;
-        return '<button onclick=\'showEditorView(' + JSON.stringify(ch) + ')\''
+        return '<button onclick=\'showEditorView(\"' + ch.id + '\")\''
           + ' class="w-full text-left rounded-xl border border-border bg-surface p-4 hover:border-gold/30 hover:shadow-lg hover:shadow-gold/5 transition-all duration-200 cursor-pointer">'
           + '<div class="flex items-center justify-between gap-3">'
           + '<div class="min-w-0">'

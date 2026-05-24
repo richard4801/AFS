@@ -493,6 +493,9 @@
     let _cachedChapters = [];
     let allComments     = [];
     let rejectChapterId = null;
+    const _writerReg   = new Map(); // id → writer
+    const _adminBookReg = new Map(); // id → book
+    const _adminChapReg = new Map(); // id → chapter
 
     // ── AUTH ────────────────────────────────────────────────────────
     function guardAdmin() {
@@ -539,7 +542,7 @@
       if (!writers?.length) { container.innerHTML = `<p class="text-muted text-xs px-2 pt-2">No writers yet.</p>`; return; }
       const pendingSet = new Set((submittedChapters ?? []).map(c => c.books?.author_id).filter(Boolean));
       container.innerHTML = writers.map(w => `
-        <button onclick='selectWriter(${JSON.stringify(w)})' data-wid="${w.id}"
+        <button onclick='selectWriter("${w.id}")' data-wid="${w.id}"
                 class="writer-btn w-full text-left px-3 py-2.5 rounded-lg text-sm text-white/80 hover:text-white hover:bg-surface border border-transparent hover:border-border transition-all duration-150">
           <div class="flex items-center justify-between gap-2">
             <div class="min-w-0">
@@ -579,9 +582,10 @@
       }
       const statusMap = { draft:'bg-muted/20 text-muted', submitted:'bg-gold/15 text-gold', approved:'bg-emerald-400/15 text-emerald-400' };
       grid.innerHTML = books.map(b => {
+        _adminBookReg.set(b.id, b);
         const signed = b.is_signed;
         return `
-          <button onclick='selectBook(${JSON.stringify(b)})'
+          <button onclick='selectBook("${b.id}")'
                   class="text-left rounded-2xl border border-border bg-surface hover:border-crimson/30 hover:shadow-lg hover:shadow-crimson/5 transition-all duration-200 overflow-hidden group">
             ${b.cover_url
               ? `<img src="${escHtml(b.cover_url)}" class="w-full h-56 object-cover" alt="${escHtml(b.title)}"/>`
@@ -601,7 +605,9 @@
       }).join('');
     }
 
-    async function selectBook(book) {
+    async function selectBook(idOrObj) {
+      const book = (typeof idOrObj === 'object') ? idOrObj : _adminBookReg.get(idOrObj);
+      if (!book) return;
       selectedBook    = book;
       selectedChapter = null;
       showView('view-book-chapters');
@@ -695,6 +701,7 @@
       const sMap = { draft:'bg-muted/20 text-muted', submitted:'bg-gold/15 text-gold', approved:'bg-emerald-400/15 text-emerald-400', revision_requested:'bg-red-400/15 text-red-400' };
       const badge = s => `<span class="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full ${sMap[s]||''}">${s.replace('_',' ')}</span>`;
       container.innerHTML = chapters.map(ch => {
+        _adminChapReg.set(ch.id, ch);
         const canReview = ch.status === 'submitted';
         const isLocked  = selectedBook?.locked_from_chapter && ch.chapter_number >= selectedBook.locked_from_chapter;
         return `
@@ -708,7 +715,7 @@
               <div class="flex flex-col items-end gap-2 flex-shrink-0">
                 ${badge(ch.status)}
                 <div class="flex items-center gap-1.5 flex-wrap justify-end">
-                  <button onclick='openChapter(${JSON.stringify(ch)})'
+                  <button onclick='openChapter("${ch.id}")'
                           class="text-[10px] font-semibold px-2 py-1 rounded border border-border text-muted hover:text-white hover:border-white/20 transition-all">
                     Open →
                   </button>
@@ -818,7 +825,9 @@
     }
 
     // ── CHAPTER VIEWER ──────────────────────────────────────────────
-    async function openChapter(chapter) {
+    async function openChapter(idOrObj) {
+      const chapter = (typeof idOrObj === 'object') ? idOrObj : _adminChapReg.get(idOrObj);
+      if (!chapter) return;
       selectedChapter = { ...chapter };
       showView('view-chapter');
       $('viewer-chapter-num').textContent   = `Chapter ${chapter.chapter_number}`;
@@ -843,14 +852,12 @@
       ]);
       selectedChapter.content = full?.content ?? '';
       selectedChapter.content_snapshot = full?.content_snapshot ?? null;
-      allComments = comments ?? [];
+      allComments = sortComments(comments ?? []);
       renderChapterContent(selectedChapter.content, selectedChapter.content_snapshot);
       renderCommentThread();
     }
 
     // ── ADMIN CHAPTER EDIT ───────────────────────────────────────────
-    let _adminEditing = false;
-
     function toggleAdminChapterEdit() { openAdminFSEditor(); }
 
     // ── ADMIN FULL-SCREEN RICH-TEXT EDITOR ────────────────────────────
@@ -887,7 +894,6 @@
     function adminFsClose() {
       $('admin-fullscreen-editor').classList.add('hidden');
       document.body.style.overflow = '';
-      _adminEditing = false;
     }
 
     function adminExecFmt(cmd) {
@@ -987,7 +993,7 @@
 
     function computeLCS(a, b) {
       const m = a.length, n = b.length;
-      if (m * n > 60000) return null; // perf guard
+      if (m * n > 120000) return null; // perf guard
       const dp = Array.from({length: m+1}, () => new Int32Array(n+1));
       for (let i = 1; i <= m; i++)
         for (let j = 1; j <= n; j++)
@@ -1147,7 +1153,7 @@ ${paraHtml}
         chapter_id: selectedChapter.id, reviewer_id: currentUserId, paragraph_ref: paraIdx, body,
       }).select().single();
       if (error) { showToast('Error: ' + error.message); return; }
-      allComments.push(data);
+      allComments = sortComments([...allComments, data]);
       renderChapterContent(selectedChapter.content, selectedChapter.content_snapshot ?? null);
       renderCommentThread();
       toggleCommentForm(paraIdx);
@@ -1166,18 +1172,21 @@ ${paraHtml}
       showToast('Comment posted.');
     }
 
+    function sortComments(arr) {
+      return [...arr].sort((a, b) => {
+        if (a.paragraph_ref === null && b.paragraph_ref !== null) return -1;
+        if (a.paragraph_ref !== null && b.paragraph_ref === null) return 1;
+        return (a.paragraph_ref ?? 0) - (b.paragraph_ref ?? 0) || new Date(a.created_at) - new Date(b.created_at);
+      });
+    }
+
     function renderCommentThread() {
       const container = $('comment-thread');
       if (!allComments.length) {
         container.innerHTML = `<p class="text-muted text-xs">No comments yet. Click + next to any paragraph to comment.</p>`;
         return;
       }
-      const sorted = [...allComments].sort((a, b) => {
-        if (a.paragraph_ref === null && b.paragraph_ref !== null) return -1;
-        if (a.paragraph_ref !== null && b.paragraph_ref === null) return 1;
-        return (a.paragraph_ref ?? 0) - (b.paragraph_ref ?? 0);
-      });
-      container.innerHTML = sorted.map(c => `
+      container.innerHTML = allComments.map(c => `
         <div class="comment-card rounded-lg border ${c.resolved ? 'border-border/40 opacity-50' : 'border-border'} bg-charcoal/60 p-3"
              data-comment-id="${c.id}" data-para-ref="${c.paragraph_ref ?? 'general'}">
           <div class="flex items-center justify-between mb-1.5">
@@ -1194,9 +1203,13 @@ ${paraHtml}
 
     async function resolveComment(commentId) {
       await db.from('comments').update({ resolved: true }).eq('id', commentId);
-      allComments = allComments.map(c => c.id === commentId ? { ...c, resolved: true } : c);
+      allComments = sortComments(allComments.map(c => c.id === commentId ? { ...c, resolved: true } : c));
       renderCommentThread();
-      renderChapterContent(selectedChapter?.content ?? '', selectedChapter?.content_snapshot ?? null);
+      // Only re-render chapter content if a paragraph badge count changed
+      const resolved = allComments.find(c => c.id === commentId);
+      if (resolved?.paragraph_ref !== null && resolved?.paragraph_ref !== undefined) {
+        renderChapterContent(selectedChapter?.content ?? '', selectedChapter?.content_snapshot ?? null);
+      }
     }
 
     // ── ADMIN PARAGRAPH COMMENT POPOVER ─────────────────────────────
@@ -1239,10 +1252,11 @@ ${paraHtml}
 
     async function resolveFromPopover(commentId, paraIdx) {
       await db.from('comments').update({ resolved: true }).eq('id', commentId);
-      allComments = allComments.map(c => c.id === commentId ? { ...c, resolved: true } : c);
+      const wasParaPinned = allComments.find(c => c.id === commentId)?.paragraph_ref != null;
+      allComments = sortComments(allComments.map(c => c.id === commentId ? { ...c, resolved: true } : c));
       renderAdminPopoverThread(paraIdx);
       renderCommentThread();
-      renderChapterContent(selectedChapter?.content ?? '', selectedChapter?.content_snapshot ?? null);
+      if (wasParaPinned) renderChapterContent(selectedChapter?.content ?? '', selectedChapter?.content_snapshot ?? null);
     }
 
     async function postPopoverComment() {
@@ -1254,11 +1268,11 @@ ${paraHtml}
         paragraph_ref: paraIdx, body,
       }).select().single();
       if (error) { showToast('Error: ' + error.message); return; }
-      allComments.push(data);
+      allComments = sortComments([...allComments, data]);
       $('admin-pop-input').value = '';
       renderAdminPopoverThread(paraIdx);
       renderCommentThread();
-      renderChapterContent(selectedChapter.content);
+      renderChapterContent(selectedChapter.content, selectedChapter.content_snapshot ?? null);
     }
 
     document.addEventListener('click', e => {
@@ -1368,9 +1382,6 @@ ${paraHtml}
       if (writerId) {
         let notifBody = `Chapter ${chNum}${chTitle ? ': "' + chTitle + '"' : ''} has been sent back for revision.`;
         if (reason) notifBody += '\n\nAdmin feedback: ' + reason;
-        if (editedContent && snapshot) {
-          notifBody += '\n\n--- Your edited version (for reference) ---\n' + editedContent;
-        }
         await db.from('notifications').insert({
           user_id: writerId, type: 'chapter_rejected', title: 'Revision Requested',
           body: notifBody, chapter_id: id,
