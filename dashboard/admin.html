@@ -46,6 +46,11 @@
     @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:.4} }
     .notif-dot { width:8px;height:8px;border-radius:50%;background:#C9A84C;flex-shrink:0;animation:pulse-dot 1.8s ease-in-out infinite; }
     .para-changed { background:rgba(201,168,76,0.07); border-left:2px solid rgba(201,168,76,0.55); padding-left:0.85em; }
+    .fs-tool-btn { padding:2px 9px; border-radius:5px; font-size:11px; font-weight:700; color:rgba(255,255,255,0.6); background:transparent; border:1px solid transparent; cursor:pointer; transition:all .15s; line-height:1.8; }
+    .fs-tool-btn:hover { background:rgba(255,255,255,0.07); border-color:rgba(255,255,255,0.12); color:#fff; }
+    .fs-tool-btn.active { background:rgba(163,22,33,0.18); border-color:rgba(163,22,33,0.4); color:#C82333; }
+    #admin-fs-content:empty::before { content:attr(data-placeholder); color:rgba(122,122,122,0.35); font-style:italic; pointer-events:none; }
+    #admin-fs-content p { margin-bottom:1.5em; line-height:2.0; font-family:'DM Serif Display',Georgia,serif; font-size:17px; letter-spacing:0.015em; color:rgba(255,255,255,0.88); }
   </style>
 </head>
 
@@ -393,6 +398,43 @@
       </div>
 
     </main>
+  </div>
+
+  <!-- ADMIN FULL-SCREEN CHAPTER EDITOR -->
+  <div id="admin-fullscreen-editor" class="hidden fixed inset-0 z-[200] bg-obsidian flex flex-col">
+    <div class="flex-shrink-0 flex items-center gap-2.5 px-5 py-2.5 border-b border-border bg-charcoal/80 backdrop-blur-sm">
+      <button onclick="adminFsClose()" class="flex-shrink-0 flex items-center gap-1.5 text-muted hover:text-white text-xs transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+        Back
+      </button>
+      <div class="w-px h-5 bg-border flex-shrink-0"></div>
+      <span id="admin-fs-label" class="text-xs text-muted/70"></span>
+      <div class="w-px h-5 bg-border flex-shrink-0"></div>
+      <div class="flex items-center gap-0.5">
+        <button data-cmd="bold"      onclick="adminExecFmt('bold')"      title="Bold (Ctrl+B)"      class="fs-tool-btn" style="font-weight:700;">B</button>
+        <button data-cmd="italic"    onclick="adminExecFmt('italic')"    title="Italic (Ctrl+I)"    class="fs-tool-btn" style="font-style:italic;">I</button>
+        <button data-cmd="underline" onclick="adminExecFmt('underline')" title="Underline (Ctrl+U)" class="fs-tool-btn" style="text-decoration:underline;">U</button>
+        <div class="w-px h-4 bg-border mx-1.5"></div>
+        <button onclick="document.execCommand('undo')" title="Undo (Ctrl+Z)" class="fs-tool-btn" style="font-size:15px;padding:1px 7px;">↩</button>
+        <button onclick="document.execCommand('redo')" title="Redo (Ctrl+Y)" class="fs-tool-btn" style="font-size:15px;padding:1px 7px;">↪</button>
+      </div>
+      <div class="ml-auto flex items-center gap-2.5">
+        <span id="admin-fs-wc" class="text-muted text-xs tabular-nums">0 words</span>
+        <button onclick="saveAdminFSEdit()"
+                class="px-4 py-1.5 bg-gold hover:bg-gold-light text-obsidian text-xs font-semibold rounded-lg transition-colors">
+          Save Changes
+        </button>
+      </div>
+    </div>
+    <div id="admin-fs-error" class="hidden flex-shrink-0 px-5 py-2 bg-red-400/10 border-b border-red-400/20 text-xs text-red-400"></div>
+    <div class="flex-1 overflow-y-auto thin-scroll">
+      <div class="max-w-3xl mx-auto px-10 py-12">
+        <div id="admin-fs-content" contenteditable="true" spellcheck="true"
+             class="min-h-[65vh] outline-none"
+             data-placeholder="Chapter content…"
+             style="font-family:'DM Serif Display',Georgia,serif;font-size:17px;line-height:2.0;color:rgba(255,255,255,0.88);caret-color:#C9A84C;letter-spacing:0.015em;"></div>
+      </div>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -745,42 +787,90 @@
     // ── ADMIN CHAPTER EDIT ───────────────────────────────────────────
     let _adminEditing = false;
 
-    function toggleAdminChapterEdit() {
-      _adminEditing = !_adminEditing;
-      const editMode = $('admin-chapter-edit-mode');
-      const readMode = $('chapter-content');
-      const btn      = $('admin-edit-btn');
-      if (_adminEditing) {
-        $('admin-chapter-textarea').value = selectedChapter.content ?? '';
-        editMode.classList.remove('hidden');
-        readMode.classList.add('hidden');
-        btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg> View';
-        $('admin-chapter-textarea').focus();
-      } else {
-        editMode.classList.add('hidden');
-        readMode.classList.remove('hidden');
-        btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit';
-      }
+    function toggleAdminChapterEdit() { openAdminFSEditor(); }
+
+    // ── ADMIN FULL-SCREEN RICH-TEXT EDITOR ────────────────────────────
+    function adminContentToEditable(raw) {
+      if (!raw?.trim()) return '';
+      if (/<p[\s>]/i.test(raw)) return raw;
+      const blocks = formatContent(raw);
+      return blocks.map(b => {
+        if (b.type === 'break') return '<p style="text-align:center;letter-spacing:.4em;color:#6A6A6A">* * *</p>';
+        if (b.type === 'title') return '<p><strong>' + escHtml(b.text) + '</strong></p>';
+        return '<p>' + escHtml(b.text) + '</p>';
+      }).join('');
     }
 
-    async function saveAdminChapterEdit() {
-      const content = $('admin-chapter-textarea').value;
-      if (!selectedChapter?.id) return;
-      const words = content.trim() ? content.trim().split(/\s+/).length : 0;
-      const { error } = await db.from('chapters').update({
-        content, word_count: words, updated_at: new Date().toISOString(),
-      }).eq('id', selectedChapter.id);
-      if (error) { showToast('Error: ' + error.message); return; }
-      selectedChapter.content = content;
-      showToast('Chapter updated ✓');
+    function adminFsWc() {
+      const t = $('admin-fs-content').innerText || $('admin-fs-content').textContent || '';
+      return t.trim() ? t.trim().split(/\s+/).length : 0;
+    }
+    function updateAdminFsWc() { $('admin-fs-wc').textContent = adminFsWc().toLocaleString() + ' words'; }
+
+    function openAdminFSEditor() {
+      $('admin-fs-label').textContent = selectedChapter
+        ? 'Chapter ' + selectedChapter.chapter_number + (selectedChapter.title ? ' — ' + selectedChapter.title : '')
+        : 'Chapter';
+      $('admin-fs-content').innerHTML = adminContentToEditable(selectedChapter?.content ?? '');
+      $('admin-fs-error').classList.add('hidden');
+      document.execCommand('defaultParagraphSeparator', false, 'p');
+      updateAdminFsWc();
+      $('admin-fullscreen-editor').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      setTimeout(() => { $('admin-fs-content').focus(); }, 60);
+    }
+
+    function adminFsClose() {
+      $('admin-fullscreen-editor').classList.add('hidden');
+      document.body.style.overflow = '';
       _adminEditing = false;
-      $('admin-chapter-edit-mode').classList.add('hidden');
-      $('chapter-content').classList.remove('hidden');
-      $('admin-edit-btn').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit';
+    }
+
+    function adminExecFmt(cmd) {
+      document.execCommand(cmd, false, null);
+      $('admin-fs-content').focus();
+      updateAdminFsToolbar();
+    }
+
+    function updateAdminFsToolbar() {
+      ['bold','italic','underline'].forEach(cmd => {
+        const btn = document.querySelector('#admin-fullscreen-editor .fs-tool-btn[data-cmd="' + cmd + '"]');
+        if (btn) btn.classList.toggle('active', document.queryCommandState(cmd));
+      });
+    }
+
+    $('admin-fs-content').addEventListener('input', updateAdminFsWc);
+    $('admin-fs-content').addEventListener('keyup', updateAdminFsToolbar);
+    $('admin-fs-content').addEventListener('mouseup', updateAdminFsToolbar);
+    $('admin-fs-content').addEventListener('keydown', e => {
+      const mod = e.ctrlKey || e.metaKey;
+      if (mod && e.key === 'b') { e.preventDefault(); adminExecFmt('bold'); }
+      if (mod && e.key === 'i') { e.preventDefault(); adminExecFmt('italic'); }
+      if (mod && e.key === 'u') { e.preventDefault(); adminExecFmt('underline'); }
+    });
+
+    async function saveAdminFSEdit() {
+      const html  = $('admin-fs-content').innerHTML;
+      const words = adminFsWc();
+      const errEl = $('admin-fs-error');
+      errEl.classList.add('hidden');
+      if (!($('admin-fs-content').innerText || '').trim()) {
+        errEl.textContent = 'Content cannot be empty.'; errEl.classList.remove('hidden'); return;
+      }
+      if (!selectedChapter?.id) return;
+      const { error } = await db.from('chapters').update({
+        content: html, word_count: words, updated_at: new Date().toISOString(),
+      }).eq('id', selectedChapter.id);
+      if (error) { errEl.textContent = error.message; errEl.classList.remove('hidden'); return; }
+      selectedChapter.content = html;
+      adminFsClose();
+      showToast('Chapter updated ✓');
       $('viewer-chapter-meta').textContent = words.toLocaleString() + ' words · ' + selectedChapter.status.replace('_', ' ');
-      renderChapterContent(content, selectedChapter.content_snapshot ?? null);
+      renderChapterContent(html, selectedChapter.content_snapshot ?? null);
       refreshChapterList();
     }
+
+    async function saveAdminChapterEdit() { await saveAdminFSEdit(); }
 
     // ── CONTENT FORMATTER ───────────────────────────────────────────
     function isLikelyTitle(text) {
@@ -827,28 +917,46 @@
     }
 
     function renderChapterContent(raw, snapshot) {
-      const blocks = formatContent(raw);
+      // Detect HTML content (saved by rich-text editor)
+      const isHtml = raw && /<p[\s>]/i.test(raw);
+      let blocks;
+      if (isHtml) {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = raw;
+        blocks = Array.from(tmp.querySelectorAll('p')).map(p => ({ type:'para', html: p.innerHTML }));
+      } else {
+        blocks = formatContent(raw);
+      }
       if (!blocks.length) {
         $('chapter-content').innerHTML = '<p class="text-muted text-sm italic">No content yet.</p>';
         return;
       }
-      const snapParas = snapshot ? formatContent(snapshot).filter(b => b.type === 'para').map(b => b.text) : null;
-      let pIdx = 0;
-      let paraIdx = 0;
+      // Build snapshot para list for diff
+      const snapParas = snapshot ? (() => {
+        const sIsHtml = /<p[\s>]/i.test(snapshot);
+        if (sIsHtml) {
+          const d = document.createElement('div'); d.innerHTML = snapshot;
+          return Array.from(d.querySelectorAll('p')).map(p => p.innerHTML);
+        }
+        return formatContent(snapshot).filter(b => b.type === 'para').map(b => b.text);
+      })() : null;
+      let pIdx = 0, paraIdx = 0;
       $('chapter-content').innerHTML = blocks.map(block => {
         if (block.type === 'break') return '<div class="scene-break">* * *</div>';
         const idx = pIdx++;
-        if (block.type === 'title') return '<h4 class="prose-title">' + escHtml(block.text) + '</h4>';
+        if (block.type === 'title') return '<h4 class="prose-title">' + (block.html || escHtml(block.text || '')) + '</h4>';
         const curParaIdx = paraIdx++;
-        const isChanged = snapParas !== null && (curParaIdx >= snapParas.length || block.text !== snapParas[curParaIdx]);
+        const blockHtml = block.html !== undefined ? block.html : escHtml(block.text || '');
+        const snapVal   = snapParas ? (snapParas[curParaIdx] ?? null) : null;
+        const isChanged = snapParas !== null && (curParaIdx >= snapParas.length || blockHtml !== snapVal);
         const cnt = allComments.filter(c => c.paragraph_ref === idx && !c.resolved).length;
         const changedCls = isChanged ? ' para-changed' : '';
         return '<div class="para-wrap relative py-2 border-b border-border/20 group' + changedCls + '" data-para="' + idx + '">'
-          + '<p class="prose-para pr-14">' + escHtml(block.text) + '</p>'
+          + '<p class="prose-para pr-14">' + blockHtml + '</p>'
           + (cnt ? '<button class="para-comment-badge absolute right-10 top-3 text-[10px] font-semibold text-crimson-light bg-crimson/10 hover:bg-crimson/20 border border-crimson/20 rounded-full px-1.5 py-0.5 leading-none transition-colors" onclick="openCommentPopover(' + idx + ',this)">' + cnt + '</button>' : '')
           + '<button class="para-btn absolute right-2 top-3 w-6 h-6 rounded-full bg-surface border border-border hover:border-crimson/50 flex items-center justify-center text-muted hover:text-crimson-light text-sm leading-none transition-all" onclick="openCommentForm(' + idx + ',this)">+</button>'
           + '<div id="cf-' + idx + '" class="hidden mt-3 bg-charcoal border border-border rounded-lg p-3">'
-          + '<textarea id="ct-' + idx + '" rows="3" placeholder="Comment on paragraph ' + (idx+1) + '…" class="form-input w-full bg-obsidian border border-border text-white placeholder-muted text-xs rounded-md px-3 py-2 resize-none transition-all"></textarea>'
+          + '<textarea id="ct-' + idx + '" rows="3" placeholder="Comment on paragraph ' + (idx+1) + '\u2026" class="form-input w-full bg-obsidian border border-border text-white placeholder-muted text-xs rounded-md px-3 py-2 resize-none transition-all"></textarea>'
           + '<div class="flex gap-2 mt-2">'
           + '<button onclick="submitParagraphComment(' + idx + ')" class="px-3 py-1.5 bg-crimson/10 hover:bg-crimson/20 border border-crimson/30 text-crimson-light text-xs font-semibold rounded-lg transition-all">Post</button>'
           + '<button onclick="toggleCommentForm(' + idx + ')" class="px-3 py-1.5 text-muted hover:text-white text-xs rounded-lg transition-colors">Cancel</button>'
@@ -859,7 +967,6 @@
         if (firstChanged) setTimeout(() => firstChanged.scrollIntoView({ behavior:'smooth', block:'center' }), 150);
       }
     }
-
     function openCommentForm(idx, btn) { closeCommentPopover(); toggleCommentForm(idx); }
 
     function toggleCommentForm(idx) {
