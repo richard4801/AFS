@@ -218,11 +218,6 @@
           <div class="skeleton h-16 rounded-xl"></div>
         </div>
 
-        <!-- Writer's own edit requests for this book -->
-        <div id="my-requests-section" class="hidden mt-8">
-          <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted mb-3">Your Edit Requests</p>
-          <div id="my-requests-list" class="space-y-3"></div>
-        </div>
       </div>
 
       <!-- ── VIEW: Chapter editor / viewer ── -->
@@ -242,14 +237,7 @@
               <p id="editor-chapter-num" class="text-[10px] font-semibold tracking-[0.18em] uppercase text-gold mb-1"></p>
               <h2 id="editor-heading" class="font-serif text-2xl text-white">New Chapter</h2>
             </div>
-            <!-- Read-only: Request Edit button -->
-            <div id="editor-readonly-actions" class="hidden">
-              <button id="request-edit-btn" onclick="openEditRequestModal()"
-                      class="inline-flex items-center gap-1.5 px-4 py-2 bg-gold/10 hover:bg-gold/20 border border-gold/30 hover:border-gold/60 text-gold text-xs font-semibold rounded-lg transition-all duration-200">
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                Request Edit
-              </button>
-            </div>
+            <span id="editor-status-badge" class="hidden text-[10px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full"></span>
           </div>
 
           <!-- Chapter title -->
@@ -259,18 +247,6 @@
             </label>
             <input id="editor-chapter-title" type="text" placeholder="e.g. The Encounter"
                    class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 transition-all duration-200"/>
-          </div>
-
-          <!-- Read-only formatted view (shown when chapter is submitted/approved) -->
-          <div id="editor-preview-mode" class="hidden">
-            <div id="chapter-preview-content" class="min-h-[200px]"></div>
-            <div id="writer-comments-section" class="hidden mt-8 pt-6 border-t border-border/40">
-              <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted mb-3 flex items-center gap-2">
-                Editor Comments
-                <span id="writer-comments-count" class="text-[10px] font-semibold text-gold bg-gold/10 border border-gold/25 rounded-full px-1.5 py-0.5"></span>
-              </p>
-              <div id="writer-comments-list" class="space-y-3"></div>
-            </div>
           </div>
 
           <!-- Edit mode: docx upload + textarea -->
@@ -310,16 +286,25 @@
 
           </div><!-- /editor-textarea-mode -->
 
+          <!-- Admin comments (visible when editing existing chapter) -->
+          <div id="editor-comments-section" class="hidden border-t border-border/40 pt-5">
+            <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted mb-3 flex items-center gap-2">
+              Editor Comments
+              <span id="editor-comments-count" class="text-[10px] font-semibold text-gold bg-gold/10 border border-gold/25 rounded-full px-1.5 py-0.5"></span>
+            </p>
+            <div id="editor-comments-list" class="space-y-2"></div>
+          </div>
+
           <!-- Error -->
           <div id="editor-error" class="hidden text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-3"></div>
 
-          <!-- Edit-mode actions -->
+          <!-- Actions -->
           <div id="editor-actions" class="flex flex-wrap gap-3">
             <button onclick="saveChapter('draft')"
                     class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-surface hover:bg-charcoal border border-border hover:border-white/20 text-white text-sm font-medium rounded-lg transition-all duration-200">
               Save Draft
             </button>
-            <button onclick="saveChapter('submitted')"
+            <button id="editor-submit-btn" onclick="saveChapter('submitted')"
                     class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gold hover:bg-gold-light text-obsidian text-sm font-semibold rounded-lg transition-colors duration-200">
               Submit for Review
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
@@ -335,24 +320,6 @@
       <a href="mailto:support@apexfictionstudio.com" class="text-gold/70 hover:text-gold transition-colors">Contact your editor.</a>
     </p>
   </main>
-
-  <!-- WRITER PARAGRAPH COMMENT POPOVER -->
-  <div id="writer-pop" class="hidden fixed z-[150] rounded-2xl border border-border bg-surface shadow-2xl shadow-black/70 flex flex-col" style="width:272px;max-height:340px;">
-    <div class="flex items-center justify-between px-4 pt-3.5 pb-2.5 border-b border-border/50 flex-shrink-0">
-      <span id="writer-pop-label" class="text-[10px] font-semibold uppercase tracking-widest text-gold"></span>
-      <button onclick="closeWriterPopover()" class="text-muted hover:text-white text-lg leading-none w-5 h-5 flex items-center justify-center">×</button>
-    </div>
-    <div id="writer-pop-thread" class="flex-1 overflow-y-auto px-4 py-3 space-y-2 text-xs"></div>
-    <div class="px-4 pb-4 pt-2 border-t border-border/40 flex-shrink-0">
-      <input type="hidden" id="writer-pop-para" value=""/>
-      <textarea id="writer-pop-input" rows="2" placeholder="Reply to this comment…"
-                class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-xs rounded-lg px-3 py-2 resize-none transition-all"></textarea>
-      <button onclick="submitWriterPopoverReply()"
-              class="mt-2 w-full px-3 py-1.5 bg-gold/10 hover:bg-gold/20 border border-gold/30 text-gold text-xs font-semibold rounded-lg transition-all">
-        Send Reply
-      </button>
-    </div>
-  </div>
 
   <!-- ── NEW BOOK MODAL ───────────────────────────────────────── -->
   <div id="new-book-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center px-4"
@@ -411,30 +378,6 @@
     </div>
   </div>
 
-  <!-- ── EDIT REQUEST MODAL ───────────────────────────────────── -->
-  <div id="edit-request-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center px-4"
-       style="background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);">
-    <div class="relative w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-2xl shadow-black/60">
-      <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent"></div>
-      <h3 class="font-serif text-xl text-white mb-1">Request to Edit</h3>
-      <p id="edit-request-subtitle" class="text-muted text-xs mb-4">Tell the admin why you need to edit this chapter.</p>
-      <textarea id="edit-request-reason" rows="4"
-                placeholder="e.g. I found a continuity error in this chapter that affects the plot…"
-                class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 resize-none transition-all duration-200"></textarea>
-      <div id="edit-request-error" class="hidden mt-3 text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-3"></div>
-      <div class="flex gap-3 mt-4">
-        <button onclick="submitEditRequest()"
-                class="flex-1 px-4 py-2.5 bg-gold hover:bg-gold-light text-obsidian text-sm font-semibold rounded-lg transition-colors duration-200">
-          Send Request
-        </button>
-        <button onclick="closeEditRequestModal()"
-                class="px-4 py-2.5 border border-border hover:border-white/20 text-muted hover:text-white text-sm rounded-lg transition-all duration-200">
-          Cancel
-        </button>
-      </div>
-    </div>
-  </div>
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
   <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
@@ -456,12 +399,10 @@
     const countWords = t => t.trim() ? t.trim().split(/\s+/).length : 0;
 
     // ── STATE ──────────────────────────────────────────────────
-    let currentUserId        = null;
-    let selectedBook         = null;
-    let editingChapter       = null;   // null = new chapter, obj = editing existing draft
-    let viewingChapter       = null;   // read-only chapter currently open
-    let pendingEditChapterId = null;
-    let pendingCoverFile     = null;
+    let currentUserId  = null;
+    let selectedBook   = null;
+    let editingChapter = null;   // null = new chapter, obj = existing chapter being edited
+    let pendingCoverFile = null;
 
     // ── AUTH ───────────────────────────────────────────────────
     function guardAuth() {
@@ -581,63 +522,68 @@
     }
 
     function showEditorView(chapter) {
-      editingChapter = (chapter && (chapter.status === 'draft' || chapter.status === 'revision_requested'))
-        ? chapter : null;
-      viewingChapter = null;
-      const isReadOnly = chapter && editingChapter === null;
+      editingChapter = chapter || null;
 
       $('view-books').classList.add('hidden');
       $('view-chapters').classList.add('hidden');
       $('view-editor').classList.remove('hidden');
 
-      const chNum = chapter ? `Chapter ${chapter.chapter_number}` : `Chapter ${window._nextChNum || '—'}`;
-      $('editor-chapter-num').textContent  = chNum;
-      $('editor-heading').textContent      = chapter ? (chapter.title || '(Untitled)') : 'New Chapter';
-      $('editor-chapter-title').disabled   = isReadOnly;
-      $('editor-actions').classList.toggle('hidden', isReadOnly);
-      $('editor-readonly-actions').classList.toggle('hidden', !isReadOnly);
+      const isNew = !chapter;
+      $('editor-chapter-num').textContent = isNew ? `Chapter ${window._nextChNum || '—'}` : `Chapter ${chapter.chapter_number}`;
+      $('editor-heading').textContent     = isNew ? 'New Chapter' : (chapter.title || '(Untitled)');
+      $('editor-chapter-title').value     = chapter?.title || '';
       $('editor-error').classList.add('hidden');
+      $('editor-comments-section').classList.add('hidden');
 
-      if (isReadOnly) {
-        // Show formatted preview, hide raw textarea
-        $('editor-textarea-mode').classList.add('hidden');
-        $('editor-preview-mode').classList.remove('hidden');
-        $('editor-chapter-title').value      = chapter?.title || '';
-        $('editor-status-label').textContent = '';
-        viewingChapter = chapter;
-        pendingEditChapterId = chapter.id;
-        loadChapterReadView(chapter);
-        db.from('edit_requests').select('id,status').eq('chapter_id', chapter.id).eq('status','pending').maybeSingle()
-          .then(({ data }) => {
-            const btn = $('request-edit-btn');
-            if (data) {
-              btn.textContent = 'Request Pending';
-              btn.disabled = true;
-              btn.classList.replace('bg-gold/10','bg-surface');
-              btn.classList.replace('border-gold/30','border-border');
-              btn.classList.replace('text-gold','text-muted');
-            }
-          });
+      // Status badge
+      const badge = $('editor-status-badge');
+      if (!isNew) {
+        const s = chapter.status;
+        const styleMap = { draft:'bg-muted/20 text-muted', submitted:'bg-gold/15 text-gold', approved:'bg-emerald-400/15 text-emerald-400', revision_requested:'bg-red-400/15 text-red-400' };
+        badge.className = 'text-[10px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full ' + (styleMap[s] || 'bg-muted/20 text-muted');
+        badge.textContent = s.replace('_', ' ');
+        badge.classList.remove('hidden');
       } else {
-        // Show edit textarea, hide preview
-        $('editor-textarea-mode').classList.remove('hidden');
-        $('editor-preview-mode').classList.add('hidden');
-        $('chapter-preview-content').innerHTML = '';
-        $('writer-comments-section').classList.add('hidden');
-        $('editor-chapter-title').value      = chapter?.title || '';
-        $('editor-status-label').textContent = chapter ? `Status: ${chapter.status.replace('_',' ')}` : '';
-        $('editor-content').value            = '';
-        $('editor-word-count').textContent   = '…';
-        $('docx-section').classList.remove('hidden');
-        if (chapter?.id) {
-          db.from('chapters').select('content').eq('id', chapter.id).single().then(({ data }) => {
-            $('editor-content').value          = data?.content || '';
-            $('editor-word-count').textContent = countWords(data?.content || '') + ' words';
-          });
-        } else {
-          $('editor-word-count').textContent = '0 words';
-        }
+        badge.classList.add('hidden');
       }
+
+      // Update submit button label
+      const submitBtn = $('editor-submit-btn');
+      if (isNew) {
+        submitBtn.innerHTML = 'Submit for Review <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>';
+      } else {
+        submitBtn.textContent = 'Update';
+      }
+
+      $('editor-status-label').textContent = '';
+      $('editor-content').value            = '';
+      $('editor-word-count').textContent   = isNew ? '0 words' : '…';
+      $('docx-section').classList.remove('hidden');
+
+      if (chapter?.id) {
+        Promise.all([
+          db.from('chapters').select('content').eq('id', chapter.id).single(),
+          db.from('comments').select('id,paragraph_ref,body,resolved,created_at').eq('chapter_id', chapter.id).order('created_at', { ascending: true }),
+        ]).then(([{ data: full }, { data: comments }]) => {
+          $('editor-content').value          = full?.content || '';
+          $('editor-word-count').textContent = countWords(full?.content || '') + ' words';
+          renderEditorComments(comments ?? []);
+        });
+      }
+    }
+
+    function renderEditorComments(comments) {
+      const active = comments.filter(c => !c.resolved);
+      if (!active.length) { $('editor-comments-section').classList.add('hidden'); return; }
+      $('editor-comments-section').classList.remove('hidden');
+      $('editor-comments-count').textContent = active.length;
+      $('editor-comments-list').innerHTML = active.map(c => {
+        const label = c.paragraph_ref !== null ? `Paragraph ${c.paragraph_ref + 1}` : 'Chapter Note';
+        return '<div class="rounded-xl border border-border bg-charcoal/60 p-3">'
+          + '<p class="text-[10px] font-semibold uppercase tracking-wide text-gold mb-1">' + label + '</p>'
+          + '<p class="text-white/80 text-xs leading-relaxed">' + escHtml(c.body) + '</p>'
+          + '</div>';
+      }).join('');
     }
 
     // ── BOOKS ──────────────────────────────────────────────────
@@ -791,105 +737,39 @@
     // ── CHAPTERS ───────────────────────────────────────────────
     async function loadChapters(bookId) {
       $('chapters-list').innerHTML = '<div class="skeleton h-16 rounded-xl"></div>'.repeat(3);
-
-      const [{ data: chapters }, { data: myReqs }] = await Promise.all([
-        db.from('chapters')
-          .select('id, chapter_number, title, word_count, status')
-          .eq('book_id', bookId)
-          .order('chapter_number', { ascending: true }),
-        db.from('edit_requests')
-          .select('id, chapter_id, status, admin_reply, created_at')
-          .eq('author_id', currentUserId)
-          .order('created_at', { ascending: false }),
-      ]);
+      const { data: chapters } = await db.from('chapters')
+        .select('id, chapter_number, title, word_count, status')
+        .eq('book_id', bookId)
+        .order('chapter_number', { ascending: false });
 
       const chapterList = chapters ?? [];
-      const requests    = myReqs ?? [];
-
-      // Next chapter number (for new chapter)
       const maxNum = chapterList.reduce((m, c) => Math.max(m, c.chapter_number), 0);
       window._nextChNum = maxNum + 1;
-
-      renderChapters(chapterList, requests);
-      renderMyRequests(requests.filter(r =>
-        chapterList.some(c => c.id === r.chapter_id)
-      ), chapterList);
+      renderChapters(chapterList);
     }
 
-    function renderChapters(chapters, requests) {
+    function renderChapters(chapters) {
       const container = $('chapters-list');
-
       if (!chapters.length) {
         container.innerHTML = `<p class="text-muted text-sm px-2">No chapters yet — click <span class="text-gold">Add Chapter</span> to start.</p>`;
         return;
       }
-
-      const reqMap = {};
-      requests.forEach(r => {
-        if (!reqMap[r.chapter_id] || r.status === 'pending') reqMap[r.chapter_id] = r;
-      });
-
       const statusBadge = s => {
         const map = { draft:'bg-muted/20 text-muted', submitted:'bg-gold/15 text-gold', approved:'bg-emerald-400/15 text-emerald-400', revision_requested:'bg-red-400/15 text-red-400' };
-        return `<span class="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full ${map[s]||''}">${s.replace('_',' ')}</span>`;
+        return '<span class="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full ' + (map[s]||'bg-muted/10 text-muted') + '">' + s.replace('_',' ') + '</span>';
       };
-
-      container.innerHTML = chapters.map(ch => {
-        const isEditable = ch.status === 'draft' || ch.status === 'revision_requested';
-        const req = reqMap[ch.id];
-        const hasPending = req?.status === 'pending';
-
-        const actionBtn = isEditable
-          ? `<button onclick='showEditorView(${JSON.stringify(ch)})' class="text-[10px] font-semibold text-gold hover:text-gold-light transition-colors">Edit</button>`
-          : hasPending
-            ? `<span class="text-[10px] font-semibold text-muted">Request Pending</span>`
-            : `<button onclick='showEditorView(${JSON.stringify(ch)})' class="text-[10px] font-semibold text-white/50 hover:text-white transition-colors">View / Edit Request</button>`;
-
-        return `
-          <div class="rounded-xl border border-border bg-surface p-4 hover:border-white/10 transition-all duration-200">
-            <div class="flex items-center justify-between gap-3">
-              <div class="min-w-0">
-                <p class="text-[10px] font-semibold tracking-wide uppercase text-muted mb-0.5">Chapter ${ch.chapter_number}</p>
-                <p class="text-white font-medium truncate">${escHtml(ch.title || '(Untitled)')}</p>
-                <p class="text-muted text-xs mt-0.5">${(ch.word_count||0).toLocaleString()} words</p>
-              </div>
-              <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
-                ${statusBadge(ch.status)}
-                ${actionBtn}
-              </div>
-            </div>
-          </div>`;
-      }).join('');
-    }
-
-    function renderMyRequests(bookRequests, chapters) {
-      const section = $('my-requests-section');
-      const list    = $('my-requests-list');
-
-      if (!bookRequests.length) { section.classList.add('hidden'); return; }
-      section.classList.remove('hidden');
-
-      const chMap = {};
-      chapters.forEach(c => { chMap[c.id] = c; });
-
-      const statusStyle = { pending:'text-gold', approved:'text-emerald-400', rejected:'text-red-400' };
-
-      list.innerHTML = bookRequests.map(r => {
-        const ch = chMap[r.chapter_id];
-        return `
-          <div class="rounded-xl border border-border bg-charcoal/60 p-4">
-            <div class="flex items-start justify-between gap-2 mb-2">
-              <p class="text-white text-sm font-medium">Chapter ${ch?.chapter_number || '—'} — ${escHtml(ch?.title || 'Untitled')}</p>
-              <span class="text-[10px] font-semibold uppercase ${statusStyle[r.status]||'text-muted'}">${r.status}</span>
-            </div>
-            ${r.admin_reply
-              ? `<div class="mt-2 p-3 rounded-lg bg-surface border border-border">
-                   <p class="text-[10px] font-semibold uppercase text-muted mb-1">Admin Reply</p>
-                   <p class="text-white/80 text-xs leading-relaxed">${escHtml(r.admin_reply)}</p>
-                 </div>`
-              : '<p class="text-muted text-xs">Awaiting admin review.</p>'}
-          </div>`;
-      }).join('');
+      container.innerHTML = chapters.map(ch =>
+        '<button onclick=\'showEditorView(' + JSON.stringify(ch) + ')\''
+        + ' class="w-full text-left rounded-xl border border-border bg-surface p-4 hover:border-gold/30 hover:shadow-lg hover:shadow-gold/5 transition-all duration-200 cursor-pointer">'
+        + '<div class="flex items-center justify-between gap-3">'
+        + '<div class="min-w-0">'
+        + '<p class="text-[10px] font-semibold tracking-wide uppercase text-muted mb-0.5">Chapter ' + ch.chapter_number + '</p>'
+        + '<p class="text-white font-medium truncate">' + escHtml(ch.title || '(Untitled)') + '</p>'
+        + '<p class="text-muted text-xs mt-0.5">' + (ch.word_count||0).toLocaleString() + ' words</p>'
+        + '</div>'
+        + '<div class="flex-shrink-0">' + statusBadge(ch.status) + '</div>'
+        + '</div></button>'
+      ).join('');
     }
 
     async function saveChapter(statusToSave) {
@@ -929,54 +809,12 @@
         if (error) { errBox.textContent = error.message; errBox.classList.remove('hidden'); return; }
       }
 
-      showToast(statusToSave === 'submitted' ? 'Chapter submitted for review ✓' : 'Draft saved ✓');
-      showChaptersView();
-    }
-
-    // ── EDIT REQUEST ───────────────────────────────────────────
-    function openEditRequestModal() {
-      $('edit-request-reason').value = '';
-      $('edit-request-error').classList.add('hidden');
-      const ch = viewingChapter || editingChapter || { chapter_number: '?' };
-      $('edit-request-subtitle').textContent = `Chapter ${ch.chapter_number || '?'} — explain why you need to revise this.`;
-      $('edit-request-modal').classList.remove('hidden');
-      $('edit-request-reason').focus();
-    }
-
-    function closeEditRequestModal() {
-      $('edit-request-modal').classList.add('hidden');
-    }
-
-    $('edit-request-modal').addEventListener('click', e => {
-      if (e.target === $('edit-request-modal')) closeEditRequestModal();
-    });
-
-    async function submitEditRequest() {
-      const reason = $('edit-request-reason').value.trim();
-      const errBox = $('edit-request-error');
-      errBox.classList.add('hidden');
-
-      if (!reason) {
-        errBox.textContent = 'Please explain why you need to edit this chapter.';
-        errBox.classList.remove('hidden');
-        return;
+      if (statusToSave === 'submitted') {
+        showToast(editingChapter ? 'Changes submitted — under revision ✓' : 'Chapter submitted for review ✓');
+      } else {
+        showToast('Draft saved ✓');
       }
-
-      const { error } = await db.from('edit_requests').insert({
-        chapter_id: pendingEditChapterId,
-        author_id:  currentUserId,
-        reason,
-      });
-
-      if (error) { errBox.textContent = error.message; errBox.classList.remove('hidden'); return; }
-
-      closeEditRequestModal();
-      showToast('Edit request sent to admin.');
-
-      // Update button state immediately
-      const btn = $('request-edit-btn');
-      btn.textContent = 'Request Pending';
-      btn.disabled = true;
+      showChaptersView();
     }
 
     // ── DOCX UPLOAD ────────────────────────────────────────────
@@ -1060,175 +898,6 @@
       if (cur) paras.push(cur);
       return paras.join('\n\n');
     }
-
-    // ── CHAPTER READ-ONLY VIEW ────────────────────────────────────────
-    let _writerComments = [];
-
-    async function loadChapterReadView(chapter) {
-      $('chapter-preview-content').innerHTML = '<p class="text-muted text-sm animate-pulse">Loading…</p>';
-      $('writer-comments-section').classList.add('hidden');
-      const [{ data: full }, { data: comments }] = await Promise.all([
-        db.from('chapters').select('content').eq('id', chapter.id).single(),
-        db.from('comments').select('id, paragraph_ref, body, resolved, created_at')
-          .eq('chapter_id', chapter.id).order('created_at', { ascending: true }),
-      ]);
-      _writerComments = comments ?? [];
-      renderWriterChapterView(full?.content ?? '', _writerComments);
-    }
-
-    function formatBlocks(raw) {
-      if (!raw?.trim()) return [];
-      const lines = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
-      const paraTexts = [];
-      let cur = '';
-      for (const line of lines) {
-        const t = line.trim();
-        if (!t) { if (cur) { paraTexts.push(cur); cur = ''; } continue; }
-        if (/^[-*_~=]{3,}$/.test(t) || t === '* * *') {
-          if (cur) { paraTexts.push(cur); cur = ''; }
-          paraTexts.push('---'); continue;
-        }
-        if (!cur) { cur = t; continue; }
-        const prevEnds = /[.!?"'“”‘’)\]]$/.test(cur);
-        const nextCaps = /^[A-Z"'“‘(\[]/.test(t);
-        if (prevEnds && nextCaps) { paraTexts.push(cur); cur = t; }
-        else { cur += ' ' + t; }
-      }
-      if (cur) paraTexts.push(cur);
-      const blocks = [];
-      for (const text of paraTexts) {
-        if (text === '---') { blocks.push({ type:'break' }); continue; }
-        const prev = blocks.length ? blocks[blocks.length - 1].type : 'start';
-        const atBoundary = !blocks.length || prev === 'break';
-        const wc = text.split(/\s+/).length;
-        const looksTitle = /^chapter\b/i.test(text) || /^part\b/i.test(text)
-          || (/^\d+[.:]?\s/.test(text) && wc <= 5)
-          || (text === text.toUpperCase() && /[A-Z]/.test(text) && text.length <= 60);
-        if (atBoundary && wc <= 8 && !/[.!?]$/.test(text) && looksTitle) {
-          blocks.push({ type:'title', text });
-        } else {
-          blocks.push({ type:'para', text });
-        }
-      }
-      return blocks;
-    }
-
-    function renderWriterChapterView(raw, comments) {
-      const active = (comments ?? []).filter(c => !c.resolved);
-      const blocks = formatBlocks(raw);
-      if (!blocks.length) {
-        $('chapter-preview-content').innerHTML = '<p class="text-muted text-sm italic">No content yet.</p>';
-      } else {
-        let pIdx = 0, fp = true;
-        $('chapter-preview-content').innerHTML = blocks.map(b => {
-          if (b.type === 'break') return '<div class="wp-scene-break">* * *</div>';
-          const idx = pIdx++;
-          if (b.type === 'title') return '<h4 class="wp-title">' + escHtml(b.text) + '</h4>';
-          const cnt = active.filter(c => c.paragraph_ref === idx).length;
-          const isFirst = fp; fp = false;
-          return '<div class="wp-para-wrap relative" data-para="' + idx + '">'
-            + '<p class="wp-para' + (isFirst ? ' first-para' : '') + '">' + escHtml(b.text) + '</p>'
-            + (cnt ? '<button class="wp-cbadge" onclick="openWriterPopover(' + idx + ',this)">'
-              + '<svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>'
-              + cnt + '</button>' : '')
-            + '</div>';
-        }).join('');
-      }
-
-      // General (chapter-level) comments section
-      const general = active.filter(c => c.paragraph_ref === null);
-      if (!general.length) { $('writer-comments-section').classList.add('hidden'); return; }
-      $('writer-comments-section').classList.remove('hidden');
-      $('writer-comments-count').textContent = active.length;
-      $('writer-comments-list').innerHTML = general.map(c =>
-        '<div class="writer-comment-card rounded-xl border border-border bg-charcoal/60 p-4" data-cid="' + c.id + '">'
-        + '<p class="text-[10px] font-semibold uppercase tracking-wide text-gold mb-1.5">Chapter Note</p>'
-        + '<p class="text-white/80 text-sm leading-relaxed">' + escHtml(c.body) + '</p>'
-        + '<div id="wrf-' + c.id + '" class="hidden mt-3 pt-3 border-t border-border/40">'
-        + '<textarea id="wrt-' + c.id + '" rows="2" placeholder="Your reply…" class="form-input w-full bg-surface border border-border text-white placeholder-muted text-xs rounded-lg px-3 py-2 resize-none"></textarea>'
-        + '<div class="flex gap-2 mt-2">'
-        + '<button onclick="submitWriterReply(\'' + c.id + '\',null)" class="px-3 py-1.5 bg-gold/10 hover:bg-gold/20 border border-gold/30 text-gold text-xs font-semibold rounded-lg transition-all">Send Reply</button>'
-        + '<button onclick="toggleWriterReply(\'' + c.id + '\')" class="px-3 py-1.5 text-muted text-xs">Cancel</button>'
-        + '</div></div>'
-        + '<button onclick="toggleWriterReply(\'' + c.id + '\')" class="mt-2 text-[10px] text-muted hover:text-gold transition-colors">Reply</button>'
-        + '</div>'
-      ).join('');
-    }
-
-    // ── WRITER PARAGRAPH COMMENT POPOVER ─────────────────────────────
-    let _writerPopoverPara = null;
-
-    function openWriterPopover(paraIdx, triggerEl) {
-      if (_writerPopoverPara === paraIdx) { closeWriterPopover(); return; }
-      _writerPopoverPara = paraIdx;
-      const pop = $('writer-pop');
-      const comments = _writerComments.filter(c => c.paragraph_ref === paraIdx && !c.resolved);
-      $('writer-pop-label').textContent = 'Paragraph ' + (paraIdx + 1);
-      $('writer-pop-thread').innerHTML = comments.length
-        ? comments.map(c =>
-            '<div class="border-b border-border/30 pb-2 mb-2 last:border-0 last:pb-0 last:mb-0">'
-            + '<p class="text-white/85 text-xs leading-relaxed">' + escHtml(c.body) + '</p>'
-            + '</div>'
-          ).join('')
-        : '<p class="text-muted text-xs">No comments on this paragraph.</p>';
-      $('writer-pop-input').value = '';
-      $('writer-pop-para').value = paraIdx;
-      const rect = triggerEl.getBoundingClientRect();
-      const pw = 272, ph = 260;
-      let top = rect.bottom + 8;
-      let left = rect.left;
-      if (left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
-      if (top + ph > window.innerHeight - 12) top = rect.top - ph - 8;
-      pop.style.top = Math.max(8, top) + 'px';
-      pop.style.left = Math.max(8, left) + 'px';
-      pop.classList.remove('hidden');
-    }
-
-    function closeWriterPopover() {
-      $('writer-pop').classList.add('hidden');
-      _writerPopoverPara = null;
-    }
-
-    async function submitWriterPopoverReply() {
-      const text = $('writer-pop-input').value.trim();
-      const paraIdx = parseInt($('writer-pop-para').value);
-      if (!text || !viewingChapter) { showToast('Write a reply first.'); return; }
-      const { error } = await db.from('comments').insert({
-        chapter_id: viewingChapter.id, reviewer_id: currentUserId,
-        paragraph_ref: paraIdx, body: '[Writer] ' + text,
-      });
-      if (error) { showToast('Error: ' + error.message); return; }
-      showToast('Reply sent.');
-      closeWriterPopover();
-      loadChapterReadView(viewingChapter);
-    }
-
-    function toggleWriterReply(commentId) {
-      const f = $('wrf-' + commentId);
-      if (!f) return;
-      f.classList.toggle('hidden');
-      if (!f.classList.contains('hidden')) $('wrt-' + commentId)?.focus();
-    }
-
-    async function submitWriterReply(commentId, paragraphRef) {
-      const text = $('wrt-' + commentId)?.value?.trim();
-      if (!text || !viewingChapter) { showToast('Write your reply first.'); return; }
-      const { error } = await db.from('comments').insert({
-        chapter_id: viewingChapter.id, reviewer_id: currentUserId,
-        paragraph_ref: paragraphRef, body: '[Writer] ' + text,
-      });
-      if (error) { showToast('Error: ' + error.message); return; }
-      showToast('Reply sent to your editor.');
-      toggleWriterReply(commentId);
-      loadChapterReadView(viewingChapter);
-    }
-
-    document.addEventListener('click', e => {
-      const pop = $('writer-pop');
-      if (!pop.classList.contains('hidden') && !pop.contains(e.target) && !e.target.closest('.wp-cbadge')) {
-        closeWriterPopover();
-      }
-    });
 
     // ── TOAST ──────────────────────────────────────────────────
     function showToast(msg) {
