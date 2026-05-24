@@ -64,6 +64,11 @@
     .wp-cbadge { position:absolute; right:-2px; top:4px; display:inline-flex; align-items:center; gap:3px; font-size:10px; font-weight:700; color:#C9A84C; background:rgba(201,168,76,0.12); border:1px solid rgba(201,168,76,0.3); border-radius:999px; padding:1px 7px; cursor:pointer; transition:background .15s; }
     .wp-cbadge:hover { background:rgba(201,168,76,0.22); }
     .writer-comment-card { transition:box-shadow .3s,border-color .3s; }
+    .fs-tool-btn { padding:2px 9px; border-radius:5px; font-size:11px; font-weight:700; color:rgba(255,255,255,0.6); background:transparent; border:1px solid transparent; cursor:pointer; transition:all .15s; line-height:1.8; }
+    .fs-tool-btn:hover { background:rgba(255,255,255,0.07); border-color:rgba(255,255,255,0.12); color:#fff; }
+    .fs-tool-btn.active { background:rgba(201,168,76,0.15); border-color:rgba(201,168,76,0.3); color:#C9A84C; }
+    #fs-content:empty::before { content:attr(data-placeholder); color:rgba(122,122,122,0.35); font-style:italic; pointer-events:none; }
+    #fs-content p { margin-bottom:1.5em; line-height:2.0; font-family:'DM Serif Display',Georgia,serif; font-size:17px; letter-spacing:0.015em; color:rgba(255,255,255,0.88); }
   </style>
 </head>
 
@@ -456,6 +461,50 @@
     </div>
   </div>
 
+  <!-- FULL-SCREEN CHAPTER EDITOR -->
+  <div id="fullscreen-editor" class="hidden fixed inset-0 z-[200] bg-obsidian flex flex-col">
+    <!-- Toolbar -->
+    <div class="flex-shrink-0 flex items-center gap-2.5 px-5 py-2.5 border-b border-border bg-charcoal/80 backdrop-blur-sm">
+      <button onclick="fsClose()" class="flex-shrink-0 flex items-center gap-1.5 text-muted hover:text-white text-xs transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+        Back
+      </button>
+      <div class="w-px h-5 bg-border flex-shrink-0"></div>
+      <input id="fs-title" type="text" placeholder="Chapter title…"
+             class="flex-1 max-w-sm bg-transparent text-white text-sm placeholder-muted focus:outline-none border-none"/>
+      <div class="w-px h-5 bg-border flex-shrink-0"></div>
+      <div class="flex items-center gap-0.5">
+        <button data-cmd="bold"      onclick="execFmt('bold')"      title="Bold (Ctrl+B)"      class="fs-tool-btn" style="font-weight:700;">B</button>
+        <button data-cmd="italic"    onclick="execFmt('italic')"    title="Italic (Ctrl+I)"    class="fs-tool-btn" style="font-style:italic;">I</button>
+        <button data-cmd="underline" onclick="execFmt('underline')" title="Underline (Ctrl+U)" class="fs-tool-btn" style="text-decoration:underline;">U</button>
+        <div class="w-px h-4 bg-border mx-1.5"></div>
+        <button onclick="document.execCommand('undo')" title="Undo (Ctrl+Z)" class="fs-tool-btn" style="font-size:15px;padding:1px 7px;">↩</button>
+        <button onclick="document.execCommand('redo')" title="Redo (Ctrl+Y)" class="fs-tool-btn" style="font-size:15px;padding:1px 7px;">↪</button>
+      </div>
+      <div class="ml-auto flex items-center gap-2.5">
+        <span id="fs-word-count" class="text-muted text-xs tabular-nums">0 words</span>
+        <button onclick="saveFSChapter('draft')"
+                class="px-4 py-1.5 border border-border hover:border-white/20 text-muted hover:text-white text-xs rounded-lg transition-all">
+          Save Draft
+        </button>
+        <button onclick="saveFSChapter('submitted')"
+                class="px-4 py-1.5 bg-gold hover:bg-gold-light text-obsidian text-xs font-semibold rounded-lg transition-colors">
+          Submit
+        </button>
+      </div>
+    </div>
+    <div id="fs-error-bar" class="hidden flex-shrink-0 px-5 py-2 bg-red-400/10 border-b border-red-400/20 text-xs text-red-400"></div>
+    <!-- Editor body -->
+    <div class="flex-1 overflow-y-auto thin-scroll">
+      <div class="max-w-3xl mx-auto px-10 py-12">
+        <div id="fs-content" contenteditable="true" spellcheck="true"
+             class="min-h-[65vh] outline-none"
+             data-placeholder="Begin writing your chapter here…"
+             style="font-family:'DM Serif Display',Georgia,serif;font-size:17px;line-height:2.0;color:rgba(255,255,255,0.88);caret-color:#C9A84C;letter-spacing:0.015em;"></div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
   <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
@@ -678,23 +727,8 @@
       }
     }
 
-        function toggleWriterEditMode() {
-      _writerEditModeActive = !_writerEditModeActive;
-      if (_writerEditModeActive) {
-        closeWriterPopover();
-        $('editor-read-mode').classList.add('hidden');
-        $('editor-edit-mode').classList.remove('hidden');
-        $('writer-edit-btn').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg> View';
-        setTimeout(() => $('editor-content').focus(), 50);
-      } else {
-        $('editor-read-mode').classList.remove('hidden');
-        $('editor-edit-mode').classList.add('hidden');
-        $('writer-edit-btn').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit';
-        // Refresh prose view with any content changes
-        if (_originalChapterContent !== $('editor-content').value) {
-          renderWriterChapterView($('editor-content').value, _writerChapterComments);
-        }
-      }
+    function toggleWriterEditMode() {
+      openFSEditor();
     }
 
     // ── FORMATTED PROSE VIEW (mirrors admin) ─────────────────────
@@ -737,20 +771,28 @@
 
     function renderWriterChapterView(raw, comments) {
       const active = (comments ?? []).filter(c => !c.resolved);
-      const blocks = formatBlocks(raw);
-      if (!blocks.length) {
-        $('chapter-preview-content').innerHTML = '<p class="text-muted text-sm italic">No content yet.</p>';
-        return;
+      const container = $('chapter-preview-content');
+      if (!raw?.trim()) { container.innerHTML = '<p class="text-muted text-sm italic">No content yet.</p>'; return; }
+      // Detect HTML content (saved by the rich-text editor)
+      const isHtml = /<p[\s>]/i.test(raw);
+      let blocks;
+      if (isHtml) {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = raw;
+        blocks = Array.from(tmp.querySelectorAll('p')).map(p => ({ type:'para', html: p.innerHTML }));
+      } else {
+        blocks = formatBlocks(raw).map(b => b.type === 'para' ? { ...b, html: escHtml(b.text) } : b);
       }
+      if (!blocks.length) { container.innerHTML = '<p class="text-muted text-sm italic">No content yet.</p>'; return; }
       let pIdx = 0, fp = true;
-      $('chapter-preview-content').innerHTML = blocks.map(b => {
+      container.innerHTML = blocks.map(b => {
         if (b.type === 'break') return '<div class="wp-scene-break">* * *</div>';
         if (b.type === 'title') return '<h4 class="wp-title">' + escHtml(b.text) + '</h4>';
         const idx = pIdx++;
         const cnt = active.filter(c => c.paragraph_ref === idx).length;
         const isFirst = fp; fp = false;
         return '<div class="wp-para-wrap relative" data-para="' + idx + '">'
-          + '<p class="wp-para' + (isFirst ? ' first-para' : '') + '">' + escHtml(b.text) + '</p>'
+          + '<p class="wp-para' + (isFirst ? ' first-para' : '') + '">' + b.html + '</p>'
           + (cnt
             ? '<button class="wp-cbadge" onclick="openWriterPopover(' + idx + ',this)">'
               + '<svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>'
@@ -1182,16 +1224,18 @@
         list.innerHTML = '<p class="text-muted text-xs text-center py-8">No notifications yet.</p>';
         return;
       }
-      list.innerHTML = _notifications.map(n =>
-        '<button onclick="readNotif('' + n.id + '')" class="w-full text-left px-4 py-3 hover:bg-charcoal transition-colors' + (n.read ? ' opacity-55' : '') + '">'
-        + '<div class="flex items-start gap-2.5">'
-        + (!n.read ? '<span class="w-1.5 h-1.5 rounded-full bg-gold mt-1.5 flex-shrink-0"></span>' : '<span class="w-1.5 flex-shrink-0"></span>')
-        + '<div class="min-w-0">'
-        + '<p class="text-white text-xs font-semibold">' + escHtml(n.title) + '</p>'
-        + (n.body ? '<p class="text-muted text-xs mt-0.5 leading-relaxed">' + escHtml(n.body) + '</p>' : '')
-        + '<p class="text-muted/50 text-[10px] mt-1">' + new Date(n.created_at).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'}) + '</p>'
-        + '</div></div></button>'
-      ).join('');
+      list.innerHTML = _notifications.map(n => {
+        const dot = !n.read ? '<span class="w-1.5 h-1.5 rounded-full bg-gold mt-1.5 flex-shrink-0"></span>' : '<span class="w-1.5 flex-shrink-0"></span>';
+        const bodyHtml = n.body ? '<p class="text-muted text-xs mt-0.5 leading-relaxed" style="white-space:pre-line">' + escHtml(n.body) + '</p>' : '';
+        const dateStr = new Date(n.created_at).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'});
+        const opacityClass = n.read ? ' opacity-55' : '';
+        return '<button data-notif-id="' + n.id + '" onclick="readNotif(this.dataset.notifId)" class="w-full text-left px-4 py-3 hover:bg-charcoal transition-colors' + opacityClass + '">'
+          + '<div class="flex items-start gap-2.5">' + dot
+          + '<div class="min-w-0"><p class="text-white text-xs font-semibold">' + escHtml(n.title) + '</p>'
+          + bodyHtml
+          + '<p class="text-muted/50 text-[10px] mt-1">' + dateStr + '</p>'
+          + '</div></div></button>';
+      }).join('');
     }
 
     async function readNotif(id) {
@@ -1226,6 +1270,98 @@
       $('greeting-name').textContent   = name.split(' ')[0];
       closeProfileModal();
       showToast('Profile updated!');
+    }
+
+    // ── FULL-SCREEN RICH-TEXT EDITOR (writer) ─────────────────
+    function contentToEditable(raw) {
+      if (!raw?.trim()) return '';
+      if (/<p[\s>]/i.test(raw)) return raw; // already HTML
+      const blocks = formatBlocks(raw);
+      return blocks.map(b => {
+        if (b.type === 'break') return '<p style="text-align:center;letter-spacing:.4em;color:#7A7A7A">* * *</p>';
+        if (b.type === 'title') return '<p><strong>' + escHtml(b.text) + '</strong></p>';
+        return '<p>' + escHtml(b.text) + '</p>';
+      }).join('');
+    }
+
+    function fswc() {
+      const t = $('fs-content').innerText || $('fs-content').textContent || '';
+      return t.trim() ? t.trim().split(/\s+/).length : 0;
+    }
+    function updateFSWordCount() { $('fs-word-count').textContent = fswc().toLocaleString() + ' words'; }
+
+    function openFSEditor() {
+      $('fs-title').value = editingChapter?.title || '';
+      $('fs-content').innerHTML = contentToEditable(_originalChapterContent);
+      $('fs-error-bar').classList.add('hidden');
+      document.execCommand('defaultParagraphSeparator', false, 'p');
+      updateFSWordCount();
+      $('fullscreen-editor').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      setTimeout(() => {
+        $('fs-content').focus();
+        const r = document.createRange(), s = window.getSelection();
+        r.selectNodeContents($('fs-content')); r.collapse(false);
+        s.removeAllRanges(); s.addRange(r);
+      }, 60);
+    }
+
+    function fsClose() {
+      $('fullscreen-editor').classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    function execFmt(cmd) {
+      document.execCommand(cmd, false, null);
+      $('fs-content').focus();
+      updateFSToolbar();
+    }
+
+    function updateFSToolbar() {
+      ['bold','italic','underline'].forEach(cmd => {
+        const btn = document.querySelector('#fullscreen-editor .fs-tool-btn[data-cmd="' + cmd + '"]');
+        if (btn) btn.classList.toggle('active', document.queryCommandState(cmd));
+      });
+    }
+
+    $('fs-content').addEventListener('input', updateFSWordCount);
+    $('fs-content').addEventListener('keyup', updateFSToolbar);
+    $('fs-content').addEventListener('mouseup', updateFSToolbar);
+    $('fs-content').addEventListener('keydown', e => {
+      const mod = e.ctrlKey || e.metaKey;
+      if (mod && e.key === 'b') { e.preventDefault(); execFmt('bold'); }
+      if (mod && e.key === 'i') { e.preventDefault(); execFmt('italic'); }
+      if (mod && e.key === 'u') { e.preventDefault(); execFmt('underline'); }
+    });
+
+    async function saveFSChapter(statusToSave) {
+      const title = $('fs-title').value.trim() || null;
+      const html  = $('fs-content').innerHTML;
+      const words = fswc();
+      const errBar = $('fs-error-bar');
+      errBar.classList.add('hidden');
+      if (!($('fs-content').innerText || '').trim()) {
+        errBar.textContent = 'Chapter content cannot be empty.'; errBar.classList.remove('hidden'); return;
+      }
+      if (editingChapter) {
+        const upd = { title, content: html, word_count: words, status: statusToSave, updated_at: new Date().toISOString() };
+        if (statusToSave === 'submitted' && _originalChapterContent && !_hasExistingSnapshot) {
+          upd.content_snapshot = _originalChapterContent; upd.snapshot_at = new Date().toISOString();
+        }
+        const { error } = await db.from('chapters').update(upd).eq('id', editingChapter.id);
+        if (error) { errBar.textContent = error.message; errBar.classList.remove('hidden'); return; }
+      } else {
+        const { data: ex } = await db.from('chapters').select('chapter_number').eq('book_id', selectedBook.id).order('chapter_number', { ascending: false }).limit(1);
+        const chNum = (ex?.[0]?.chapter_number || 0) + 1;
+        const { error } = await db.from('chapters').insert({
+          book_id: selectedBook.id, author_id: currentUserId,
+          chapter_number: chNum, title, content: html, word_count: words, status: statusToSave,
+        });
+        if (error) { errBar.textContent = error.message; errBar.classList.remove('hidden'); return; }
+      }
+      fsClose();
+      showToast(statusToSave === 'submitted' ? (editingChapter ? 'Changes submitted ✓' : 'Chapter submitted for review ✓') : 'Draft saved ✓');
+      showChaptersView();
     }
 
     // ── TOAST ──────────────────────────────────────────────────
