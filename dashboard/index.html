@@ -28,7 +28,7 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
   <style>
     @keyframes shimmer {
       0%   { background-position: -400px 0; }
@@ -72,7 +72,7 @@
   </style>
 </head>
 
-<body class="bg-obsidian text-white font-sans antialiased" style="opacity:0;">
+<body class="bg-obsidian text-white font-sans antialiased" style="opacity:0;font-weight:300;">
 
   <div id="afs-glow" class="pointer-events-none fixed inset-0" style="z-index:0; will-change:background;"></div>
   <div id="afs-grid" class="pointer-events-none fixed inset-0"
@@ -186,7 +186,7 @@
             New Book
           </button>
         </div>
-        <div id="books-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div id="books-grid" class="flex flex-col gap-4">
           <div class="skeleton h-40 rounded-2xl"></div>
           <div class="skeleton h-40 rounded-2xl"></div>
         </div>
@@ -463,44 +463,49 @@
 
   <!-- FULL-SCREEN CHAPTER EDITOR -->
   <div id="fullscreen-editor" class="hidden fixed inset-0 z-[200] bg-obsidian flex flex-col">
-    <!-- Toolbar -->
-    <div class="flex-shrink-0 flex items-center gap-2.5 px-5 py-2.5 border-b border-border bg-charcoal/80 backdrop-blur-sm">
-      <button onclick="fsClose()" class="flex-shrink-0 flex items-center gap-1.5 text-muted hover:text-white text-xs transition-colors">
+    <!-- Row 1: Back + title + save actions -->
+    <div class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 border-b border-border bg-charcoal/80 backdrop-blur-sm">
+      <button onclick="fsClose()" class="flex-shrink-0 flex items-center gap-1 text-muted hover:text-white text-xs transition-colors">
         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
-        Back
+        <span class="hidden sm:inline">Back</span>
       </button>
-      <div class="w-px h-5 bg-border flex-shrink-0"></div>
+      <div class="w-px h-4 bg-border flex-shrink-0"></div>
       <input id="fs-title" type="text" placeholder="Chapter title…"
-             class="flex-1 max-w-sm bg-transparent text-white text-sm placeholder-muted focus:outline-none border-none"/>
-      <div class="w-px h-5 bg-border flex-shrink-0"></div>
-      <div class="flex items-center gap-0.5">
-        <button data-cmd="bold"      onclick="execFmt('bold')"      title="Bold (Ctrl+B)"      class="fs-tool-btn" style="font-weight:700;">B</button>
-        <button data-cmd="italic"    onclick="execFmt('italic')"    title="Italic (Ctrl+I)"    class="fs-tool-btn" style="font-style:italic;">I</button>
-        <button data-cmd="underline" onclick="execFmt('underline')" title="Underline (Ctrl+U)" class="fs-tool-btn" style="text-decoration:underline;">U</button>
-        <div class="w-px h-4 bg-border mx-1.5"></div>
-        <button onclick="document.execCommand('undo')" title="Undo (Ctrl+Z)" class="fs-tool-btn" style="font-size:15px;padding:1px 7px;">↩</button>
-        <button onclick="document.execCommand('redo')" title="Redo (Ctrl+Y)" class="fs-tool-btn" style="font-size:15px;padding:1px 7px;">↪</button>
-      </div>
-      <div class="ml-auto flex items-center gap-2.5">
-        <span id="fs-word-count" class="text-muted text-xs tabular-nums">0 words</span>
+             class="flex-1 min-w-0 bg-transparent text-white text-sm placeholder-muted focus:outline-none border-none"/>
+      <div class="ml-auto flex items-center gap-1.5 flex-shrink-0">
+        <span id="fs-word-count" class="text-muted text-xs tabular-nums hidden sm:block">0 words</span>
         <button onclick="saveFSChapter('draft')"
-                class="px-4 py-1.5 border border-border hover:border-white/20 text-muted hover:text-white text-xs rounded-lg transition-all">
-          Save Draft
+                class="hidden sm:block px-3 py-1.5 border border-border hover:border-white/20 text-muted hover:text-white text-xs rounded-lg transition-all">
+          Draft
         </button>
         <button onclick="saveFSChapter('submitted')"
-                class="px-4 py-1.5 bg-gold hover:bg-gold-light text-obsidian text-xs font-semibold rounded-lg transition-colors">
+                class="px-3 py-1.5 bg-gold hover:bg-gold-light text-obsidian text-xs font-semibold rounded-lg transition-colors">
           Submit
         </button>
       </div>
     </div>
-    <div id="fs-error-bar" class="hidden flex-shrink-0 px-5 py-2 bg-red-400/10 border-b border-red-400/20 text-xs text-red-400"></div>
+    <!-- Row 2: Formatting toolbar -->
+    <div class="flex-shrink-0 flex items-center gap-1 px-4 py-1.5 border-b border-border/50 bg-charcoal/60">
+      <button data-cmd="bold"      onclick="execFmt('bold')"      title="Bold (Ctrl+B)"      class="fs-tool-btn font-bold">B</button>
+      <button data-cmd="italic"    onclick="execFmt('italic')"    title="Italic (Ctrl+I)"    class="fs-tool-btn italic">I</button>
+      <button data-cmd="underline" onclick="execFmt('underline')" title="Underline (Ctrl+U)" class="fs-tool-btn underline">U</button>
+      <div class="w-px h-4 bg-border mx-1.5"></div>
+      <button onclick="document.execCommand('undo')" title="Undo (Ctrl+Z)" class="fs-tool-btn" style="font-size:14px;padding:1px 7px;">↩</button>
+      <button onclick="document.execCommand('redo')" title="Redo (Ctrl+Y)" class="fs-tool-btn" style="font-size:14px;padding:1px 7px;">↪</button>
+      <!-- mobile: word count + draft save -->
+      <div class="ml-auto flex items-center gap-2 sm:hidden">
+        <span id="fs-word-count-mobile" class="text-muted text-xs tabular-nums">0 words</span>
+        <button onclick="saveFSChapter('draft')" class="px-2.5 py-1 border border-border text-muted text-xs rounded-lg">Draft</button>
+      </div>
+    </div>
+    <div id="fs-error-bar" class="hidden flex-shrink-0 px-4 py-2 bg-red-400/10 border-b border-red-400/20 text-xs text-red-400"></div>
     <!-- Editor body -->
     <div class="flex-1 overflow-y-auto thin-scroll">
-      <div class="max-w-3xl mx-auto px-10 py-12">
+      <div class="max-w-3xl mx-auto px-4 sm:px-10 py-8 sm:py-12">
         <div id="fs-content" contenteditable="true" spellcheck="true"
              class="min-h-[65vh] outline-none"
              data-placeholder="Begin writing your chapter here…"
-             style="font-family:'DM Serif Display',Georgia,serif;font-size:17px;line-height:2.0;color:rgba(255,255,255,0.88);caret-color:#C9A84C;letter-spacing:0.015em;"></div>
+             style="font-family:'Poppins',system-ui,sans-serif;font-size:16px;font-weight:300;line-height:1.9;color:rgba(255,255,255,0.88);caret-color:#C9A84C;letter-spacing:0.01em;"></div>
       </div>
     </div>
   </div>
@@ -674,10 +679,16 @@
       const badge = $('editor-status-badge');
       if (!isNew) {
         const s = chapter.status;
-        const sm = { draft:'bg-muted/20 text-muted', submitted:'bg-gold/15 text-gold', approved:'bg-emerald-400/15 text-emerald-400', revision_requested:'bg-red-400/15 text-red-400' };
-        badge.className = 'text-[10px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full mt-1 inline-block ' + (sm[s] || 'bg-muted/20 text-muted');
-        badge.textContent = s.replace('_', ' ');
-        badge.classList.remove('hidden');
+        if (s === 'approved') {
+          badge.classList.add('hidden');
+          editingChapter.status = 'published';
+          db.from('chapters').update({ status: 'published' }).eq('id', chapter.id).then(() => {});
+        } else {
+          const sm = { draft:'bg-muted/20 text-muted', submitted:'bg-gold/15 text-gold', revision_requested:'bg-red-400/15 text-red-400' };
+          badge.className = 'text-[10px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full mt-1 inline-block ' + (sm[s] || 'bg-muted/20 text-muted');
+          badge.textContent = s.replace('_', ' ');
+          badge.classList.remove('hidden');
+        }
       } else {
         badge.classList.add('hidden');
       }
@@ -874,19 +885,45 @@
     });
 
     // ── BOOKS ──────────────────────────────────────────────────
+    function fmtCount(n) {
+      n = Number(n || 0);
+      if (n >= 1000000) return (n/1000000).toFixed(1).replace('.0','') + 'M';
+      if (n >= 1000)    return (n/1000).toFixed(1).replace('.0','') + 'K';
+      return String(n);
+    }
+
     async function loadBooks() {
       const { data } = await db.from('books')
-        .select('id, title, description, cover_url, status, created_at')
+        .select('id, title, description, cover_url, status, is_signed, created_at, updated_at, views, likes, library_count, locked_from_chapter, chapters(word_count)')
         .eq('author_id', currentUserId)
-        .order('created_at', { ascending: false });
+        .order('updated_at', { ascending: false, nullsFirst: false });
       renderBooks(data ?? []);
+    }
+
+    async function quickNewChapter(book) {
+      selectedBook = book;
+      if (book.cover_url) {
+        $('ch-cover').src = book.cover_url; $('ch-cover').classList.remove('hidden');
+        $('ch-cover-placeholder').classList.add('hidden');
+      } else {
+        $('ch-cover').classList.add('hidden'); $('ch-cover-placeholder').classList.remove('hidden');
+      }
+      $('ch-title').textContent  = book.title;
+      $('ch-status').textContent = 'Status: ' + book.status;
+      const { data } = await db.from('chapters').select('chapter_number')
+        .eq('book_id', book.id).order('chapter_number', { ascending: false }).limit(1);
+      window._nextChNum = (data?.[0]?.chapter_number || 0) + 1;
+      $('view-books').classList.add('hidden');
+      $('view-chapters').classList.add('hidden');
+      $('view-editor').classList.remove('hidden');
+      showEditorView(null);
     }
 
     function renderBooks(books) {
       const grid = $('books-grid');
       if (!books.length) {
         grid.innerHTML = `
-          <div class="col-span-2 rounded-2xl border border-dashed border-border p-12 text-center">
+          <div class="rounded-2xl border border-dashed border-border p-12 text-center">
             <div class="w-14 h-14 rounded-2xl bg-surface border border-border flex items-center justify-center mx-auto mb-4">
               <svg class="w-6 h-6 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.966 8.966 0 00-6 2.292m0-14.25v14.25"/>
@@ -898,30 +935,79 @@
         return;
       }
 
-      const statusBadge = s => {
-        const map = { draft:'bg-muted/20 text-muted', submitted:'bg-gold/15 text-gold', approved:'bg-emerald-400/15 text-emerald-400' };
-        return `<span class="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full ${map[s]||'bg-muted/10 text-muted'}">${s}</span>`;
+      const statusMap = {
+        draft:    'text-muted bg-muted/15 border-muted/20',
+        submitted:'text-gold bg-gold/10 border-gold/25',
+        approved: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/25',
+        published:'text-emerald-400 bg-emerald-400/10 border-emerald-400/25',
+        revision_requested:'text-red-400 bg-red-400/10 border-red-400/25',
       };
 
-      grid.innerHTML = books.map(b => `
-        <button onclick='openBook(${JSON.stringify(b)})'
-                class="text-left rounded-2xl border border-border bg-surface hover:border-gold/30 hover:shadow-lg hover:shadow-gold/5 transition-all duration-200 overflow-hidden group">
-          ${b.cover_url
-            ? `<img src="${escHtml(b.cover_url)}" class="w-full h-40 object-cover" alt=""/>`
-            : `<div class="w-full h-40 bg-charcoal flex items-center justify-center">
-                 <span class="font-serif text-4xl text-muted/40">${escHtml(b.title[0]||'?')}</span>
-               </div>`}
-          <div class="p-4">
-            <div class="flex items-start justify-between gap-2 mb-1">
-              <p class="font-medium text-white text-sm leading-snug group-hover:text-gold transition-colors truncate">${escHtml(b.title)}</p>
-              ${statusBadge(b.status)}
-            </div>
-            ${b.description ? `<p class="text-muted text-xs mt-1 line-clamp-2">${escHtml(b.description)}</p>` : ''}
-          </div>
-        </button>`
-      ).join('');
-    }
+      grid.innerHTML = books.map(b => {
+        const totalWords = (b.chapters || []).reduce((s,c) => s+(c.word_count||0), 0);
+        const ts = b.updated_at || b.created_at;
+        const dateStr = ts ? new Date(ts).toLocaleString('sv-SE',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}).replace('T',' ') : '';
+        const sCls = statusMap[b.status] || statusMap.draft;
+        const sLabel = b.status === 'approved' || b.status === 'published' ? 'Active' : b.status.charAt(0).toUpperCase() + b.status.slice(1).replace('_',' ');
+        const bJson = escHtml(JSON.stringify(b));
 
+        return \`<div class="rounded-2xl border border-border bg-surface overflow-hidden">
+          <!-- date header -->
+          <div class="flex items-center justify-between px-4 py-2 border-b border-border/40">
+            <span class="text-muted/60 text-[11px]">Last Update: \${dateStr}</span>
+          </div>
+          <!-- book row -->
+          <div class="p-4 flex gap-4 cursor-pointer active:bg-white/5 transition-colors" onclick='openBook(\${bJson})'>
+            <!-- Cover + signed badge -->
+            <div class="relative flex-shrink-0">
+              \${b.cover_url
+                ? \`<img src="\${escHtml(b.cover_url)}" class="w-20 h-28 object-cover rounded-xl border border-border shadow-lg"/>\`
+                : \`<div class="w-20 h-28 bg-charcoal rounded-xl border border-border flex items-center justify-center shadow-lg">
+                     <span class="font-serif text-3xl text-muted/30">\${escHtml(b.title[0]||'?')}</span>
+                   </div>\`}
+              \${b.is_signed ? '<span class="absolute top-1 left-1 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-blue-500 text-white leading-tight">Signed</span>' : ''}
+            </div>
+            <!-- Book info -->
+            <div class="flex-1 min-w-0">
+              <h3 class="font-semibold text-white text-base leading-snug mb-2.5 line-clamp-2">\${escHtml(b.title)}</h3>
+              <!-- Status + lock chips -->
+              <div class="flex items-center gap-1.5 mb-3 flex-wrap">
+                <span class="text-[11px] font-medium px-2.5 py-0.5 rounded-full border \${sCls}">\${sLabel}</span>
+                \${b.locked_from_chapter
+                  ? \`<span class="text-[11px] font-medium px-2.5 py-0.5 rounded-full border border-gold/40 text-gold">Locked: \${b.locked_from_chapter}</span>\`
+                  : ''}
+              </div>
+              <!-- Stats 2x2 -->
+              <div class="grid grid-cols-2 gap-x-6 gap-y-1.5">
+                <span class="flex items-center gap-1.5 text-xs text-muted font-light">
+                  <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"/></svg>
+                  \${fmtCount(b.likes||0)}
+                </span>
+                <span class="flex items-center gap-1.5 text-xs text-muted font-light">
+                  <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
+                  \${fmtCount(b.views||0)}
+                </span>
+                <span class="flex items-center gap-1.5 text-xs text-muted font-light">
+                  <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"/></svg>
+                  \${fmtCount(totalWords)}
+                </span>
+                <span class="flex items-center gap-1.5 text-xs text-muted font-light">
+                  <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.966 8.966 0 0 0-6 2.292m0-14.25v14.25"/></svg>
+                  \${fmtCount(b.library_count||0)}
+                </span>
+              </div>
+            </div>
+          </div>
+          <!-- Add chapter button -->
+          <div class="px-4 pb-4">
+            <button onclick="event.stopPropagation();quickNewChapter(\${bJson})"
+                    class="w-full py-2.5 rounded-xl text-sm font-medium bg-crimson/90 hover:bg-crimson text-white transition-colors">
+              + Add new chapter
+            </button>
+          </div>
+        </div>\`;
+      }).join('');
+    }
     function openBook(book) {
       selectedBook = book;
       $('ch-title').textContent  = book.title;
@@ -1045,18 +1131,19 @@
         const map = { draft:'bg-muted/20 text-muted', submitted:'bg-gold/15 text-gold', approved:'bg-emerald-400/15 text-emerald-400', revision_requested:'bg-red-400/15 text-red-400' };
         return '<span class="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full ' + (map[s]||'bg-muted/10 text-muted') + '">' + s.replace('_',' ') + '</span>';
       };
-      container.innerHTML = chapters.map(ch =>
-        '<button onclick=\'showEditorView(' + JSON.stringify(ch) + ')\''
-        + ' class="w-full text-left rounded-xl border border-border bg-surface p-4 hover:border-gold/30 hover:shadow-lg hover:shadow-gold/5 transition-all duration-200 cursor-pointer">'
-        + '<div class="flex items-center justify-between gap-3">'
-        + '<div class="min-w-0">'
-        + '<p class="text-[10px] font-semibold tracking-wide uppercase text-muted mb-0.5">Chapter ' + ch.chapter_number + '</p>'
-        + '<p class="text-white font-medium truncate">' + escHtml(ch.title || '(Untitled)') + '</p>'
-        + '<p class="text-muted text-xs mt-0.5">' + (ch.word_count||0).toLocaleString() + ' words</p>'
-        + '</div>'
-        + '<div class="flex-shrink-0">' + statusBadge(ch.status) + '</div>'
-        + '</div></button>'
-      ).join('');
+      container.innerHTML = chapters.map(ch => {
+        const isLocked = selectedBook?.locked_from_chapter && ch.chapter_number >= selectedBook.locked_from_chapter;
+        return '<button onclick=\'showEditorView(' + JSON.stringify(ch) + ')\''
+          + ' class="w-full text-left rounded-xl border border-border bg-surface p-4 hover:border-gold/30 hover:shadow-lg hover:shadow-gold/5 transition-all duration-200 cursor-pointer">'
+          + '<div class="flex items-center justify-between gap-3">'
+          + '<div class="min-w-0">'
+          + '<p class="text-[10px] font-semibold tracking-wide uppercase text-muted mb-0.5">' + (isLocked ? '🔒 ' : '') + 'Chapter ' + ch.chapter_number + '</p>'
+          + '<p class="text-white font-medium truncate">' + escHtml(ch.title || '(Untitled)') + '</p>'
+          + '<p class="text-muted text-xs mt-0.5">' + (ch.word_count||0).toLocaleString() + ' words</p>'
+          + '</div>'
+          + '<div class="flex-shrink-0">' + statusBadge(ch.status) + '</div>'
+          + '</div></button>';
+      }).join('');
     }
 
     async function saveChapter(statusToSave) {
@@ -1288,7 +1375,7 @@
       const t = $('fs-content').innerText || $('fs-content').textContent || '';
       return t.trim() ? t.trim().split(/\s+/).length : 0;
     }
-    function updateFSWordCount() { $('fs-word-count').textContent = fswc().toLocaleString() + ' words'; }
+    function updateFSWordCount() { const t = fswc().toLocaleString() + ' words'; $('fs-word-count').textContent = t; const m=$('fs-word-count-mobile'); if(m) m.textContent = t; }
 
     function openFSEditor() {
       $('fs-title').value = editingChapter?.title || '';

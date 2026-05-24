@@ -15,7 +15,7 @@
             gold: '#C9A84C', 'gold-light': '#E2C97E', muted: '#6A6A6A',
           },
           fontFamily: {
-            sans: ['Inter', 'system-ui', 'sans-serif'],
+            sans: ['Poppins', 'system-ui', 'sans-serif'],
             serif: ['"DM Serif Display"', 'Georgia', 'serif'],
           },
         },
@@ -24,7 +24,7 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
   <style>
     @keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
     .skeleton { background: linear-gradient(90deg,#161616 25%,#222 50%,#161616 75%); background-size:800px 100%; animation:shimmer 1.6s ease-in-out infinite; border-radius:6px; }
@@ -54,7 +54,7 @@
   </style>
 </head>
 
-<body class="bg-obsidian text-white font-sans antialiased min-h-screen" style="opacity:0;">
+<body class="bg-obsidian text-white font-sans antialiased min-h-screen" style="opacity:0;font-weight:300;">
 
   <div id="afs-glow" class="pointer-events-none fixed inset-0" style="z-index:0;will-change:background;"></div>
   <div id="afs-grid" class="pointer-events-none fixed inset-0"
@@ -256,6 +256,36 @@
             </div>
           </div>
 
+          <!-- Book Stats Editor -->
+          <div class="mb-6 rounded-xl border border-border bg-surface p-4">
+            <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted mb-3">Book Stats</p>
+            <div class="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <label class="block text-[10px] text-muted uppercase tracking-wide mb-1">Views</label>
+                <input id="stat-views" type="number" min="0" placeholder="0"
+                       class="form-input w-full bg-charcoal border border-border text-white text-xs rounded-lg px-3 py-2 transition-all duration-200"/>
+              </div>
+              <div>
+                <label class="block text-[10px] text-muted uppercase tracking-wide mb-1">Likes</label>
+                <input id="stat-likes" type="number" min="0" placeholder="0"
+                       class="form-input w-full bg-charcoal border border-border text-white text-xs rounded-lg px-3 py-2 transition-all duration-200"/>
+              </div>
+              <div>
+                <label class="block text-[10px] text-muted uppercase tracking-wide mb-1">Library Count</label>
+                <input id="stat-library" type="number" min="0" placeholder="0"
+                       class="form-input w-full bg-charcoal border border-border text-white text-xs rounded-lg px-3 py-2 transition-all duration-200"/>
+              </div>
+              <div>
+                <label class="block text-[10px] text-muted uppercase tracking-wide mb-1">Lock From Chapter #</label>
+                <input id="stat-locked" type="number" min="0" placeholder="0 = no lock"
+                       class="form-input w-full bg-charcoal border border-border text-white text-xs rounded-lg px-3 py-2 transition-all duration-200"/>
+              </div>
+            </div>
+            <button onclick="saveBookStats()" class="px-3 py-1.5 bg-crimson/10 hover:bg-crimson/20 border border-crimson/30 text-crimson-light text-xs font-semibold rounded-lg transition-all duration-200">
+              Save Stats
+            </button>
+          </div>
+
           <div class="flex items-center justify-between mb-3">
             <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted">Chapters</p>
             <p class="text-[10px] text-muted">Newest first</p>
@@ -402,37 +432,39 @@
 
   <!-- ADMIN FULL-SCREEN CHAPTER EDITOR -->
   <div id="admin-fullscreen-editor" class="hidden fixed inset-0 z-[200] bg-obsidian flex flex-col">
-    <div class="flex-shrink-0 flex items-center gap-2.5 px-5 py-2.5 border-b border-border bg-charcoal/80 backdrop-blur-sm">
-      <button onclick="adminFsClose()" class="flex-shrink-0 flex items-center gap-1.5 text-muted hover:text-white text-xs transition-colors">
+    <!-- Row 1: Back + label + save -->
+    <div class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 border-b border-border bg-charcoal/80 backdrop-blur-sm">
+      <button onclick="adminFsClose()" class="flex-shrink-0 flex items-center gap-1 text-muted hover:text-white text-xs transition-colors">
         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
-        Back
+        <span class="hidden sm:inline">Back</span>
       </button>
-      <div class="w-px h-5 bg-border flex-shrink-0"></div>
-      <span id="admin-fs-label" class="text-xs text-muted/70"></span>
-      <div class="w-px h-5 bg-border flex-shrink-0"></div>
-      <div class="flex items-center gap-0.5">
-        <button data-cmd="bold"      onclick="adminExecFmt('bold')"      title="Bold (Ctrl+B)"      class="fs-tool-btn" style="font-weight:700;">B</button>
-        <button data-cmd="italic"    onclick="adminExecFmt('italic')"    title="Italic (Ctrl+I)"    class="fs-tool-btn" style="font-style:italic;">I</button>
-        <button data-cmd="underline" onclick="adminExecFmt('underline')" title="Underline (Ctrl+U)" class="fs-tool-btn" style="text-decoration:underline;">U</button>
-        <div class="w-px h-4 bg-border mx-1.5"></div>
-        <button onclick="document.execCommand('undo')" title="Undo (Ctrl+Z)" class="fs-tool-btn" style="font-size:15px;padding:1px 7px;">↩</button>
-        <button onclick="document.execCommand('redo')" title="Redo (Ctrl+Y)" class="fs-tool-btn" style="font-size:15px;padding:1px 7px;">↪</button>
-      </div>
-      <div class="ml-auto flex items-center gap-2.5">
-        <span id="admin-fs-wc" class="text-muted text-xs tabular-nums">0 words</span>
+      <div class="w-px h-4 bg-border flex-shrink-0"></div>
+      <span id="admin-fs-label" class="text-xs text-muted/70 truncate flex-1 min-w-0"></span>
+      <div class="ml-auto flex items-center gap-2 flex-shrink-0">
+        <span id="admin-fs-wc" class="text-muted text-xs tabular-nums hidden sm:block">0 words</span>
         <button onclick="saveAdminFSEdit()"
-                class="px-4 py-1.5 bg-gold hover:bg-gold-light text-obsidian text-xs font-semibold rounded-lg transition-colors">
+                class="px-3 py-1.5 bg-gold hover:bg-gold-light text-obsidian text-xs font-semibold rounded-lg transition-colors">
           Save Changes
         </button>
       </div>
     </div>
-    <div id="admin-fs-error" class="hidden flex-shrink-0 px-5 py-2 bg-red-400/10 border-b border-red-400/20 text-xs text-red-400"></div>
+    <!-- Row 2: Formatting toolbar -->
+    <div class="flex-shrink-0 flex items-center gap-1 px-4 py-1.5 border-b border-border/50 bg-charcoal/60">
+      <button data-cmd="bold"      onclick="adminExecFmt('bold')"      title="Bold (Ctrl+B)"      class="fs-tool-btn font-bold">B</button>
+      <button data-cmd="italic"    onclick="adminExecFmt('italic')"    title="Italic (Ctrl+I)"    class="fs-tool-btn italic">I</button>
+      <button data-cmd="underline" onclick="adminExecFmt('underline')" title="Underline (Ctrl+U)" class="fs-tool-btn underline">U</button>
+      <div class="w-px h-4 bg-border mx-1.5"></div>
+      <button onclick="document.execCommand('undo')" title="Undo (Ctrl+Z)" class="fs-tool-btn" style="font-size:14px;padding:1px 7px;">↩</button>
+      <button onclick="document.execCommand('redo')" title="Redo (Ctrl+Y)" class="fs-tool-btn" style="font-size:14px;padding:1px 7px;">↪</button>
+      <span id="admin-fs-wc-mobile" class="ml-auto text-muted text-xs tabular-nums sm:hidden">0 words</span>
+    </div>
+    <div id="admin-fs-error" class="hidden flex-shrink-0 px-4 py-2 bg-red-400/10 border-b border-red-400/20 text-xs text-red-400"></div>
     <div class="flex-1 overflow-y-auto thin-scroll">
-      <div class="max-w-3xl mx-auto px-10 py-12">
+      <div class="max-w-3xl mx-auto px-4 sm:px-10 py-8 sm:py-12">
         <div id="admin-fs-content" contenteditable="true" spellcheck="true"
              class="min-h-[65vh] outline-none"
              data-placeholder="Chapter content…"
-             style="font-family:'DM Serif Display',Georgia,serif;font-size:17px;line-height:2.0;color:rgba(255,255,255,0.88);caret-color:#C9A84C;letter-spacing:0.015em;"></div>
+             style="font-family:'Poppins',system-ui,sans-serif;font-size:16px;font-weight:300;line-height:1.9;color:rgba(255,255,255,0.88);caret-color:#C9A84C;letter-spacing:0.01em;"></div>
       </div>
     </div>
   </div>
@@ -452,6 +484,7 @@
     let selectedWriter  = null;
     let selectedBook    = null;
     let selectedChapter = null;
+    let _cachedChapters = [];
     let allComments     = [];
     let rejectChapterId = null;
 
@@ -526,7 +559,7 @@
       $('writer-email-heading').textContent = writer.email;
       $('writer-books-grid').innerHTML = '<div class="skeleton h-64 rounded-2xl col-span-full"></div>';
       const { data: books } = await db.from('books')
-        .select('id, title, description, cover_url, status, is_signed, admin_notes, created_at')
+        .select('id, title, description, cover_url, status, is_signed, admin_notes, created_at, views, likes, library_count, locked_from_chapter')
         .eq('author_id', writer.id)
         .order('created_at', { ascending: false });
       renderWriterBooks(books ?? []);
@@ -582,13 +615,18 @@
       $('book-status-badge').className  = `text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full ${sMap[book.status]||''}`;
       $('book-status-badge').textContent = book.status;
       updateSignedBtn(book.is_signed);
+      $('stat-views').value   = book.views   ?? 0;
+      $('stat-likes').value   = book.likes   ?? 0;
+      $('stat-library').value = book.library_count ?? 0;
+      $('stat-locked').value  = book.locked_from_chapter ?? '';
       $('chapter-list').innerHTML = '<div class="skeleton h-16 rounded-xl"></div>'.repeat(3);
       $('edit-requests-section').classList.add('hidden');
       const [{ data: chapters }, editReqs] = await Promise.all([
         db.from('chapters').select('id, chapter_number, title, word_count, status').eq('book_id', book.id).order('chapter_number', { ascending: false }),
         loadEditRequestsForBook(book.id),
       ]);
-      renderInlineChapterList(chapters ?? []);
+      _cachedChapters = chapters ?? [];
+      renderInlineChapterList(_cachedChapters);
       renderEditRequests(editReqs);
     }
 
@@ -622,6 +660,20 @@
       showToast('Notes saved ✓');
     }
 
+    async function saveBookStats() {
+      if (!selectedBook) return;
+      const views          = parseInt($('stat-views').value)   || 0;
+      const likes          = parseInt($('stat-likes').value)   || 0;
+      const library_count  = parseInt($('stat-library').value) || 0;
+      const lockedRaw      = $('stat-locked').value.trim();
+      const locked_from_chapter = lockedRaw ? (parseInt(lockedRaw) || null) : null;
+      const { error } = await db.from('books').update({ views, likes, library_count, locked_from_chapter }).eq('id', selectedBook.id);
+      if (error) { showToast('Error: ' + error.message); return; }
+      Object.assign(selectedBook, { views, likes, library_count, locked_from_chapter });
+      renderInlineChapterList(_cachedChapters ?? []);
+      showToast('Stats saved ✓');
+    }
+
     function backToWriterBooks() { selectedBook = selectedChapter = null; showView('view-writer-books'); }
     function backToBookChapters() { selectedChapter = null; showView('view-book-chapters'); }
 
@@ -633,11 +685,12 @@
       const badge = s => `<span class="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full ${sMap[s]||''}">${s.replace('_',' ')}</span>`;
       container.innerHTML = chapters.map(ch => {
         const canReview = ch.status === 'submitted';
+        const isLocked  = selectedBook?.locked_from_chapter && ch.chapter_number >= selectedBook.locked_from_chapter;
         return `
           <div class="rounded-xl border border-border bg-surface p-4 hover:border-white/10 transition-all duration-200">
             <div class="flex flex-wrap items-start justify-between gap-3">
               <div class="min-w-0 flex-1">
-                <p class="text-[10px] font-semibold tracking-wide uppercase text-muted mb-0.5">Chapter ${ch.chapter_number}</p>
+                <p class="text-[10px] font-semibold tracking-wide uppercase text-muted mb-0.5">${isLocked ? '🔒 ' : ''}Chapter ${ch.chapter_number}</p>
                 <p class="text-white font-medium truncate">${escHtml(ch.title ?? '(Untitled)')}</p>
                 <p class="text-muted text-xs mt-0.5">${(ch.word_count||0).toLocaleString()} words</p>
               </div>
@@ -1135,7 +1188,8 @@
     async function refreshChapterList() {
       if (!selectedBook) return;
       const { data } = await db.from('chapters').select('id, chapter_number, title, word_count, status').eq('book_id', selectedBook.id).order('chapter_number', { ascending: false });
-      renderInlineChapterList(data ?? []);
+      _cachedChapters = data ?? [];
+      renderInlineChapterList(_cachedChapters);
     }
 
     function openRejectModal(chapterId, chapterTitle) {
