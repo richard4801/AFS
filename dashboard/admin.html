@@ -40,6 +40,12 @@
     .scene-break { text-align:center; color:#6A6A6A; letter-spacing:0.4em; padding:1em 0; }
     .prose-title { font-family:"DM Serif Display",Georgia,serif; text-align:center; margin:1.5em 0 0.75em; color:rgba(255,255,255,0.88); font-size:1.15em; letter-spacing:0.03em; }
     .comment-card { transition:box-shadow .3s,border-color .3s; }
+    .prose-editor { width:100%; background:transparent; border:none; color:rgba(255,255,255,0.88); font-family:'DM Serif Display',Georgia,serif; font-size:17px; line-height:2.0; letter-spacing:0.015em; resize:none; padding:1.5rem 0 2rem; caret-color:#C9A84C; }
+    .prose-editor:focus { outline:none; }
+    .prose-editor::placeholder { color:rgba(122,122,122,0.4); font-style:italic; font-family:inherit; }
+    @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .notif-dot { width:8px;height:8px;border-radius:50%;background:#C9A84C;flex-shrink:0;animation:pulse-dot 1.8s ease-in-out infinite; }
+    .para-changed { background:rgba(201,168,76,0.07); border-left:2px solid rgba(201,168,76,0.55); padding-left:0.85em; }
   </style>
 </head>
 
@@ -294,9 +300,8 @@
 
             <!-- Admin edit textarea (hidden by default) -->
             <div id="admin-chapter-edit-mode" class="hidden mb-4">
-              <textarea id="admin-chapter-textarea" rows="24"
-                        class="w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 resize-y transition-all duration-200 thin-scroll"
-                        style="font-size:15px;line-height:1.85;letter-spacing:0.01em;"
+              <textarea id="admin-chapter-textarea"
+                        class="prose-editor thin-scroll"
                         placeholder="Chapter content…"></textarea>
               <div class="flex gap-3 mt-3">
                 <button onclick="saveAdminChapterEdit()"
@@ -445,14 +450,23 @@
 
     // ── WRITERS SIDEBAR ─────────────────────────────────────────────
     async function loadWritersList() {
-      const { data } = await db.from('profiles').select('id, name, email').order('name');
+      const [{ data: writers }, { data: submittedChapters }] = await Promise.all([
+        db.from('profiles').select('id, name, email').order('name'),
+        db.from('chapters').select('books!inner(author_id)').eq('status', 'submitted'),
+      ]);
       const container = $('writers-list');
-      if (!data?.length) { container.innerHTML = `<p class="text-muted text-xs px-2 pt-2">No writers yet.</p>`; return; }
-      container.innerHTML = data.map(w => `
+      if (!writers?.length) { container.innerHTML = `<p class="text-muted text-xs px-2 pt-2">No writers yet.</p>`; return; }
+      const pendingSet = new Set((submittedChapters ?? []).map(c => c.books?.author_id).filter(Boolean));
+      container.innerHTML = writers.map(w => `
         <button onclick='selectWriter(${JSON.stringify(w)})' data-wid="${w.id}"
                 class="writer-btn w-full text-left px-3 py-2.5 rounded-lg text-sm text-white/80 hover:text-white hover:bg-surface border border-transparent hover:border-border transition-all duration-150">
-          <p class="font-medium truncate">${escHtml(w.name)}</p>
-          <p class="text-muted text-xs truncate">${escHtml(w.email)}</p>
+          <div class="flex items-center justify-between gap-2">
+            <div class="min-w-0">
+              <p class="font-medium truncate">${escHtml(w.name)}</p>
+              <p class="text-muted text-xs truncate">${escHtml(w.email)}</p>
+            </div>
+            ${pendingSet.has(w.id) ? '<span class="notif-dot"></span>' : ''}
+          </div>
         </button>`).join('');
     }
 
@@ -718,12 +732,13 @@
       $('approve-btn').classList.toggle('opacity-40', !reviewable);
       $('reject-btn').classList.toggle('opacity-40',  !reviewable);
       const [{ data: full }, { data: comments }] = await Promise.all([
-        db.from('chapters').select('content').eq('id', chapter.id).single(),
+        db.from('chapters').select('content, content_snapshot').eq('id', chapter.id).single(),
         db.from('comments').select('id, paragraph_ref, body, resolved, reviewer_id, created_at').eq('chapter_id', chapter.id).order('created_at', { ascending: true }),
       ]);
       selectedChapter.content = full?.content ?? '';
+      selectedChapter.content_snapshot = full?.content_snapshot ?? null;
       allComments = comments ?? [];
-      renderChapterContent(selectedChapter.content);
+      renderChapterContent(selectedChapter.content, selectedChapter.content_snapshot);
       renderCommentThread();
     }
 
@@ -763,7 +778,7 @@
       $('chapter-content').classList.remove('hidden');
       $('admin-edit-btn').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit';
       $('viewer-chapter-meta').textContent = words.toLocaleString() + ' words · ' + selectedChapter.status.replace('_', ' ');
-      renderChapterContent(content);
+      renderChapterContent(content, selectedChapter.content_snapshot ?? null);
       refreshChapterList();
     }
 
@@ -811,19 +826,24 @@
       return blocks;
     }
 
-    function renderChapterContent(raw) {
+    function renderChapterContent(raw, snapshot) {
       const blocks = formatContent(raw);
       if (!blocks.length) {
         $('chapter-content').innerHTML = '<p class="text-muted text-sm italic">No content yet.</p>';
         return;
       }
+      const snapParas = snapshot ? formatContent(snapshot).filter(b => b.type === 'para').map(b => b.text) : null;
       let pIdx = 0;
+      let paraIdx = 0;
       $('chapter-content').innerHTML = blocks.map(block => {
         if (block.type === 'break') return '<div class="scene-break">* * *</div>';
         const idx = pIdx++;
         if (block.type === 'title') return '<h4 class="prose-title">' + escHtml(block.text) + '</h4>';
+        const curParaIdx = paraIdx++;
+        const isChanged = snapParas !== null && (curParaIdx >= snapParas.length || block.text !== snapParas[curParaIdx]);
         const cnt = allComments.filter(c => c.paragraph_ref === idx && !c.resolved).length;
-        return '<div class="para-wrap relative py-2 border-b border-border/20 group" data-para="' + idx + '">'
+        const changedCls = isChanged ? ' para-changed' : '';
+        return '<div class="para-wrap relative py-2 border-b border-border/20 group' + changedCls + '" data-para="' + idx + '">'
           + '<p class="prose-para pr-14">' + escHtml(block.text) + '</p>'
           + (cnt ? '<button class="para-comment-badge absolute right-10 top-3 text-[10px] font-semibold text-crimson-light bg-crimson/10 hover:bg-crimson/20 border border-crimson/20 rounded-full px-1.5 py-0.5 leading-none transition-colors" onclick="openCommentPopover(' + idx + ',this)">' + cnt + '</button>' : '')
           + '<button class="para-btn absolute right-2 top-3 w-6 h-6 rounded-full bg-surface border border-border hover:border-crimson/50 flex items-center justify-center text-muted hover:text-crimson-light text-sm leading-none transition-all" onclick="openCommentForm(' + idx + ',this)">+</button>'
@@ -834,6 +854,10 @@
           + '<button onclick="toggleCommentForm(' + idx + ')" class="px-3 py-1.5 text-muted hover:text-white text-xs rounded-lg transition-colors">Cancel</button>'
           + '</div></div></div>';
       }).join('');
+      if (snapParas !== null) {
+        const firstChanged = $('chapter-content').querySelector('.para-changed');
+        if (firstChanged) setTimeout(() => firstChanged.scrollIntoView({ behavior:'smooth', block:'center' }), 150);
+      }
     }
 
     function openCommentForm(idx, btn) { closeCommentPopover(); toggleCommentForm(idx); }
@@ -852,7 +876,7 @@
       }).select().single();
       if (error) { showToast('Error: ' + error.message); return; }
       allComments.push(data);
-      renderChapterContent(selectedChapter.content);
+      renderChapterContent(selectedChapter.content, selectedChapter.content_snapshot ?? null);
       renderCommentThread();
       toggleCommentForm(paraIdx);
     }
@@ -900,7 +924,7 @@
       await db.from('comments').update({ resolved: true }).eq('id', commentId);
       allComments = allComments.map(c => c.id === commentId ? { ...c, resolved: true } : c);
       renderCommentThread();
-      renderChapterContent(selectedChapter?.content ?? '');
+      renderChapterContent(selectedChapter?.content ?? '', selectedChapter?.content_snapshot ?? null);
     }
 
     // ── ADMIN PARAGRAPH COMMENT POPOVER ─────────────────────────────
@@ -946,7 +970,7 @@
       allComments = allComments.map(c => c.id === commentId ? { ...c, resolved: true } : c);
       renderAdminPopoverThread(paraIdx);
       renderCommentThread();
-      renderChapterContent(selectedChapter?.content ?? '');
+      renderChapterContent(selectedChapter?.content ?? '', selectedChapter?.content_snapshot ?? null);
     }
 
     async function postPopoverComment() {
@@ -975,11 +999,25 @@
     // ── APPROVE / REJECT ────────────────────────────────────────────
     async function approveChapter(chapterId) {
       if (!confirm('Mark this chapter as Approved?')) return;
-      const { error } = await db.from('chapters').update({ status:'approved', updated_at:new Date().toISOString() }).eq('id', chapterId);
+      const { error } = await db.from('chapters').update({
+        status: 'approved', updated_at: new Date().toISOString(),
+        content_snapshot: null, snapshot_at: null,
+      }).eq('id', chapterId);
       if (error) { alert('Error: ' + error.message); return; }
+      const writerId = selectedWriter?.id;
+      if (writerId) {
+        const chNum = selectedChapter?.chapter_number ?? '';
+        const chTitle = selectedChapter?.title ?? '';
+        await db.from('notifications').insert({
+          user_id: writerId, type: 'chapter_approved', title: 'Chapter Approved',
+          body: `Chapter ${chNum}${chTitle ? ': "' + chTitle + '"' : ''} has been approved.`,
+          chapter_id: chapterId,
+        });
+      }
       showToast('Chapter approved ✓');
       if (selectedChapter?.id === chapterId) {
         selectedChapter.status = 'approved';
+        selectedChapter.content_snapshot = null;
         $('viewer-chapter-meta').textContent = `${(selectedChapter.word_count||0).toLocaleString()} words · approved`;
         $('approve-btn').disabled = true; $('reject-btn').disabled = true;
         $('approve-btn').classList.add('opacity-40'); $('reject-btn').classList.add('opacity-40');
@@ -1013,22 +1051,62 @@
       const id = rejectChapterId;
       $('reject-modal').classList.add('hidden');
       rejectChapterId = null;
+
+      // Fetch current chapter data so we have the snapshot and edited content
+      const { data: chapterData } = await db.from('chapters')
+        .select('content, content_snapshot, chapter_number, title, word_count')
+        .eq('id', id).single();
+
+      const editedContent  = chapterData?.content ?? '';
+      const snapshot       = chapterData?.content_snapshot ?? null;
+      const chNum          = chapterData?.chapter_number ?? selectedChapter?.chapter_number ?? '';
+      const chTitle        = chapterData?.title ?? selectedChapter?.title ?? '';
+
+      const updatePayload = { status: 'revision_requested', updated_at: new Date().toISOString() };
+      if (snapshot) {
+        // Revert content to the pre-edit approved state
+        updatePayload.content          = snapshot;
+        updatePayload.content_snapshot = null;
+        updatePayload.snapshot_at      = null;
+        updatePayload.word_count       = snapshot.trim() ? snapshot.trim().split(/\s+/).length : 0;
+      }
+
       if (reason) {
         await db.from('comments').insert({ chapter_id: id, reviewer_id: currentUserId, paragraph_ref: null, body: reason });
       }
-      const { error } = await db.from('chapters').update({ status:'revision_requested', updated_at:new Date().toISOString() }).eq('id', id);
+
+      const { error } = await db.from('chapters').update(updatePayload).eq('id', id);
       if (error) { showToast('Error: ' + error.message); return; }
+
+      // Notify the writer — include their edited version in the body
+      const writerId = selectedWriter?.id;
+      if (writerId) {
+        let notifBody = `Chapter ${chNum}${chTitle ? ': "' + chTitle + '"' : ''} has been sent back for revision.`;
+        if (reason) notifBody += '\n\nAdmin feedback: ' + reason;
+        if (editedContent && snapshot) {
+          notifBody += '\n\n--- Your edited version (for reference) ---\n' + editedContent;
+        }
+        await db.from('notifications').insert({
+          user_id: writerId, type: 'chapter_rejected', title: 'Revision Requested',
+          body: notifBody, chapter_id: id,
+        });
+      }
+
       showToast('Revision requested.');
       if (selectedChapter?.id === id) {
         selectedChapter.status = 'revision_requested';
-        $('viewer-chapter-meta').textContent = `${(selectedChapter.word_count||0).toLocaleString()} words · revision requested`;
+        if (snapshot) {
+          selectedChapter.content          = snapshot;
+          selectedChapter.content_snapshot = null;
+        }
+        const wc = updatePayload.word_count ?? chapterData?.word_count ?? 0;
+        $('viewer-chapter-meta').textContent = `${wc.toLocaleString()} words · revision requested`;
         $('approve-btn').disabled = true; $('reject-btn').disabled = true;
         $('approve-btn').classList.add('opacity-40'); $('reject-btn').classList.add('opacity-40');
-        if (reason) {
-          const { data: fresh } = await db.from('comments').select('id, paragraph_ref, body, resolved, reviewer_id, created_at').eq('chapter_id', id).order('created_at', { ascending: true });
-          allComments = fresh ?? [];
-          renderCommentThread();
-        }
+        const { data: fresh } = await db.from('comments').select('id, paragraph_ref, body, resolved, reviewer_id, created_at').eq('chapter_id', id).order('created_at', { ascending: true });
+        allComments = fresh ?? [];
+        renderChapterContent(selectedChapter.content, null);
+        renderCommentThread();
       }
       refreshChapterList();
     }
