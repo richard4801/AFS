@@ -45,7 +45,9 @@
     .prose-editor::placeholder { color:rgba(122,122,122,0.4); font-style:italic; font-family:inherit; }
     @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:.4} }
     .notif-dot { width:8px;height:8px;border-radius:50%;background:#C9A84C;flex-shrink:0;animation:pulse-dot 1.8s ease-in-out infinite; }
-    .para-changed { background:rgba(201,168,76,0.07); border-left:2px solid rgba(201,168,76,0.55); padding-left:0.85em; }
+    .para-changed { border-left:2px solid rgba(201,168,76,0.3); padding-left:0.85em; }
+    .diff-add { background:rgba(201,168,76,0.38); font-weight:700; border-radius:3px; padding:0 1px; }
+    .diff-del { text-decoration:line-through; color:rgba(239,68,68,0.65); font-style:italic; }
     .fs-tool-btn { padding:2px 9px; border-radius:5px; font-size:11px; font-weight:700; color:rgba(255,255,255,0.6); background:transparent; border:1px solid transparent; cursor:pointer; transition:all .15s; line-height:1.8; }
     .fs-tool-btn:hover { background:rgba(255,255,255,0.07); border-color:rgba(255,255,255,0.12); color:#fff; }
     .fs-tool-btn.active { background:rgba(163,22,33,0.18); border-color:rgba(163,22,33,0.4); color:#C82333; }
@@ -491,6 +493,9 @@
     let _cachedChapters = [];
     let allComments     = [];
     let rejectChapterId = null;
+    const _writerReg   = new Map(); // id → writer
+    const _adminBookReg = new Map(); // id → book
+    const _adminChapReg = new Map(); // id → chapter
 
     // ── AUTH ────────────────────────────────────────────────────────
     function guardAdmin() {
@@ -537,7 +542,7 @@
       if (!writers?.length) { container.innerHTML = `<p class="text-muted text-xs px-2 pt-2">No writers yet.</p>`; return; }
       const pendingSet = new Set((submittedChapters ?? []).map(c => c.books?.author_id).filter(Boolean));
       container.innerHTML = writers.map(w => `
-        <button onclick='selectWriter(${JSON.stringify(w)})' data-wid="${w.id}"
+        <button onclick='selectWriter("${w.id}")' data-wid="${w.id}"
                 class="writer-btn w-full text-left px-3 py-2.5 rounded-lg text-sm text-white/80 hover:text-white hover:bg-surface border border-transparent hover:border-border transition-all duration-150">
           <div class="flex items-center justify-between gap-2">
             <div class="min-w-0">
@@ -577,9 +582,10 @@
       }
       const statusMap = { draft:'bg-muted/20 text-muted', submitted:'bg-gold/15 text-gold', approved:'bg-emerald-400/15 text-emerald-400' };
       grid.innerHTML = books.map(b => {
+        _adminBookReg.set(b.id, b);
         const signed = b.is_signed;
         return `
-          <button onclick='selectBook(${JSON.stringify(b)})'
+          <button onclick='selectBook("${b.id}")'
                   class="text-left rounded-2xl border border-border bg-surface hover:border-crimson/30 hover:shadow-lg hover:shadow-crimson/5 transition-all duration-200 overflow-hidden group">
             ${b.cover_url
               ? `<img src="${escHtml(b.cover_url)}" class="w-full h-56 object-cover" alt="${escHtml(b.title)}"/>`
@@ -599,7 +605,9 @@
       }).join('');
     }
 
-    async function selectBook(book) {
+    async function selectBook(idOrObj) {
+      const book = (typeof idOrObj === 'object') ? idOrObj : _adminBookReg.get(idOrObj);
+      if (!book) return;
       selectedBook    = book;
       selectedChapter = null;
       showView('view-book-chapters');
@@ -693,6 +701,7 @@
       const sMap = { draft:'bg-muted/20 text-muted', submitted:'bg-gold/15 text-gold', approved:'bg-emerald-400/15 text-emerald-400', revision_requested:'bg-red-400/15 text-red-400' };
       const badge = s => `<span class="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full ${sMap[s]||''}">${s.replace('_',' ')}</span>`;
       container.innerHTML = chapters.map(ch => {
+        _adminChapReg.set(ch.id, ch);
         const canReview = ch.status === 'submitted';
         const isLocked  = selectedBook?.locked_from_chapter && ch.chapter_number >= selectedBook.locked_from_chapter;
         return `
@@ -706,7 +715,7 @@
               <div class="flex flex-col items-end gap-2 flex-shrink-0">
                 ${badge(ch.status)}
                 <div class="flex items-center gap-1.5 flex-wrap justify-end">
-                  <button onclick='openChapter(${JSON.stringify(ch)})'
+                  <button onclick='openChapter("${ch.id}")'
                           class="text-[10px] font-semibold px-2 py-1 rounded border border-border text-muted hover:text-white hover:border-white/20 transition-all">
                     Open →
                   </button>
@@ -816,7 +825,9 @@
     }
 
     // ── CHAPTER VIEWER ──────────────────────────────────────────────
-    async function openChapter(chapter) {
+    async function openChapter(idOrObj) {
+      const chapter = (typeof idOrObj === 'object') ? idOrObj : _adminChapReg.get(idOrObj);
+      if (!chapter) return;
       selectedChapter = { ...chapter };
       showView('view-chapter');
       $('viewer-chapter-num').textContent   = `Chapter ${chapter.chapter_number}`;
@@ -841,14 +852,12 @@
       ]);
       selectedChapter.content = full?.content ?? '';
       selectedChapter.content_snapshot = full?.content_snapshot ?? null;
-      allComments = comments ?? [];
+      allComments = sortComments(comments ?? []);
       renderChapterContent(selectedChapter.content, selectedChapter.content_snapshot);
       renderCommentThread();
     }
 
     // ── ADMIN CHAPTER EDIT ───────────────────────────────────────────
-    let _adminEditing = false;
-
     function toggleAdminChapterEdit() { openAdminFSEditor(); }
 
     // ── ADMIN FULL-SCREEN RICH-TEXT EDITOR ────────────────────────────
@@ -885,7 +894,6 @@
     function adminFsClose() {
       $('admin-fullscreen-editor').classList.add('hidden');
       document.body.style.overflow = '';
-      _adminEditing = false;
     }
 
     function adminExecFmt(cmd) {
@@ -978,6 +986,93 @@
       return blocks;
     }
 
+    // ── WORD-LEVEL DIFF ─────────────────────────────────────────────
+    function tokenize(text) {
+      return text.match(/\S+|\s+/g) || [];
+    }
+
+    function computeLCS(a, b) {
+      const m = a.length, n = b.length;
+      if (m * n > 120000) return null; // perf guard
+      const dp = Array.from({length: m+1}, () => new Int32Array(n+1));
+      for (let i = 1; i <= m; i++)
+        for (let j = 1; j <= n; j++)
+          dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1]+1 : Math.max(dp[i-1][j], dp[i][j-1]);
+      const ops = []; let i = m, j = n;
+      while (i > 0 || j > 0) {
+        if (i > 0 && j > 0 && a[i-1] === b[j-1]) { ops.unshift('='); i--; j--; }
+        else if (j > 0 && (i === 0 || dp[i][j-1] >= dp[i-1][j])) { ops.unshift('+'); j--; }
+        else { ops.unshift('-'); i--; }
+      }
+      return ops;
+    }
+
+    function wordDiffHtml(oldText, newText, addCls, delCls) {
+      if (!oldText) return '<span class="' + addCls + '">' + escHtml(newText) + '</span>';
+      const ot = tokenize(oldText), nt = tokenize(newText);
+      const ops = computeLCS(ot, nt);
+      if (!ops) return '<span class="' + addCls + '">' + escHtml(newText) + '</span>';
+      let html = '', oi = 0, ni = 0;
+      for (const op of ops) {
+        if (op === '=') { html += escHtml(nt[ni]); oi++; ni++; }
+        else if (op === '+') { html += '<span class="' + addCls + '">' + escHtml(nt[ni]) + '</span>'; ni++; }
+        else { html += '<span class="' + delCls + '">' + escHtml(ot[oi]) + '</span>'; oi++; }
+      }
+      return html;
+    }
+
+    function buildDocDiffParas(editedContent, snapshotContent) {
+      const getParas = html => {
+        if (!html) return [];
+        if (/<p[\s>]/i.test(html)) {
+          const d = document.createElement('div'); d.innerHTML = html;
+          return Array.from(d.querySelectorAll('p')).map(p => p.textContent || '');
+        }
+        return html.split(/\n\n+|\n/).map(s => s.trim()).filter(Boolean);
+      };
+      const np = getParas(editedContent), op = getParas(snapshotContent || '');
+      return np.map((nPara, i) => {
+        const oPara = op[i] ?? null;
+        const inner = oPara ? wordDiffHtml(oPara, nPara, 'mark', 'del') : '<mark>' + escHtml(nPara) + '</mark>';
+        return '<p>' + inner + '</p>';
+      }).join('');
+    }
+
+    function generateRevisionDoc(chNum, chTitle, bookTitle, reason, editedContent, snapshotContent) {
+      const paraHtml = buildDocDiffParas(editedContent, snapshotContent);
+      const dateStr  = new Date().toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'});
+      const feedbackBlock = reason
+        ? '<div class="section">Admin Feedback</div><div class="feedback">' + escHtml(reason).replace(/\n/g,'<br>') + '</div>'
+        : '';
+      const docHtml = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<title>Revision – Chapter ${chNum}</title>
+<style>
+body{font-family:Georgia,'Times New Roman',serif;max-width:680px;margin:0 auto;padding:60px 80px;color:#1a1a1a;font-size:12pt;line-height:1.9;background:#fff}
+h1{font-size:22pt;font-weight:400;margin-bottom:6px}
+.sub{color:#666;font-size:10pt;margin-bottom:36px;border-bottom:1px solid #ddd;padding-bottom:14px}
+.section{font-weight:700;font-size:8.5pt;text-transform:uppercase;letter-spacing:.14em;color:#888;margin:28px 0 10px}
+.feedback{background:#fffbea;border-left:3px solid #c9a84c;padding:14px 18px;border-radius:0 4px 4px 0;margin-bottom:28px;white-space:pre-wrap}
+p{margin:0 0 1.4em;text-align:justify}
+mark{background:rgba(201,168,76,.45);font-weight:700;border-radius:2px;padding:0 1px}
+del{text-decoration:line-through;color:#cc3333;opacity:.75}
+.legend{font-size:9pt;color:#999;margin-top:48px;border-top:1px solid #eee;padding-top:12px}
+</style></head>
+<body>
+<h1>${escHtml(chTitle || 'Chapter ' + chNum)}</h1>
+<div class="sub">${escHtml(bookTitle || '')} &nbsp;·&nbsp; Chapter ${chNum} &nbsp;·&nbsp; Revision Requested &nbsp;·&nbsp; ${dateStr}</div>
+${feedbackBlock}
+<div class="section">Submitted Version — Changes Highlighted</div>
+${paraHtml}
+<div class="legend"><mark>Gold bold = added/changed words.</mark> &nbsp; <del>Strikethrough = removed words.</del></div>
+</body></html>`;
+      const blob = new Blob([docHtml], { type: 'application/msword' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url; a.download = 'revision-ch' + chNum + '.doc'; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
     function renderChapterContent(raw, snapshot) {
       // Detect HTML content (saved by rich-text editor)
       const isHtml = raw && /<p[\s>]/i.test(raw);
@@ -1008,9 +1103,23 @@
         const idx = pIdx++;
         if (block.type === 'title') return '<h4 class="prose-title">' + (block.html || escHtml(block.text || '')) + '</h4>';
         const curParaIdx = paraIdx++;
-        const blockHtml = block.html !== undefined ? block.html : escHtml(block.text || '');
+        const rawHtml   = block.html !== undefined ? block.html : escHtml(block.text || '');
         const snapVal   = snapParas ? (snapParas[curParaIdx] ?? null) : null;
-        const isChanged = snapParas !== null && (curParaIdx >= snapParas.length || blockHtml !== snapVal);
+        const isChanged = snapParas !== null && (curParaIdx >= snapParas.length || rawHtml !== snapVal);
+        // Get plain-text versions for word-level diff
+        let blockHtml;
+        if (isChanged && snapParas !== null) {
+          const newDiv = document.createElement('div'); newDiv.innerHTML = rawHtml;
+          const newText = newDiv.textContent || '';
+          if (snapVal !== null) {
+            const oldDiv = document.createElement('div'); oldDiv.innerHTML = snapVal;
+            blockHtml = wordDiffHtml(oldDiv.textContent || '', newText, 'diff-add', 'diff-del');
+          } else {
+            blockHtml = '<span class="diff-add">' + escHtml(newText) + '</span>';
+          }
+        } else {
+          blockHtml = rawHtml;
+        }
         const cnt = allComments.filter(c => c.paragraph_ref === idx && !c.resolved).length;
         const changedCls = isChanged ? ' para-changed' : '';
         return '<div class="para-wrap relative py-2 border-b border-border/20 group' + changedCls + '" data-para="' + idx + '">'
@@ -1044,7 +1153,7 @@
         chapter_id: selectedChapter.id, reviewer_id: currentUserId, paragraph_ref: paraIdx, body,
       }).select().single();
       if (error) { showToast('Error: ' + error.message); return; }
-      allComments.push(data);
+      allComments = sortComments([...allComments, data]);
       renderChapterContent(selectedChapter.content, selectedChapter.content_snapshot ?? null);
       renderCommentThread();
       toggleCommentForm(paraIdx);
@@ -1063,18 +1172,21 @@
       showToast('Comment posted.');
     }
 
+    function sortComments(arr) {
+      return [...arr].sort((a, b) => {
+        if (a.paragraph_ref === null && b.paragraph_ref !== null) return -1;
+        if (a.paragraph_ref !== null && b.paragraph_ref === null) return 1;
+        return (a.paragraph_ref ?? 0) - (b.paragraph_ref ?? 0) || new Date(a.created_at) - new Date(b.created_at);
+      });
+    }
+
     function renderCommentThread() {
       const container = $('comment-thread');
       if (!allComments.length) {
         container.innerHTML = `<p class="text-muted text-xs">No comments yet. Click + next to any paragraph to comment.</p>`;
         return;
       }
-      const sorted = [...allComments].sort((a, b) => {
-        if (a.paragraph_ref === null && b.paragraph_ref !== null) return -1;
-        if (a.paragraph_ref !== null && b.paragraph_ref === null) return 1;
-        return (a.paragraph_ref ?? 0) - (b.paragraph_ref ?? 0);
-      });
-      container.innerHTML = sorted.map(c => `
+      container.innerHTML = allComments.map(c => `
         <div class="comment-card rounded-lg border ${c.resolved ? 'border-border/40 opacity-50' : 'border-border'} bg-charcoal/60 p-3"
              data-comment-id="${c.id}" data-para-ref="${c.paragraph_ref ?? 'general'}">
           <div class="flex items-center justify-between mb-1.5">
@@ -1091,9 +1203,13 @@
 
     async function resolveComment(commentId) {
       await db.from('comments').update({ resolved: true }).eq('id', commentId);
-      allComments = allComments.map(c => c.id === commentId ? { ...c, resolved: true } : c);
+      allComments = sortComments(allComments.map(c => c.id === commentId ? { ...c, resolved: true } : c));
       renderCommentThread();
-      renderChapterContent(selectedChapter?.content ?? '', selectedChapter?.content_snapshot ?? null);
+      // Only re-render chapter content if a paragraph badge count changed
+      const resolved = allComments.find(c => c.id === commentId);
+      if (resolved?.paragraph_ref !== null && resolved?.paragraph_ref !== undefined) {
+        renderChapterContent(selectedChapter?.content ?? '', selectedChapter?.content_snapshot ?? null);
+      }
     }
 
     // ── ADMIN PARAGRAPH COMMENT POPOVER ─────────────────────────────
@@ -1136,10 +1252,11 @@
 
     async function resolveFromPopover(commentId, paraIdx) {
       await db.from('comments').update({ resolved: true }).eq('id', commentId);
-      allComments = allComments.map(c => c.id === commentId ? { ...c, resolved: true } : c);
+      const wasParaPinned = allComments.find(c => c.id === commentId)?.paragraph_ref != null;
+      allComments = sortComments(allComments.map(c => c.id === commentId ? { ...c, resolved: true } : c));
       renderAdminPopoverThread(paraIdx);
       renderCommentThread();
-      renderChapterContent(selectedChapter?.content ?? '', selectedChapter?.content_snapshot ?? null);
+      if (wasParaPinned) renderChapterContent(selectedChapter?.content ?? '', selectedChapter?.content_snapshot ?? null);
     }
 
     async function postPopoverComment() {
@@ -1151,11 +1268,11 @@
         paragraph_ref: paraIdx, body,
       }).select().single();
       if (error) { showToast('Error: ' + error.message); return; }
-      allComments.push(data);
+      allComments = sortComments([...allComments, data]);
       $('admin-pop-input').value = '';
       renderAdminPopoverThread(paraIdx);
       renderCommentThread();
-      renderChapterContent(selectedChapter.content);
+      renderChapterContent(selectedChapter.content, selectedChapter.content_snapshot ?? null);
     }
 
     document.addEventListener('click', e => {
@@ -1239,6 +1356,10 @@
       const snapshot       = chapterData?.content_snapshot ?? null;
       const chNum          = chapterData?.chapter_number ?? selectedChapter?.chapter_number ?? '';
       const chTitle        = chapterData?.title ?? selectedChapter?.title ?? '';
+      const bookTitle      = selectedBook?.title ?? '';
+
+      // Generate & auto-download revision doc before reverting content
+      generateRevisionDoc(chNum, chTitle, bookTitle, reason, editedContent, snapshot);
 
       const updatePayload = { status: 'revision_requested', updated_at: new Date().toISOString() };
       if (snapshot) {
@@ -1261,9 +1382,6 @@
       if (writerId) {
         let notifBody = `Chapter ${chNum}${chTitle ? ': "' + chTitle + '"' : ''} has been sent back for revision.`;
         if (reason) notifBody += '\n\nAdmin feedback: ' + reason;
-        if (editedContent && snapshot) {
-          notifBody += '\n\n--- Your edited version (for reference) ---\n' + editedContent;
-        }
         await db.from('notifications').insert({
           user_id: writerId, type: 'chapter_rejected', title: 'Revision Requested',
           body: notifBody, chapter_id: id,
