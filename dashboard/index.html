@@ -442,6 +442,7 @@
   <script>
     const SUPABASE_URL      = 'https://qbqsbdswcqmrxoizgfrw.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_v0fbhx8NkRNxYYVw8VGz_g_7Eqja11K';
+    const COVERS_BUCKET     = 'Covers'; // ← must match exact bucket name in Supabase Storage
 
     const { createClient } = supabase;
     const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -726,9 +727,9 @@
       if (pendingCoverFile) {
         const ext  = pendingCoverFile.name.split('.').pop();
         const path = `${currentUserId}/${book.id}.${ext}`;
-        const { error: upErr } = await db.storage.from('Covers').upload(path, pendingCoverFile, { upsert: true });
+        const { error: upErr } = await db.storage.from(COVERS_BUCKET).upload(path, pendingCoverFile, { upsert: true });
         if (!upErr) {
-          const { data: { publicUrl } } = db.storage.from('Covers').getPublicUrl(path);
+          const { data: { publicUrl } } = db.storage.from(COVERS_BUCKET).getPublicUrl(path);
           await db.from('books').update({ cover_url: publicUrl }).eq('id', book.id);
         }
       }
@@ -775,9 +776,9 @@
       showToast('Uploading cover…');
       const ext  = file.name.split('.').pop();
       const path = `${currentUserId}/${selectedBook.id}.${ext}`;
-      const { error: upErr } = await db.storage.from('Covers').upload(path, file, { upsert: true });
+      const { error: upErr } = await db.storage.from(COVERS_BUCKET).upload(path, file, { upsert: true });
       if (upErr) { showToast('Upload failed: ' + upErr.message); return; }
-      const { data: { publicUrl } } = db.storage.from('Covers').getPublicUrl(path);
+      const { data: { publicUrl } } = db.storage.from(COVERS_BUCKET).getPublicUrl(path);
       const { error: dbErr } = await db.from('books').update({ cover_url: publicUrl }).eq('id', selectedBook.id);
       if (dbErr) { showToast('Failed to save: ' + dbErr.message); return; }
       selectedBook.cover_url = publicUrl;
