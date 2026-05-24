@@ -281,6 +281,10 @@
                        class="form-input w-full bg-charcoal border border-border text-white text-xs rounded-lg px-3 py-2 transition-all duration-200"/>
               </div>
             </div>
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-[10px] text-muted uppercase tracking-wide">Total Word Count</span>
+              <span id="stat-total-words" class="text-white text-xs font-medium">—</span>
+            </div>
             <button onclick="saveBookStats()" class="px-3 py-1.5 bg-crimson/10 hover:bg-crimson/20 border border-crimson/30 text-crimson-light text-xs font-semibold rounded-lg transition-all duration-200">
               Save Stats
             </button>
@@ -627,6 +631,7 @@
       ]);
       _cachedChapters = chapters ?? [];
       renderInlineChapterList(_cachedChapters);
+      renderTotalWords(_cachedChapters);
       renderEditRequests(editReqs);
     }
 
@@ -662,13 +667,17 @@
 
     async function saveBookStats() {
       if (!selectedBook) return;
-      const views          = parseInt($('stat-views').value)   || 0;
-      const likes          = parseInt($('stat-likes').value)   || 0;
-      const library_count  = parseInt($('stat-library').value) || 0;
+      const views          = Math.max(0, parseInt($('stat-views').value)   || 0);
+      const likes          = Math.max(0, parseInt($('stat-likes').value)   || 0);
+      const library_count  = Math.max(0, parseInt($('stat-library').value) || 0);
       const lockedRaw      = $('stat-locked').value.trim();
       const locked_from_chapter = lockedRaw ? (parseInt(lockedRaw) || null) : null;
-      const { error } = await db.from('books').update({ views, likes, library_count, locked_from_chapter }).eq('id', selectedBook.id);
+      const { data, error } = await db.from('books')
+        .update({ views, likes, library_count, locked_from_chapter })
+        .eq('id', selectedBook.id)
+        .select('id');
       if (error) { showToast('Error: ' + error.message); return; }
+      if (!data?.length) { showToast('Update failed — check database permissions'); return; }
       Object.assign(selectedBook, { views, likes, library_count, locked_from_chapter });
       renderInlineChapterList(_cachedChapters ?? []);
       showToast('Stats saved ✓');
@@ -1190,6 +1199,14 @@
       const { data } = await db.from('chapters').select('id, chapter_number, title, word_count, status').eq('book_id', selectedBook.id).order('chapter_number', { ascending: false });
       _cachedChapters = data ?? [];
       renderInlineChapterList(_cachedChapters);
+      renderTotalWords(_cachedChapters);
+    }
+
+    function renderTotalWords(chapters) {
+      const el = $('stat-total-words');
+      if (!el) return;
+      const total = (chapters || []).reduce((s,c) => s+(c.word_count||0), 0);
+      el.textContent = total.toLocaleString() + ' words';
     }
 
     function openRejectModal(chapterId, chapterTitle) {

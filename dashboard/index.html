@@ -356,7 +356,10 @@
   <div id="notif-panel" class="hidden fixed z-[80] right-4 top-16 w-80 rounded-2xl border border-border bg-surface shadow-2xl shadow-black/60 overflow-hidden">
     <div class="flex items-center justify-between px-4 py-3 border-b border-border/50">
       <p class="text-sm font-semibold text-white">Notifications</p>
-      <button onclick="toggleNotifPanel()" class="text-muted hover:text-white text-lg leading-none">×</button>
+      <div class="flex items-center gap-3">
+        <button onclick="clearAllNotifs()" class="text-muted hover:text-gold text-xs transition-colors">Clear all</button>
+        <button onclick="toggleNotifPanel()" class="text-muted hover:text-white text-lg leading-none">×</button>
+      </div>
     </div>
     <div id="notif-list" class="max-h-80 overflow-y-auto thin-scroll divide-y divide-border/30"></div>
   </div>
@@ -950,62 +953,35 @@
         const sCls = statusMap[b.status] || statusMap.draft;
         const sLabel = b.status === 'approved' || b.status === 'published' ? 'Active' : b.status.charAt(0).toUpperCase() + b.status.slice(1).replace('_',' ');
         const bJson = escHtml(JSON.stringify(b));
-
-        return \`<div class="rounded-2xl border border-border bg-surface overflow-hidden">
-          <!-- date header -->
-          <div class="flex items-center justify-between px-4 py-2 border-b border-border/40">
-            <span class="text-muted/60 text-[11px]">Last Update: \${dateStr}</span>
-          </div>
-          <!-- book row -->
-          <div class="p-4 flex gap-4 cursor-pointer active:bg-white/5 transition-colors" onclick='openBook(\${bJson})'>
-            <!-- Cover + signed badge -->
-            <div class="relative flex-shrink-0">
-              \${b.cover_url
-                ? \`<img src="\${escHtml(b.cover_url)}" class="w-20 h-28 object-cover rounded-xl border border-border shadow-lg"/>\`
-                : \`<div class="w-20 h-28 bg-charcoal rounded-xl border border-border flex items-center justify-center shadow-lg">
-                     <span class="font-serif text-3xl text-muted/30">\${escHtml(b.title[0]||'?')}</span>
-                   </div>\`}
-              \${b.is_signed ? '<span class="absolute top-1 left-1 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-blue-500 text-white leading-tight">Signed</span>' : ''}
-            </div>
-            <!-- Book info -->
-            <div class="flex-1 min-w-0">
-              <h3 class="font-semibold text-white text-base leading-snug mb-2.5 line-clamp-2">\${escHtml(b.title)}</h3>
-              <!-- Status + lock chips -->
-              <div class="flex items-center gap-1.5 mb-3 flex-wrap">
-                <span class="text-[11px] font-medium px-2.5 py-0.5 rounded-full border \${sCls}">\${sLabel}</span>
-                \${b.locked_from_chapter
-                  ? \`<span class="text-[11px] font-medium px-2.5 py-0.5 rounded-full border border-gold/40 text-gold">Locked: \${b.locked_from_chapter}</span>\`
-                  : ''}
-              </div>
-              <!-- Stats 2x2 -->
-              <div class="grid grid-cols-2 gap-x-6 gap-y-1.5">
-                <span class="flex items-center gap-1.5 text-xs text-muted font-light">
-                  <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"/></svg>
-                  \${fmtCount(b.likes||0)}
-                </span>
-                <span class="flex items-center gap-1.5 text-xs text-muted font-light">
-                  <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
-                  \${fmtCount(b.views||0)}
-                </span>
-                <span class="flex items-center gap-1.5 text-xs text-muted font-light">
-                  <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"/></svg>
-                  \${fmtCount(totalWords)}
-                </span>
-                <span class="flex items-center gap-1.5 text-xs text-muted font-light">
-                  <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.966 8.966 0 0 0-6 2.292m0-14.25v14.25"/></svg>
-                  \${fmtCount(b.library_count||0)}
-                </span>
-              </div>
-            </div>
-          </div>
-          <!-- Add chapter button -->
-          <div class="px-4 pb-4">
-            <button onclick="event.stopPropagation();quickNewChapter(\${bJson})"
-                    class="w-full py-2.5 rounded-xl text-sm font-medium bg-crimson/90 hover:bg-crimson text-white transition-colors">
-              + Add new chapter
-            </button>
-          </div>
-        </div>\`;
+        const coverHtml = b.cover_url
+          ? '<img src="' + escHtml(b.cover_url) + '" class="w-20 h-28 object-cover rounded-xl border border-border shadow-lg"/>'
+          : '<div class="w-20 h-28 bg-charcoal rounded-xl border border-border flex items-center justify-center shadow-lg"><span class="font-serif text-3xl text-muted/30">' + escHtml(b.title[0]||'?') + '</span></div>';
+        const signedBadge = b.is_signed ? '<span class="absolute top-1 left-1 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-blue-500 text-white leading-tight">Signed</span>' : '';
+        const lockedChip = b.locked_from_chapter ? '<span class="text-[11px] font-medium px-2.5 py-0.5 rounded-full border border-gold/40 text-gold">Locked: ' + b.locked_from_chapter + '</span>' : '';
+        return '<div class="rounded-2xl border border-border bg-surface overflow-hidden">'
+          + '<div class="flex items-center justify-between px-4 py-2 border-b border-border/40">'
+          + '<span class="text-muted/60 text-[11px]">Last Update: ' + dateStr + '</span>'
+          + '</div>'
+          + '<div class="p-4 flex gap-4 cursor-pointer active:bg-white/5 transition-colors" onclick=\'openBook(' + bJson + ')\'>'
+          + '<div class="relative flex-shrink-0">' + coverHtml + signedBadge + '</div>'
+          + '<div class="flex-1 min-w-0">'
+          + '<h3 class="font-semibold text-white text-base leading-snug mb-2.5 line-clamp-2">' + escHtml(b.title) + '</h3>'
+          + '<div class="flex items-center gap-1.5 mb-3 flex-wrap">'
+          + '<span class="text-[11px] font-medium px-2.5 py-0.5 rounded-full border ' + sCls + '">' + sLabel + '</span>'
+          + lockedChip
+          + '</div>'
+          + '<div class="grid grid-cols-2 gap-x-6 gap-y-1.5">'
+          + '<span class="flex items-center gap-1.5 text-xs text-muted font-light"><svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"/></svg>' + fmtCount(b.likes||0) + '</span>'
+          + '<span class="flex items-center gap-1.5 text-xs text-muted font-light"><svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>' + fmtCount(b.views||0) + '</span>'
+          + '<span class="flex items-center gap-1.5 text-xs text-muted font-light"><svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"/></svg>' + fmtCount(totalWords) + '</span>'
+          + '<span class="flex items-center gap-1.5 text-xs text-muted font-light"><svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.966 8.966 0 0 0-6 2.292m0-14.25v14.25"/></svg>' + fmtCount(b.library_count||0) + '</span>'
+          + '</div>'
+          + '</div>'
+          + '</div>'
+          + '<div class="px-4 pb-4">'
+          + '<button onclick="event.stopPropagation();quickNewChapter(' + bJson + ')" class="w-full py-2.5 rounded-xl text-sm font-medium bg-crimson/90 hover:bg-crimson text-white transition-colors">+ Add new chapter</button>'
+          + '</div>'
+          + '</div>';
       }).join('');
     }
     function openBook(book) {
@@ -1308,7 +1284,7 @@
     function renderNotifList() {
       const list = $('notif-list');
       if (!_notifications.length) {
-        list.innerHTML = '<p class="text-muted text-xs text-center py-8">No notifications yet.</p>';
+        list.innerHTML = '<p class="text-muted text-xs text-center py-8">No notifications.</p>';
         return;
       }
       list.innerHTML = _notifications.map(n => {
@@ -1316,18 +1292,37 @@
         const bodyHtml = n.body ? '<p class="text-muted text-xs mt-0.5 leading-relaxed" style="white-space:pre-line">' + escHtml(n.body) + '</p>' : '';
         const dateStr = new Date(n.created_at).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'});
         const opacityClass = n.read ? ' opacity-55' : '';
-        return '<button data-notif-id="' + n.id + '" onclick="readNotif(this.dataset.notifId)" class="w-full text-left px-4 py-3 hover:bg-charcoal transition-colors' + opacityClass + '">'
+        return '<div class="flex items-start group">'
+          + '<button data-notif-id="' + n.id + '" onclick="readNotif(this.dataset.notifId)" class="flex-1 text-left px-4 py-3 hover:bg-charcoal transition-colors' + opacityClass + '">'
           + '<div class="flex items-start gap-2.5">' + dot
           + '<div class="min-w-0"><p class="text-white text-xs font-semibold">' + escHtml(n.title) + '</p>'
           + bodyHtml
           + '<p class="text-muted/50 text-[10px] mt-1">' + dateStr + '</p>'
-          + '</div></div></button>';
+          + '</div></div></button>'
+          + '<button data-notif-id="' + n.id + '" onclick="dismissNotif(this.dataset.notifId)" class="px-3 py-3 text-muted/30 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0 text-sm">×</button>'
+          + '</div>';
       }).join('');
     }
 
     async function readNotif(id) {
       await db.from('notifications').update({ read: true }).eq('id', id);
       _notifications = _notifications.map(n => n.id === id ? { ...n, read: true } : n);
+      renderNotifBadge();
+      renderNotifList();
+    }
+
+    async function dismissNotif(id) {
+      await db.from('notifications').delete().eq('id', id);
+      _notifications = _notifications.filter(n => n.id !== id);
+      renderNotifBadge();
+      renderNotifList();
+    }
+
+    async function clearAllNotifs() {
+      if (!_notifications.length) return;
+      const ids = _notifications.map(n => n.id);
+      await db.from('notifications').delete().in('id', ids);
+      _notifications = [];
       renderNotifBadge();
       renderNotifList();
     }
