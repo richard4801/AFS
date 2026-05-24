@@ -38,6 +38,8 @@
     .prose-para { line-height:1.9; margin-bottom:1.25em; text-indent:1.5em; color:rgba(255,255,255,0.85); font-size:15px; letter-spacing:0.01em; }
     .prose-para:first-of-type { text-indent:0; }
     .scene-break { text-align:center; color:#6A6A6A; letter-spacing:0.4em; padding:1em 0; }
+    .prose-title { font-family:"DM Serif Display",Georgia,serif; text-align:center; margin:1.5em 0 0.75em; color:rgba(255,255,255,0.88); font-size:1.15em; letter-spacing:0.03em; }
+    .comment-card { transition:box-shadow .3s,border-color .3s; }
   </style>
 </head>
 
@@ -84,6 +86,41 @@
           Reject Without Message
         </button>
         <button onclick="cancelReject()"
+                class="px-4 py-2.5 border border-border text-muted hover:text-white text-sm rounded-lg transition-all duration-200">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DELETE BOOK MODAL -->
+  <div id="delete-book-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center px-4" style="background:rgba(0,0,0,0.82);backdrop-filter:blur(4px);">
+    <div class="relative w-full max-w-md rounded-2xl border border-red-500/25 bg-surface p-6 shadow-2xl shadow-black/60">
+      <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-red-500/40 to-transparent"></div>
+      <div class="flex items-start gap-3 mb-4">
+        <div class="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <svg class="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
+          </svg>
+        </div>
+        <div>
+          <h3 class="font-serif text-xl text-white">Delete Book</h3>
+          <p class="text-red-400/80 text-xs font-medium mt-0.5">This cannot be undone</p>
+        </div>
+      </div>
+      <p class="text-white/70 text-sm leading-relaxed mb-3">You are permanently deleting <strong id="delete-book-name" class="text-white"></strong>. Everything tied to it is erased:</p>
+      <ul class="mb-5 space-y-1.5">
+        <li class="flex items-center gap-2 text-xs text-white/55"><span class="w-1 h-1 rounded-full bg-red-400/50 flex-shrink-0"></span>All chapters and their written content</li>
+        <li class="flex items-center gap-2 text-xs text-white/55"><span class="w-1 h-1 rounded-full bg-red-400/50 flex-shrink-0"></span>All editorial comments on every chapter</li>
+        <li class="flex items-center gap-2 text-xs text-white/55"><span class="w-1 h-1 rounded-full bg-red-400/50 flex-shrink-0"></span>All edit requests for this book</li>
+        <li class="flex items-center gap-2 text-xs text-white/55"><span class="w-1 h-1 rounded-full bg-red-400/50 flex-shrink-0"></span>Earnings records linked to this book (author totals remain)</li>
+      </ul>
+      <div class="flex gap-3">
+        <button onclick="confirmDeleteBook()"
+                class="flex-1 px-4 py-2.5 bg-red-500/15 hover:bg-red-500/25 border border-red-500/35 hover:border-red-500/55 text-red-400 text-sm font-semibold rounded-lg transition-all duration-200">
+          Yes, Delete Permanently
+        </button>
+        <button onclick="cancelDeleteBook()"
                 class="px-4 py-2.5 border border-border text-muted hover:text-white text-sm rounded-lg transition-all duration-200">
           Cancel
         </button>
@@ -179,9 +216,15 @@
             <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted mb-2">Admin Notes</p>
             <textarea id="book-notes-input" rows="2" placeholder="Private notes on this book…"
                       class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-xs rounded-lg px-3 py-2 resize-none transition-all duration-200"></textarea>
-            <button onclick="saveBookNotes()" class="mt-2 px-3 py-1.5 bg-crimson/10 hover:bg-crimson/20 border border-crimson/30 text-crimson-light text-xs font-semibold rounded-lg transition-all duration-200">
-              Save Notes
-            </button>
+            <div class="flex items-center gap-2 mt-2">
+              <button onclick="saveBookNotes()" class="px-3 py-1.5 bg-crimson/10 hover:bg-crimson/20 border border-crimson/30 text-crimson-light text-xs font-semibold rounded-lg transition-all duration-200">
+                Save Notes
+              </button>
+              <button onclick="openDeleteBookModal()"
+                      class="px-3 py-1.5 bg-transparent hover:bg-red-500/10 border border-transparent hover:border-red-500/25 text-red-400/40 hover:text-red-400 text-xs rounded-lg transition-all duration-200">
+                Delete Book
+              </button>
+            </div>
           </div>
 
           <div class="flex items-center justify-between mb-3">
@@ -639,15 +682,37 @@
     }
 
     // ── CONTENT FORMATTER ───────────────────────────────────────────
+    function isLikelyTitle(text) {
+      if (/^chapter\b/i.test(text)) return true;
+      if (/^part\b/i.test(text)) return true;
+      if (/^(prologue|epilogue|interlude|foreword|afterword)$/i.test(text)) return true;
+      if (/^\d+[.:\s]*\S{0,40}$/.test(text) && text.split(/\s+/).length <= 5) return true;
+      if (/^[IVXLCDM]+[.:\s]*\S{0,40}$/.test(text) && text.split(/\s+/).length <= 5) return true;
+      if (text === text.toUpperCase() && /[A-Z]/.test(text) && text.length <= 60) return true;
+      return false;
+    }
+
     function formatContent(raw) {
       if (!raw?.trim()) return [];
-      const normalized = raw.replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
-      return normalized.split(/\n\n+/).map(block => {
-        const t = block.trim();
-        if (!t) return null;
-        if (/^[\*\-]{3,}$/.test(t) || t === '***' || t === '---') return { type:'break' };
-        return { type:'para', text: t.replace(/\n/g, ' ').replace(/\s+/g, ' ') };
-      }).filter(Boolean);
+      const t = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+      const rawBlocks = t.split(/\n\n+/);
+      const blocks = [];
+      for (let i = 0; i < rawBlocks.length; i++) {
+        const block = rawBlocks[i].trim();
+        if (!block) continue;
+        if (/^[\*\-_~]{3,}$/.test(block) || block === '* * *') { blocks.push({ type:'break' }); continue; }
+        const joined = block.split('\n').map(l => l.trim()).filter(Boolean).join(' ');
+        const prevType = blocks.length ? blocks[blocks.length - 1].type : 'start';
+        const atBoundary = blocks.length === 0 || prevType === 'break';
+        const noTermPunct = !/[.!?]$/.test(joined);
+        const wordCount = joined.split(/\s+/).length;
+        if (atBoundary && noTermPunct && wordCount <= 8 && isLikelyTitle(joined)) {
+          blocks.push({ type:'title', text: joined });
+        } else {
+          blocks.push({ type:'para', text: joined });
+        }
+      }
+      return blocks;
     }
 
     function renderChapterContent(raw) {
@@ -660,11 +725,17 @@
       $('chapter-content').innerHTML = blocks.map(block => {
         if (block.type === 'break') return `<div class="scene-break">* * *</div>`;
         const idx = pIdx++;
-        const pComments = allComments.filter(c => c.paragraph_ref === idx);
+        if (block.type === 'title') {
+          return `<h4 class="prose-title">${escHtml(block.text)}</h4>`;
+        }
+        const pComments = allComments.filter(c => c.paragraph_ref === idx && !c.resolved);
         return `
           <div class="para-wrap relative py-2 border-b border-border/20 group" data-para="${idx}">
-            <p class="prose-para pr-10">${escHtml(block.text)}</p>
-            ${pComments.length ? `<span class="absolute right-10 top-3 text-[10px] font-semibold text-crimson-light bg-crimson/10 border border-crimson/20 rounded-full px-1.5 py-0.5 leading-none">${pComments.length}</span>` : ''}
+            <p class="prose-para pr-14">${escHtml(block.text)}</p>
+            ${pComments.length
+              ? `<button class="para-comment-badge absolute right-10 top-3 text-[10px] font-semibold text-crimson-light bg-crimson/10 hover:bg-crimson/20 border border-crimson/20 rounded-full px-1.5 py-0.5 leading-none transition-colors"
+                         onclick="highlightComments(${idx})" title="View ${pComments.length} comment(s)">${pComments.length}</button>`
+              : ''}
             <button class="para-btn absolute right-2 top-3 w-6 h-6 rounded-full bg-surface border border-border hover:border-crimson/50 flex items-center justify-center text-muted hover:text-crimson-light text-sm leading-none transition-all"
                     onclick="toggleCommentForm(${idx})">+</button>
             <div id="cf-${idx}" class="hidden mt-3 bg-charcoal border border-border rounded-lg p-3">
@@ -724,7 +795,8 @@
         return (a.paragraph_ref ?? 0) - (b.paragraph_ref ?? 0);
       });
       container.innerHTML = sorted.map(c => `
-        <div class="rounded-lg border ${c.resolved ? 'border-border/40 opacity-50' : 'border-border'} bg-charcoal/60 p-3">
+        <div class="comment-card rounded-lg border ${c.resolved ? 'border-border/40 opacity-50' : 'border-border'} bg-charcoal/60 p-3"
+             data-comment-id="${c.id}" data-para-ref="${c.paragraph_ref ?? 'general'}">
           <div class="flex items-center justify-between mb-1.5">
             <span class="text-[10px] font-semibold uppercase tracking-wide ${c.paragraph_ref !== null ? 'text-crimson-light' : 'text-muted'}">
               ${c.paragraph_ref !== null ? `¶ Paragraph ${c.paragraph_ref + 1}` : 'Chapter Note'}
@@ -741,6 +813,24 @@
       await db.from('comments').update({ resolved: true }).eq('id', commentId);
       allComments = allComments.map(c => c.id === commentId ? { ...c, resolved: true } : c);
       renderCommentThread();
+      renderChapterContent(selectedChapter?.content ?? '');
+    }
+
+    function highlightComments(paraIdx) {
+      const panel = document.querySelector('#view-chapter > div:last-child');
+      if (panel) panel.scrollIntoView({ behavior:'smooth', block:'start' });
+      setTimeout(() => {
+        const cards = document.querySelectorAll(`[data-para-ref="${paraIdx}"]`);
+        if (!cards.length) return;
+        cards.forEach((card, i) => {
+          setTimeout(() => {
+            card.scrollIntoView({ behavior:'smooth', block:'nearest' });
+            card.style.boxShadow = '0 0 0 2px rgba(163,22,33,0.55)';
+            card.style.borderColor = 'rgba(163,22,33,0.55)';
+            setTimeout(() => { card.style.boxShadow = ''; card.style.borderColor = ''; }, 2000);
+          }, i * 80);
+        });
+      }, 380);
     }
 
     // ── APPROVE / REJECT ────────────────────────────────────────────
@@ -805,6 +895,35 @@
     }
 
     $('reject-modal').addEventListener('click', e => { if (e.target === $('reject-modal')) cancelReject(); });
+
+    // ── DELETE BOOK ─────────────────────────────────────────────────
+    function openDeleteBookModal() {
+      if (!selectedBook) return;
+      $('delete-book-name').textContent = `"${selectedBook.title}"`;
+      $('delete-book-modal').classList.remove('hidden');
+    }
+
+    function cancelDeleteBook() { $('delete-book-modal').classList.add('hidden'); }
+
+    async function confirmDeleteBook() {
+      if (!selectedBook) return;
+      const title = selectedBook.title;
+      $('delete-book-modal').classList.add('hidden');
+      const { error } = await db.from('books').delete().eq('id', selectedBook.id);
+      if (error) { showToast('Error: ' + error.message); return; }
+      showToast(`"${title}" deleted.`);
+      selectedBook = null; selectedChapter = null;
+      showView('view-writer-books');
+      if (selectedWriter) {
+        $('writer-books-grid').innerHTML = '<div class="skeleton h-64 rounded-2xl col-span-full"></div>';
+        const { data: books } = await db.from('books')
+          .select('id, title, description, cover_url, status, is_signed, admin_notes, created_at')
+          .eq('author_id', selectedWriter.id).order('created_at', { ascending: false });
+        renderWriterBooks(books ?? []);
+      }
+    }
+
+    $('delete-book-modal').addEventListener('click', e => { if (e.target === $('delete-book-modal')) cancelDeleteBook(); });
 
     // ── INCOME ──────────────────────────────────────────────────────
     async function loadWriters() {
