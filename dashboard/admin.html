@@ -273,7 +273,12 @@
                 <h3 id="viewer-chapter-title" class="font-serif text-2xl text-white"></h3>
                 <p id="viewer-chapter-meta" class="text-muted text-xs mt-1"></p>
               </div>
-              <div class="flex gap-2 flex-shrink-0">
+              <div class="flex gap-2 flex-shrink-0 flex-wrap">
+                <button id="admin-edit-btn" onclick="toggleAdminChapterEdit()"
+                        class="inline-flex items-center gap-1.5 px-4 py-2 bg-surface hover:bg-charcoal border border-border hover:border-white/20 text-white text-xs font-semibold rounded-lg transition-all duration-200">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  Edit
+                </button>
                 <button id="approve-btn"
                         class="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-400/10 hover:bg-emerald-400/20 border border-emerald-400/30 hover:border-emerald-400/60 text-emerald-400 text-xs font-semibold rounded-lg transition-all duration-200">
                   <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
@@ -286,6 +291,25 @@
                 </button>
               </div>
             </div>
+
+            <!-- Admin edit textarea (hidden by default) -->
+            <div id="admin-chapter-edit-mode" class="hidden mb-4">
+              <textarea id="admin-chapter-textarea" rows="24"
+                        class="w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 resize-y transition-all duration-200 thin-scroll"
+                        style="font-size:15px;line-height:1.85;letter-spacing:0.01em;"
+                        placeholder="Chapter content…"></textarea>
+              <div class="flex gap-3 mt-3">
+                <button onclick="saveAdminChapterEdit()"
+                        class="px-5 py-2 bg-gold hover:bg-gold-light text-obsidian text-xs font-semibold rounded-lg transition-colors">
+                  Save Changes
+                </button>
+                <button onclick="toggleAdminChapterEdit()"
+                        class="px-5 py-2 border border-border hover:border-white/20 text-muted hover:text-white text-xs rounded-lg transition-all">
+                  Cancel
+                </button>
+              </div>
+            </div>
+
             <div id="chapter-content"></div>
           </div>
 
@@ -682,6 +706,10 @@
       $('viewer-chapter-meta').textContent  = `${(chapter.word_count||0).toLocaleString()} words · ${chapter.status.replace('_',' ')}`;
       $('chapter-content').innerHTML = '<p class="text-muted text-sm animate-pulse">Loading…</p>';
       $('general-comment-input').value = '';
+      $('admin-chapter-edit-mode').classList.add('hidden');
+      $('chapter-content').classList.remove('hidden');
+      $('admin-edit-btn').textContent = '';
+      $('admin-edit-btn').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit';
       $('approve-btn').onclick = () => approveChapter(chapter.id);
       $('reject-btn').onclick  = () => openRejectModal(chapter.id, chapter.title ?? `Chapter ${chapter.chapter_number}`);
       const reviewable = chapter.status === 'submitted';
@@ -697,6 +725,46 @@
       allComments = comments ?? [];
       renderChapterContent(selectedChapter.content);
       renderCommentThread();
+    }
+
+    // ── ADMIN CHAPTER EDIT ───────────────────────────────────────────
+    let _adminEditing = false;
+
+    function toggleAdminChapterEdit() {
+      _adminEditing = !_adminEditing;
+      const editMode = $('admin-chapter-edit-mode');
+      const readMode = $('chapter-content');
+      const btn      = $('admin-edit-btn');
+      if (_adminEditing) {
+        $('admin-chapter-textarea').value = selectedChapter.content ?? '';
+        editMode.classList.remove('hidden');
+        readMode.classList.add('hidden');
+        btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg> View';
+        $('admin-chapter-textarea').focus();
+      } else {
+        editMode.classList.add('hidden');
+        readMode.classList.remove('hidden');
+        btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit';
+      }
+    }
+
+    async function saveAdminChapterEdit() {
+      const content = $('admin-chapter-textarea').value;
+      if (!selectedChapter?.id) return;
+      const words = content.trim() ? content.trim().split(/\s+/).length : 0;
+      const { error } = await db.from('chapters').update({
+        content, word_count: words, updated_at: new Date().toISOString(),
+      }).eq('id', selectedChapter.id);
+      if (error) { showToast('Error: ' + error.message); return; }
+      selectedChapter.content = content;
+      showToast('Chapter updated ✓');
+      _adminEditing = false;
+      $('admin-chapter-edit-mode').classList.add('hidden');
+      $('chapter-content').classList.remove('hidden');
+      $('admin-edit-btn').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit';
+      $('viewer-chapter-meta').textContent = words.toLocaleString() + ' words · ' + selectedChapter.status.replace('_', ' ');
+      renderChapterContent(content);
+      refreshChapterList();
     }
 
     // ── CONTENT FORMATTER ───────────────────────────────────────────
