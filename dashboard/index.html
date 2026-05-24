@@ -54,7 +54,9 @@
     .wp-para.first-para { text-indent:0; }
     .wp-scene-break { text-align:center; color:#7A7A7A; letter-spacing:0.4em; padding:1em 0; }
     .wp-title { font-family:"DM Serif Display",Georgia,serif; text-align:center; margin:1.5em 0 0.75em; color:rgba(255,255,255,0.9); font-size:1.1em; letter-spacing:0.03em; }
-    .wp-comment-badge { display:inline-flex; align-items:center; gap:3px; cursor:pointer; transition:background .15s,border-color .15s; }
+    .wp-para-wrap { position:relative; margin-bottom:0; }
+    .wp-cbadge { position:absolute; right:-2px; top:4px; display:inline-flex; align-items:center; gap:3px; font-size:10px; font-weight:700; color:#C9A84C; background:rgba(201,168,76,0.12); border:1px solid rgba(201,168,76,0.3); border-radius:999px; padding:1px 7px; cursor:pointer; transition:background .15s; }
+    .wp-cbadge:hover { background:rgba(201,168,76,0.22); }
     .writer-comment-card { transition:box-shadow .3s,border-color .3s; }
   </style>
 </head>
@@ -319,6 +321,24 @@
       <a href="mailto:support@apexfictionstudio.com" class="text-gold/70 hover:text-gold transition-colors">Contact your editor.</a>
     </p>
   </main>
+
+  <!-- WRITER PARAGRAPH COMMENT POPOVER -->
+  <div id="writer-pop" class="hidden fixed z-[150] rounded-2xl border border-border bg-surface shadow-2xl shadow-black/70 flex flex-col" style="width:272px;max-height:340px;">
+    <div class="flex items-center justify-between px-4 pt-3.5 pb-2.5 border-b border-border/50 flex-shrink-0">
+      <span id="writer-pop-label" class="text-[10px] font-semibold uppercase tracking-widest text-gold"></span>
+      <button onclick="closeWriterPopover()" class="text-muted hover:text-white text-lg leading-none w-5 h-5 flex items-center justify-center">×</button>
+    </div>
+    <div id="writer-pop-thread" class="flex-1 overflow-y-auto px-4 py-3 space-y-2 text-xs"></div>
+    <div class="px-4 pb-4 pt-2 border-t border-border/40 flex-shrink-0">
+      <input type="hidden" id="writer-pop-para" value=""/>
+      <textarea id="writer-pop-input" rows="2" placeholder="Reply to this comment…"
+                class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-xs rounded-lg px-3 py-2 resize-none transition-all"></textarea>
+      <button onclick="submitWriterPopoverReply()"
+              class="mt-2 w-full px-3 py-1.5 bg-gold/10 hover:bg-gold/20 border border-gold/30 text-gold text-xs font-semibold rounded-lg transition-all">
+        Send Reply
+      </button>
+    </div>
+  </div>
 
   <!-- ── NEW BOOK MODAL ───────────────────────────────────────── -->
   <div id="new-book-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center px-4"
@@ -590,10 +610,18 @@
         $('chapter-preview-content').innerHTML = '';
         $('writer-comments-section').classList.add('hidden');
         $('editor-chapter-title').value      = chapter?.title || '';
-        $('editor-content').value            = chapter?.content || '';
-        $('editor-word-count').textContent   = countWords(chapter?.content || '') + ' words';
         $('editor-status-label').textContent = chapter ? `Status: ${chapter.status.replace('_',' ')}` : '';
+        $('editor-content').value            = '';
+        $('editor-word-count').textContent   = '…';
         $('docx-section').classList.remove('hidden');
+        if (chapter?.id) {
+          db.from('chapters').select('content').eq('id', chapter.id).single().then(({ data }) => {
+            $('editor-content').value          = data?.content || '';
+            $('editor-word-count').textContent = countWords(data?.content || '') + ' words';
+          });
+        } else {
+          $('editor-word-count').textContent = '0 words';
+        }
       }
     }
 
@@ -730,7 +758,7 @@
 
       const [{ data: chapters }, { data: myReqs }] = await Promise.all([
         db.from('chapters')
-          .select('id, chapter_number, title, content, word_count, status')
+          .select('id, chapter_number, title, word_count, status')
           .eq('book_id', bookId)
           .order('chapter_number', { ascending: true }),
         db.from('edit_requests')
@@ -973,37 +1001,33 @@
     // ── CONTENT NORMALIZER (paste + docx) ────────────────────────────
     function normalizeContent(raw) {
       if (!raw?.trim()) return '';
-      let t = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-      t = t.split('\n').map(l => l.trimEnd()).join('\n');
-      // Normalize scene break markers
-      t = t.replace(/^[ \t]*([-*_~=]{3,})[ \t]*$/gm, '\n\n---\n\n');
-      // Collapse excessive blank lines
-      t = t.replace(/\n{4,}/g, '\n\n\n');
-      // Process each double-newline-separated block
-      const blocks = t.split(/\n\n+/);
-      const cleaned = blocks.map(block => {
-        const trimmed = block.trim();
-        if (!trimmed) return null;
-        if (/^(---|---|\*\*\*|\* \* \*)$/.test(trimmed)) return trimmed;
-        const lines = trimmed.split('\n').map(l => l.trim()).filter(Boolean);
-        if (lines.length === 1) return lines[0];
-        // Within a block, detect if single-newline lines are separate paragraphs
-        // (ends with sentence punct, next starts with capital) or hard-wrapped continuation
-        const paras = [];
-        let curr = lines[0];
-        for (let i = 1; i < lines.length; i++) {
-          const endsSentence = /[.!?""'']$/.test(curr);
-          const nextCapital  = /^[A-Z""'']/.test(lines[i]);
-          if (endsSentence && nextCapital) { paras.push(curr); curr = lines[i]; }
-          else { curr += ' ' + lines[i]; }
+      const lines = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+      const paras = [];
+      let cur = '';
+      for (const line of lines) {
+        const t = line.trim();
+        if (!t) {
+          if (cur) { paras.push(cur); cur = ''; }
+          continue;
         }
-        paras.push(curr);
-        return paras.join('\n\n');
-      }).filter(Boolean);
-      return cleaned.join('\n\n');
+        if (/^[-*_~=]{3,}$/.test(t)) {
+          if (cur) { paras.push(cur); cur = ''; }
+          paras.push('---'); continue;
+        }
+        if (!cur) { cur = t; continue; }
+        const prevEnds = /[.!?"'“”‘’)\]]$/.test(cur);
+        const nextCaps = /^[A-Z"'“‘(\[]/.test(t);
+        const nextLower = /^[a-z]/.test(t);
+        if (!nextLower && prevEnds && nextCaps) { paras.push(cur); cur = t; }
+        else { cur += ' ' + t; }
+      }
+      if (cur) paras.push(cur);
+      return paras.join('\n\n');
     }
 
     // ── CHAPTER READ-ONLY VIEW ────────────────────────────────────────
+    let _writerComments = [];
+
     async function loadChapterReadView(chapter) {
       $('chapter-preview-content').innerHTML = '<p class="text-muted text-sm animate-pulse">Loading…</p>';
       $('writer-comments-section').classList.add('hidden');
@@ -1012,136 +1036,163 @@
         db.from('comments').select('id, paragraph_ref, body, resolved, created_at')
           .eq('chapter_id', chapter.id).order('created_at', { ascending: true }),
       ]);
-      renderWriterChapterView(full?.content ?? '', comments ?? []);
+      _writerComments = comments ?? [];
+      renderWriterChapterView(full?.content ?? '', _writerComments);
     }
 
     function formatBlocks(raw) {
       if (!raw?.trim()) return [];
-      const t = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
-      const rawBlocks = t.split(/\n\n+/);
+      const lines = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+      const paraTexts = [];
+      let cur = '';
+      for (const line of lines) {
+        const t = line.trim();
+        if (!t) { if (cur) { paraTexts.push(cur); cur = ''; } continue; }
+        if (/^[-*_~=]{3,}$/.test(t) || t === '* * *') {
+          if (cur) { paraTexts.push(cur); cur = ''; }
+          paraTexts.push('---'); continue;
+        }
+        if (!cur) { cur = t; continue; }
+        const prevEnds = /[.!?"'“”‘’)\]]$/.test(cur);
+        const nextCaps = /^[A-Z"'“‘(\[]/.test(t);
+        if (prevEnds && nextCaps) { paraTexts.push(cur); cur = t; }
+        else { cur += ' ' + t; }
+      }
+      if (cur) paraTexts.push(cur);
       const blocks = [];
-      for (let i = 0; i < rawBlocks.length; i++) {
-        const block = rawBlocks[i].trim();
-        if (!block) continue;
-        if (/^[\*\-_~]{3,}$/.test(block) || block === '* * *' || block === '---') { blocks.push({ type:'break' }); continue; }
-        const joined = block.split('\n').map(l => l.trim()).filter(Boolean).join(' ');
-        const prevType = blocks.length ? blocks[blocks.length - 1].type : 'start';
-        const atBoundary = blocks.length === 0 || prevType === 'break';
-        const noTermPunct = !/[.!?]$/.test(joined);
-        const wordCount = joined.split(/\s+/).length;
-        const looksLikeTitle = /^chapter\b/i.test(joined) || /^part\b/i.test(joined)
-          || (/^\d/.test(joined) && wordCount <= 5) || joined === joined.toUpperCase();
-        if (atBoundary && noTermPunct && wordCount <= 8 && looksLikeTitle) {
-          blocks.push({ type:'title', text: joined });
+      for (const text of paraTexts) {
+        if (text === '---') { blocks.push({ type:'break' }); continue; }
+        const prev = blocks.length ? blocks[blocks.length - 1].type : 'start';
+        const atBoundary = !blocks.length || prev === 'break';
+        const wc = text.split(/\s+/).length;
+        const looksTitle = /^chapter\b/i.test(text) || /^part\b/i.test(text)
+          || (/^\d+[.:]?\s/.test(text) && wc <= 5)
+          || (text === text.toUpperCase() && /[A-Z]/.test(text) && text.length <= 60);
+        if (atBoundary && wc <= 8 && !/[.!?]$/.test(text) && looksTitle) {
+          blocks.push({ type:'title', text });
         } else {
-          blocks.push({ type:'para', text: joined });
+          blocks.push({ type:'para', text });
         }
       }
       return blocks;
     }
 
     function renderWriterChapterView(raw, comments) {
+      const active = (comments ?? []).filter(c => !c.resolved);
       const blocks = formatBlocks(raw);
-      const activeComments = (comments ?? []).filter(c => !c.resolved);
-
       if (!blocks.length) {
-        $('chapter-preview-content').innerHTML = `<p class="text-muted text-sm italic">No content yet.</p>`;
+        $('chapter-preview-content').innerHTML = '<p class="text-muted text-sm italic">No content yet.</p>';
       } else {
-        let pIdx = 0;
-        let firstPara = true;
-        $('chapter-preview-content').innerHTML = blocks.map(block => {
-          if (block.type === 'break') return `<div class="wp-scene-break">* * *</div>`;
+        let pIdx = 0, fp = true;
+        $('chapter-preview-content').innerHTML = blocks.map(b => {
+          if (b.type === 'break') return '<div class="wp-scene-break">* * *</div>';
           const idx = pIdx++;
-          if (block.type === 'title') return `<h4 class="wp-title">${escHtml(block.text)}</h4>`;
-          const pComments = activeComments.filter(c => c.paragraph_ref === idx);
-          const fp = firstPara; firstPara = false;
-          return `
-            <div class="relative">
-              <p class="wp-para${fp ? ' first-para' : ''}">${escHtml(block.text)}${pComments.length
-                ? `<button class="wp-comment-badge ml-1.5 text-[10px] font-semibold text-gold bg-gold/10 border border-gold/25 rounded-full px-1.5 py-0.5 hover:bg-gold/20"
-                           onclick="showWriterComment(${idx})" title="${pComments.length} editor comment(s)">
-                     <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor" style="display:inline;vertical-align:middle"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
-                     ${pComments.length}
-                   </button>` : ''}</p>
-            </div>`;
+          if (b.type === 'title') return '<h4 class="wp-title">' + escHtml(b.text) + '</h4>';
+          const cnt = active.filter(c => c.paragraph_ref === idx).length;
+          const isFirst = fp; fp = false;
+          return '<div class="wp-para-wrap relative" data-para="' + idx + '">'
+            + '<p class="wp-para' + (isFirst ? ' first-para' : '') + '">' + escHtml(b.text) + '</p>'
+            + (cnt ? '<button class="wp-cbadge" onclick="openWriterPopover(' + idx + ',this)">'
+              + '<svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>'
+              + cnt + '</button>' : '')
+            + '</div>';
         }).join('');
       }
 
-      if (!activeComments.length) { $('writer-comments-section').classList.add('hidden'); return; }
+      // General (chapter-level) comments section
+      const general = active.filter(c => c.paragraph_ref === null);
+      if (!general.length) { $('writer-comments-section').classList.add('hidden'); return; }
       $('writer-comments-section').classList.remove('hidden');
-      $('writer-comments-count').textContent = activeComments.length;
-
-      const sorted = [...activeComments].sort((a, b) => {
-        if (a.paragraph_ref === null && b.paragraph_ref !== null) return -1;
-        if (a.paragraph_ref !== null && b.paragraph_ref === null) return 1;
-        return (a.paragraph_ref ?? 0) - (b.paragraph_ref ?? 0);
-      });
-
-      $('writer-comments-list').innerHTML = sorted.map(c => `
-        <div class="writer-comment-card rounded-xl border border-border bg-charcoal/60 p-4"
-             id="wc-${c.id}" data-para-ref="${c.paragraph_ref ?? 'general'}">
-          <p class="text-[10px] font-semibold uppercase tracking-wide text-gold mb-1.5">
-            ${c.paragraph_ref !== null ? `¶ Paragraph ${c.paragraph_ref + 1}` : 'Chapter Note'}
-          </p>
-          <p class="text-white/80 text-sm leading-relaxed">${escHtml(c.body)}</p>
-          <div id="reply-form-${c.id}" class="hidden mt-3 pt-3 border-t border-border/40">
-            <textarea id="reply-text-${c.id}" rows="2" placeholder="Your reply to this comment…"
-                      class="form-input w-full bg-surface border border-border text-white placeholder-muted text-xs rounded-lg px-3 py-2 resize-none transition-all duration-200"></textarea>
-            <div class="flex gap-2 mt-2">
-              <button onclick="submitCommentReply('${c.id}', ${c.paragraph_ref ?? 'null'})"
-                      class="px-3 py-1.5 bg-gold/10 hover:bg-gold/20 border border-gold/30 text-gold text-xs font-semibold rounded-lg transition-all duration-200">
-                Send Reply
-              </button>
-              <button onclick="toggleReplyForm('${c.id}')"
-                      class="px-3 py-1.5 text-muted hover:text-white text-xs rounded-lg transition-colors">
-                Cancel
-              </button>
-            </div>
-          </div>
-          <button onclick="toggleReplyForm('${c.id}')"
-                  class="mt-2 text-[10px] text-muted hover:text-gold transition-colors">
-            Reply
-          </button>
-        </div>`).join('');
+      $('writer-comments-count').textContent = active.length;
+      $('writer-comments-list').innerHTML = general.map(c =>
+        '<div class="writer-comment-card rounded-xl border border-border bg-charcoal/60 p-4" data-cid="' + c.id + '">'
+        + '<p class="text-[10px] font-semibold uppercase tracking-wide text-gold mb-1.5">Chapter Note</p>'
+        + '<p class="text-white/80 text-sm leading-relaxed">' + escHtml(c.body) + '</p>'
+        + '<div id="wrf-' + c.id + '" class="hidden mt-3 pt-3 border-t border-border/40">'
+        + '<textarea id="wrt-' + c.id + '" rows="2" placeholder="Your reply…" class="form-input w-full bg-surface border border-border text-white placeholder-muted text-xs rounded-lg px-3 py-2 resize-none"></textarea>'
+        + '<div class="flex gap-2 mt-2">'
+        + '<button onclick="submitWriterReply(\'' + c.id + '\',null)" class="px-3 py-1.5 bg-gold/10 hover:bg-gold/20 border border-gold/30 text-gold text-xs font-semibold rounded-lg transition-all">Send Reply</button>'
+        + '<button onclick="toggleWriterReply(\'' + c.id + '\')" class="px-3 py-1.5 text-muted text-xs">Cancel</button>'
+        + '</div></div>'
+        + '<button onclick="toggleWriterReply(\'' + c.id + '\')" class="mt-2 text-[10px] text-muted hover:text-gold transition-colors">Reply</button>'
+        + '</div>'
+      ).join('');
     }
 
-    function showWriterComment(paraIdx) {
-      const section = $('writer-comments-section');
-      section.classList.remove('hidden');
-      const target = section.querySelector(`[data-para-ref="${paraIdx}"]`);
-      if (target) {
-        target.scrollIntoView({ behavior:'smooth', block:'center' });
-        target.style.boxShadow = '0 0 0 2px rgba(201,168,76,0.5)';
-        target.style.borderColor = 'rgba(201,168,76,0.5)';
-        setTimeout(() => { target.style.boxShadow = ''; target.style.borderColor = ''; }, 2000);
-      } else {
-        section.scrollIntoView({ behavior:'smooth' });
-      }
+    // ── WRITER PARAGRAPH COMMENT POPOVER ─────────────────────────────
+    let _writerPopoverPara = null;
+
+    function openWriterPopover(paraIdx, triggerEl) {
+      if (_writerPopoverPara === paraIdx) { closeWriterPopover(); return; }
+      _writerPopoverPara = paraIdx;
+      const pop = $('writer-pop');
+      const comments = _writerComments.filter(c => c.paragraph_ref === paraIdx && !c.resolved);
+      $('writer-pop-label').textContent = 'Paragraph ' + (paraIdx + 1);
+      $('writer-pop-thread').innerHTML = comments.length
+        ? comments.map(c =>
+            '<div class="border-b border-border/30 pb-2 mb-2 last:border-0 last:pb-0 last:mb-0">'
+            + '<p class="text-white/85 text-xs leading-relaxed">' + escHtml(c.body) + '</p>'
+            + '</div>'
+          ).join('')
+        : '<p class="text-muted text-xs">No comments on this paragraph.</p>';
+      $('writer-pop-input').value = '';
+      $('writer-pop-para').value = paraIdx;
+      const rect = triggerEl.getBoundingClientRect();
+      const pw = 272, ph = 260;
+      let top = rect.bottom + 8;
+      let left = rect.left;
+      if (left + pw > window.innerWidth - 12) left = window.innerWidth - pw - 12;
+      if (top + ph > window.innerHeight - 12) top = rect.top - ph - 8;
+      pop.style.top = Math.max(8, top) + 'px';
+      pop.style.left = Math.max(8, left) + 'px';
+      pop.classList.remove('hidden');
     }
 
-    function toggleReplyForm(commentId) {
-      const form = $(`reply-form-${commentId}`);
-      if (!form) return;
-      form.classList.toggle('hidden');
-      if (!form.classList.contains('hidden')) $(`reply-text-${commentId}`)?.focus();
+    function closeWriterPopover() {
+      $('writer-pop').classList.add('hidden');
+      _writerPopoverPara = null;
     }
 
-    async function submitCommentReply(commentId, paragraphRef) {
-      const text = $(`reply-text-${commentId}`)?.value?.trim();
-      if (!text) { showToast('Write your reply first.'); return; }
-      const chapterId = viewingChapter?.id;
-      if (!chapterId) return;
+    async function submitWriterPopoverReply() {
+      const text = $('writer-pop-input').value.trim();
+      const paraIdx = parseInt($('writer-pop-para').value);
+      if (!text || !viewingChapter) { showToast('Write a reply first.'); return; }
       const { error } = await db.from('comments').insert({
-        chapter_id: chapterId,
-        reviewer_id: currentUserId,
-        paragraph_ref: paragraphRef === 'null' ? null : paragraphRef,
-        body: `[Writer] ${text}`,
+        chapter_id: viewingChapter.id, reviewer_id: currentUserId,
+        paragraph_ref: paraIdx, body: '[Writer] ' + text,
       });
-      if (error) { showToast('Error: ' + error.message + ' — run the SQL migration first.'); return; }
-      showToast('Reply sent to your editor.');
-      toggleReplyForm(commentId);
+      if (error) { showToast('Error: ' + error.message); return; }
+      showToast('Reply sent.');
+      closeWriterPopover();
       loadChapterReadView(viewingChapter);
     }
+
+    function toggleWriterReply(commentId) {
+      const f = $('wrf-' + commentId);
+      if (!f) return;
+      f.classList.toggle('hidden');
+      if (!f.classList.contains('hidden')) $('wrt-' + commentId)?.focus();
+    }
+
+    async function submitWriterReply(commentId, paragraphRef) {
+      const text = $('wrt-' + commentId)?.value?.trim();
+      if (!text || !viewingChapter) { showToast('Write your reply first.'); return; }
+      const { error } = await db.from('comments').insert({
+        chapter_id: viewingChapter.id, reviewer_id: currentUserId,
+        paragraph_ref: paragraphRef, body: '[Writer] ' + text,
+      });
+      if (error) { showToast('Error: ' + error.message); return; }
+      showToast('Reply sent to your editor.');
+      toggleWriterReply(commentId);
+      loadChapterReadView(viewingChapter);
+    }
+
+    document.addEventListener('click', e => {
+      const pop = $('writer-pop');
+      if (!pop.classList.contains('hidden') && !pop.contains(e.target) && !e.target.closest('.wp-cbadge')) {
+        closeWriterPopover();
+      }
+    });
 
     // ── TOAST ──────────────────────────────────────────────────
     function showToast(msg) {
