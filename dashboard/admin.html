@@ -541,7 +541,9 @@
       const container = $('writers-list');
       if (!writers?.length) { container.innerHTML = `<p class="text-muted text-xs px-2 pt-2">No writers yet.</p>`; return; }
       const pendingSet = new Set((submittedChapters ?? []).map(c => c.books?.author_id).filter(Boolean));
-      container.innerHTML = writers.map(w => `
+      container.innerHTML = writers.map(w => {
+        _writerReg.set(w.id, w);
+        return `
         <button onclick='selectWriter("${w.id}")' data-wid="${w.id}"
                 class="writer-btn w-full text-left px-3 py-2.5 rounded-lg text-sm text-white/80 hover:text-white hover:bg-surface border border-transparent hover:border-border transition-all duration-150">
           <div class="flex items-center justify-between gap-2">
@@ -551,10 +553,13 @@
             </div>
             ${pendingSet.has(w.id) ? '<span class="notif-dot"></span>' : ''}
           </div>
-        </button>`).join('');
+        </button>`;
+      }).join('');
     }
 
-    async function selectWriter(writer) {
+    async function selectWriter(idOrObj) {
+      const writer = (typeof idOrObj === 'object') ? idOrObj : _writerReg.get(idOrObj);
+      if (!writer) return;
       selectedWriter  = writer;
       selectedBook    = null;
       selectedChapter = null;
