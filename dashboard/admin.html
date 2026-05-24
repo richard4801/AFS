@@ -10,18 +10,12 @@
       theme: {
         extend: {
           colors: {
-            obsidian:        '#0D0D0D',
-            charcoal:        '#161616',
-            surface:         '#1E1E1E',
-            border:          '#2A2A2A',
-            crimson:         '#A31621',
-            'crimson-light': '#C82333',
-            gold:            '#C9A84C',
-            'gold-light':    '#E2C97E',
-            muted:           '#6A6A6A',
+            obsidian: '#0D0D0D', charcoal: '#161616', surface: '#1E1E1E',
+            border: '#2A2A2A', crimson: '#A31621', 'crimson-light': '#C82333',
+            gold: '#C9A84C', 'gold-light': '#E2C97E', muted: '#6A6A6A',
           },
           fontFamily: {
-            sans:  ['Inter', 'system-ui', 'sans-serif'],
+            sans: ['Inter', 'system-ui', 'sans-serif'],
             serif: ['"DM Serif Display"', 'Georgia', 'serif'],
           },
         },
@@ -32,50 +26,28 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
   <style>
-    @keyframes shimmer {
-      0%   { background-position: -400px 0; }
-      100% { background-position:  400px 0; }
-    }
-    .skeleton {
-      background: linear-gradient(90deg, #161616 25%, #222 50%, #161616 75%);
-      background-size: 800px 100%;
-      animation: shimmer 1.6s ease-in-out infinite;
-      border-radius: 6px;
-    }
-    .thin-scroll::-webkit-scrollbar       { width: 4px; }
-    .thin-scroll::-webkit-scrollbar-track { background: transparent; }
-    .thin-scroll::-webkit-scrollbar-thumb { background: #2A2A2A; border-radius: 4px; }
-    .para-wrap:hover .para-btn { opacity: 1; }
-    .para-btn { opacity: 0; transition: opacity .15s; }
-    .form-input:focus { outline: none; border-color: #A31621; box-shadow: 0 0 0 2px rgba(163,22,33,0.18); }
-    .panel { display: none; }
-    .panel.active { display: block; }
-
-    /* Subtle scanline texture unique to admin */
-    body::after {
-      content: '';
-      position: fixed;
-      inset: 0;
-      z-index: 0;
-      pointer-events: none;
-      background-image: repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.04) 2px,rgba(0,0,0,0.04) 4px);
-    }
+    @keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+    .skeleton { background: linear-gradient(90deg,#161616 25%,#222 50%,#161616 75%); background-size:800px 100%; animation:shimmer 1.6s ease-in-out infinite; border-radius:6px; }
+    .thin-scroll::-webkit-scrollbar { width:4px; }
+    .thin-scroll::-webkit-scrollbar-track { background:transparent; }
+    .thin-scroll::-webkit-scrollbar-thumb { background:#2A2A2A; border-radius:4px; }
+    .para-wrap:hover .para-btn { opacity:1; }
+    .para-btn { opacity:0; transition:opacity .15s; }
+    .form-input:focus { outline:none; border-color:#A31621; box-shadow:0 0 0 2px rgba(163,22,33,0.18); }
+    body::after { content:''; position:fixed; inset:0; z-index:0; pointer-events:none; background-image:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.04) 2px,rgba(0,0,0,0.04) 4px); }
+    .prose-para { line-height:1.9; margin-bottom:1.25em; text-indent:1.5em; color:rgba(255,255,255,0.85); font-size:15px; letter-spacing:0.01em; }
+    .prose-para:first-of-type { text-indent:0; }
+    .scene-break { text-align:center; color:#6A6A6A; letter-spacing:0.4em; padding:1em 0; }
   </style>
 </head>
 
 <body class="bg-obsidian text-white font-sans antialiased min-h-screen" style="opacity:0;">
 
-  <!-- SPOTLIGHT -->
   <div id="afs-glow" class="pointer-events-none fixed inset-0" style="z-index:0;will-change:background;"></div>
   <div id="afs-grid" class="pointer-events-none fixed inset-0"
-       style="z-index:0;
-              background-image:linear-gradient(rgba(163,22,33,0.18) 1px,transparent 1px),linear-gradient(90deg,rgba(163,22,33,0.18) 1px,transparent 1px);
-              background-size:48px 48px;
-              -webkit-mask-image:radial-gradient(circle 520px at -9999px -9999px,black 0%,transparent 70%);
-              mask-image:radial-gradient(circle 520px at -9999px -9999px,black 0%,transparent 70%);
-              will-change:mask-image,-webkit-mask-image;"></div>
+       style="z-index:0;background-image:linear-gradient(rgba(163,22,33,0.18) 1px,transparent 1px),linear-gradient(90deg,rgba(163,22,33,0.18) 1px,transparent 1px);background-size:48px 48px;-webkit-mask-image:radial-gradient(circle 520px at -9999px -9999px,black 0%,transparent 70%);mask-image:radial-gradient(circle 520px at -9999px -9999px,black 0%,transparent 70%);will-change:mask-image,-webkit-mask-image;"></div>
 
-  <!-- PILL NAV -->
+  <!-- NAV -->
   <header class="fixed top-5 inset-x-0 z-50 flex justify-center px-5 pointer-events-none">
     <nav class="pointer-events-auto flex items-center justify-between gap-4 w-full max-w-5xl rounded-full bg-obsidian/80 backdrop-blur-md border border-white/10 shadow-xl shadow-black/60 px-4 py-2.5">
       <div class="flex items-center gap-2.5 flex-shrink-0">
@@ -85,106 +57,139 @@
       </div>
       <div class="flex items-center gap-3">
         <span id="nav-name" class="hidden sm:block text-muted text-sm truncate max-w-[160px]"></span>
-        <a href="index.html" class="hidden sm:inline-flex flex-shrink-0 items-center gap-1.5 px-4 py-1.5 text-sm font-medium text-muted hover:text-white border border-border hover:border-white/20 rounded-full transition-all duration-200">
-          Writer View
-        </a>
+        <a href="index.html" class="hidden sm:inline-flex flex-shrink-0 items-center gap-1.5 px-4 py-1.5 text-sm font-medium text-muted hover:text-white border border-border hover:border-white/20 rounded-full transition-all duration-200">Writer View</a>
         <button id="sign-out-btn" class="flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium text-muted hover:text-white border border-border hover:border-white/20 rounded-full transition-all duration-200">
           Sign Out
-          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
-          </svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         </button>
       </div>
     </nav>
   </header>
 
   <!-- REJECT MODAL -->
-  <div id="reject-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center px-4"
-       style="background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);">
+  <div id="reject-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center px-4" style="background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);">
     <div class="relative w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-2xl shadow-black/60">
       <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-crimson/50 to-transparent"></div>
       <h3 class="font-serif text-xl text-white mb-1">Request Revision</h3>
-      <p id="reject-modal-subtitle" class="text-muted text-xs mb-5">Leave specific feedback for the writer.</p>
-      <textarea id="reject-reason" rows="5" placeholder="Describe what needs to be changed…"
+      <p id="reject-modal-subtitle" class="text-muted text-xs mb-5">Leave feedback for the writer.</p>
+      <textarea id="reject-reason" rows="5" placeholder="Describe what needs to be changed… (optional)"
                 class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 resize-none transition-all duration-200"></textarea>
-      <div class="flex gap-3 mt-4">
-        <button id="reject-confirm-btn" class="flex-1 px-4 py-2.5 bg-crimson hover:bg-crimson-light text-white text-sm font-semibold rounded-lg transition-colors duration-200">
-          Send Revision Request
+      <div class="flex flex-wrap gap-3 mt-4">
+        <button id="reject-confirm-btn"
+                class="flex-1 px-4 py-2.5 bg-crimson hover:bg-crimson-light text-white text-sm font-semibold rounded-lg transition-colors duration-200">
+          Send &amp; Request Revision
         </button>
-        <button onclick="closeRejectModal()" class="px-4 py-2.5 border border-border hover:border-white/20 text-muted hover:text-white text-sm rounded-lg transition-all duration-200">
+        <button onclick="rejectNoReason()"
+                class="px-4 py-2.5 border border-crimson/30 hover:border-crimson/60 text-red-400 text-sm rounded-lg transition-all duration-200">
+          Reject Without Message
+        </button>
+        <button onclick="cancelReject()"
+                class="px-4 py-2.5 border border-border text-muted hover:text-white text-sm rounded-lg transition-all duration-200">
           Cancel
         </button>
       </div>
     </div>
   </div>
 
-  <!-- MAIN LAYOUT -->
+  <!-- LAYOUT -->
   <div class="relative z-10 flex flex-col md:flex-row md:h-screen pt-20">
 
     <!-- SIDEBAR -->
     <aside class="flex flex-col border-b md:border-b-0 md:w-64 md:flex-shrink-0 md:border-r border-border bg-charcoal/40 backdrop-blur-sm md:overflow-hidden">
-
-      <!-- Section tabs -->
       <div class="flex border-b border-border flex-shrink-0">
-        <button id="tab-reviews" onclick="switchSection('reviews')"
-                class="section-tab flex-1 px-3 py-3.5 text-[10px] font-semibold tracking-[0.16em] uppercase transition-colors duration-200 text-crimson-light border-b-2 border-crimson">
-          Book Reviews
+        <button id="tab-writers" onclick="switchSection('writers')"
+                class="flex-1 px-3 py-3.5 text-[10px] font-semibold tracking-[0.16em] uppercase transition-colors duration-200 text-crimson-light border-b-2 border-crimson">
+          Writers
         </button>
         <button id="tab-income" onclick="switchSection('income')"
-                class="section-tab flex-1 px-3 py-3.5 text-[10px] font-semibold tracking-[0.16em] uppercase transition-colors duration-200 text-muted border-b-2 border-transparent hover:text-white">
+                class="flex-1 px-3 py-3.5 text-[10px] font-semibold tracking-[0.16em] uppercase transition-colors duration-200 text-muted border-b-2 border-transparent hover:text-white">
           Income
         </button>
       </div>
 
-      <!-- Books sidebar (reviews mode) -->
-      <div id="sidebar-reviews" class="flex flex-col flex-1 overflow-hidden">
-        <p class="px-4 pt-4 pb-2 text-[10px] font-semibold tracking-[0.18em] uppercase text-muted flex-shrink-0">
-          Books Needing Attention
-        </p>
-        <div id="book-list" class="overflow-y-auto thin-scroll px-2 pb-4 space-y-1 max-h-44 md:max-h-none md:flex-1">
+      <div id="sidebar-writers" class="flex flex-col flex-1 overflow-hidden">
+        <p class="px-4 pt-4 pb-2 text-[10px] font-semibold tracking-[0.18em] uppercase text-muted flex-shrink-0">All Writers</p>
+        <div id="writers-list" class="overflow-y-auto thin-scroll px-2 pb-4 space-y-1 max-h-44 md:max-h-none md:flex-1">
           <div class="skeleton h-10 w-full"></div>
           <div class="skeleton h-10 w-full mt-1"></div>
-          <div class="skeleton h-10 w-4/5 mt-1"></div>
         </div>
       </div>
 
-      <!-- Writers sidebar (income mode) -->
       <div id="sidebar-income" class="hidden flex-col flex-1 overflow-hidden">
         <p class="px-4 pt-4 pb-2 text-[10px] font-semibold tracking-[0.18em] uppercase text-muted flex-shrink-0">Writers</p>
         <div id="writer-list" class="overflow-y-auto thin-scroll px-2 pb-4 space-y-1 max-h-44 md:max-h-none md:flex-1"></div>
       </div>
     </aside>
 
-    <!-- MAIN CONTENT -->
+    <!-- MAIN -->
     <main class="flex-1 overflow-y-auto thin-scroll">
 
-      <!-- ── BOOK REVIEWS PANEL ── -->
-      <div id="panel-reviews" class="panel active md:h-full">
+      <!-- WRITERS PANEL -->
+      <div id="panel-writers" class="md:h-full">
 
-        <!-- Empty state -->
-        <div id="reviews-empty" class="flex flex-col items-center justify-center min-h-[50vh] md:h-full text-center px-8">
+        <!-- Level 0: empty -->
+        <div id="view-empty" class="flex flex-col items-center justify-center min-h-[50vh] md:h-full text-center px-8">
           <div class="w-16 h-16 rounded-2xl bg-surface border border-border flex items-center justify-center mb-5">
             <svg class="w-7 h-7 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.966 8.966 0 00-6 2.292m0-14.25v14.25"/>
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/>
             </svg>
           </div>
-          <h2 class="font-serif text-2xl text-white mb-2">Select a Book</h2>
-          <p class="text-muted text-sm max-w-xs leading-relaxed">Choose a book from the sidebar to review chapters or handle edit requests.</p>
+          <h2 class="font-serif text-2xl text-white mb-2">Select a Writer</h2>
+          <p class="text-muted text-sm max-w-xs leading-relaxed">Choose a writer from the sidebar to view their books and manage chapters.</p>
         </div>
 
-        <!-- Chapter list view -->
-        <div id="reviews-chapters" class="hidden p-4 md:p-6 max-w-3xl">
+        <!-- Level 1: writer's books -->
+        <div id="view-writer-books" class="hidden p-4 md:p-6">
           <div class="mb-6">
-            <button onclick="clearBookSelection()" class="inline-flex items-center gap-1.5 text-muted hover:text-white text-xs transition-colors mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
-              All books
+            <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-crimson-light mb-1">Writer</p>
+            <h2 id="writer-name-heading" class="font-serif text-3xl text-white"></h2>
+            <p id="writer-email-heading" class="text-muted text-sm mt-0.5"></p>
+          </div>
+          <div id="writer-books-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+        </div>
+
+        <!-- Level 2: book chapters -->
+        <div id="view-book-chapters" class="hidden p-4 md:p-6 max-w-3xl">
+          <button onclick="backToWriterBooks()" class="inline-flex items-center gap-1.5 text-muted hover:text-white text-xs transition-colors mb-5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+            Back to Books
+          </button>
+
+          <div class="flex gap-5 mb-6 items-start">
+            <div class="relative flex-shrink-0">
+              <img id="book-cover-img" class="hidden w-20 h-28 object-cover rounded-lg border border-border shadow-lg"/>
+              <div id="book-cover-placeholder" class="w-20 h-28 bg-charcoal rounded-lg border border-border flex items-center justify-center">
+                <span id="book-cover-initial" class="font-serif text-2xl text-muted/40">?</span>
+              </div>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex flex-wrap items-center gap-2 mb-1">
+                <h2 id="book-title-heading" class="font-serif text-2xl text-white leading-tight"></h2>
+                <span id="book-status-badge" class="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full"></span>
+              </div>
+              <p id="book-author-heading" class="text-muted text-sm mb-3"></p>
+              <button id="toggle-signed-btn" onclick="toggleSigned()"
+                      class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all duration-200">
+              </button>
+            </div>
+          </div>
+
+          <!-- Admin notes -->
+          <div class="mb-6 rounded-xl border border-border bg-surface p-4">
+            <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted mb-2">Admin Notes</p>
+            <textarea id="book-notes-input" rows="2" placeholder="Private notes on this book…"
+                      class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-xs rounded-lg px-3 py-2 resize-none transition-all duration-200"></textarea>
+            <button onclick="saveBookNotes()" class="mt-2 px-3 py-1.5 bg-crimson/10 hover:bg-crimson/20 border border-crimson/30 text-crimson-light text-xs font-semibold rounded-lg transition-all duration-200">
+              Save Notes
             </button>
-            <h2 id="book-title-heading" class="font-serif text-3xl text-white mb-1"></h2>
-            <p id="book-author-heading" class="text-muted text-sm"></p>
+          </div>
+
+          <div class="flex items-center justify-between mb-3">
+            <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted">Chapters</p>
+            <p class="text-[10px] text-muted">Newest first</p>
           </div>
           <div id="chapter-list" class="space-y-3"></div>
 
-          <!-- Edit Requests section -->
           <div id="edit-requests-section" class="hidden mt-8">
             <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-crimson-light mb-3 flex items-center gap-2">
               Edit Requests
@@ -194,16 +199,13 @@
           </div>
         </div>
 
-        <!-- Chapter viewer -->
-        <div id="reviews-viewer" class="hidden flex flex-col md:flex-row md:h-full">
-
-          <!-- Chapter content -->
+        <!-- Level 3: chapter viewer -->
+        <div id="view-chapter" class="hidden flex flex-col md:flex-row md:h-full">
           <div class="flex-1 overflow-y-auto thin-scroll p-4 md:p-6 md:max-w-2xl">
-            <button onclick="closeChapterViewer()" class="inline-flex items-center gap-1.5 text-muted hover:text-white text-xs transition-colors mb-5">
+            <button onclick="backToBookChapters()" class="inline-flex items-center gap-1.5 text-muted hover:text-white text-xs transition-colors mb-5">
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
-              Back to chapters
+              Back to Chapters
             </button>
-
             <div class="flex flex-wrap items-start justify-between gap-3 mb-6">
               <div>
                 <p id="viewer-chapter-num" class="text-[10px] font-semibold tracking-[0.18em] uppercase text-crimson-light mb-1"></p>
@@ -223,65 +225,70 @@
                 </button>
               </div>
             </div>
-
-            <div id="chapter-content" class="space-y-0"></div>
+            <div id="chapter-content"></div>
           </div>
 
-          <!-- Comment sidebar -->
-          <div class="md:w-72 md:flex-shrink-0 border-t md:border-t-0 md:border-l border-border bg-charcoal/30 overflow-y-auto thin-scroll p-4">
-            <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted mb-4">Comments</p>
-            <div id="comment-thread" class="space-y-3">
-              <p class="text-muted text-xs">No comments yet. Hover a paragraph and click <span class="text-white">+</span> to add one.</p>
+          <!-- Comment panel -->
+          <div class="md:w-80 md:flex-shrink-0 border-t md:border-t-0 md:border-l border-border bg-charcoal/30 overflow-y-auto thin-scroll p-4 flex flex-col gap-5">
+            <div>
+              <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted mb-2">Chapter Comment</p>
+              <textarea id="general-comment-input" rows="3" placeholder="Leave a general note on this chapter…"
+                        class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-xs rounded-lg px-3 py-2 resize-none transition-all duration-200"></textarea>
+              <button onclick="submitGeneralComment()"
+                      class="mt-2 w-full px-3 py-1.5 bg-crimson/10 hover:bg-crimson/20 border border-crimson/30 text-crimson-light text-xs font-semibold rounded-lg transition-all duration-200">
+                Post Comment
+              </button>
+            </div>
+            <div class="border-t border-border/40"></div>
+            <div>
+              <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted mb-3">All Comments</p>
+              <div id="comment-thread" class="space-y-3">
+                <p class="text-muted text-xs">No comments yet. Click + next to any paragraph to comment.</p>
+              </div>
             </div>
           </div>
         </div>
-      </div><!-- /panel-reviews -->
 
-      <!-- ── INCOME PANEL ── -->
-      <div id="panel-income" class="panel p-4 md:p-6 md:max-w-lg">
+      </div><!-- /panel-writers -->
+
+      <!-- INCOME PANEL -->
+      <div id="panel-income" class="hidden p-4 md:p-6 md:max-w-lg">
         <div class="mb-8">
           <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-crimson-light mb-2">Income Management</p>
           <h2 class="font-serif text-3xl text-white">Record Daily Earnings</h2>
-          <p class="text-muted text-sm mt-1">Insert a royalty row into the earnings table for a writer.</p>
+          <p class="text-muted text-sm mt-1">Insert a royalty row for a writer.</p>
         </div>
-
         <div class="relative rounded-2xl border border-border bg-surface p-6 shadow-2xl shadow-black/40">
           <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-crimson/40 to-transparent"></div>
           <form id="income-form" class="space-y-5" novalidate>
-
             <div>
               <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Writer</label>
-              <select id="income-writer" class="form-input w-full bg-charcoal border border-border text-white text-sm rounded-lg px-4 py-3 transition-all duration-200" required>
+              <select id="income-writer" class="form-input w-full bg-charcoal border border-border text-white text-sm rounded-lg px-4 py-3" required>
                 <option value="">Select a writer…</option>
               </select>
             </div>
-
             <div>
               <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Book <span class="text-muted font-normal">(optional)</span></label>
-              <select id="income-book" class="form-input w-full bg-charcoal border border-border text-white text-sm rounded-lg px-4 py-3 transition-all duration-200">
+              <select id="income-book" class="form-input w-full bg-charcoal border border-border text-white text-sm rounded-lg px-4 py-3">
                 <option value="">No specific book</option>
               </select>
             </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Date</label>
-                <input id="income-date" type="date" class="form-input w-full bg-charcoal border border-border text-white text-sm rounded-lg px-4 py-3 transition-all duration-200" required/>
+                <input id="income-date" type="date" class="form-input w-full bg-charcoal border border-border text-white text-sm rounded-lg px-4 py-3" required/>
               </div>
               <div>
                 <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Amount ($)</label>
-                <input id="income-amount" type="number" step="0.01" min="0" placeholder="0.00" class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 transition-all duration-200" required/>
+                <input id="income-amount" type="number" step="0.01" min="0" placeholder="0.00" class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3" required/>
               </div>
             </div>
-
             <div>
               <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Note <span class="text-muted font-normal">(optional)</span></label>
-              <input id="income-note" type="text" placeholder="e.g. Royalty payout week 3" class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 transition-all duration-200"/>
+              <input id="income-note" type="text" placeholder="e.g. Royalty payout week 3" class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3"/>
             </div>
-
             <div id="income-error"   class="hidden text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-3"></div>
             <div id="income-success" class="hidden text-xs text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 rounded-lg px-4 py-3"></div>
-
             <button type="submit" id="income-submit"
                     class="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-crimson hover:bg-crimson-light text-white text-sm font-semibold rounded-lg transition-colors duration-200">
               Record Earnings
@@ -289,12 +296,11 @@
             </button>
           </form>
         </div>
-
         <div class="mt-8">
           <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted mb-3">Recent Entries</p>
           <div id="recent-earnings" class="space-y-2 text-sm"></div>
         </div>
-      </div><!-- /panel-income -->
+      </div>
 
     </main>
   </div>
@@ -303,221 +309,269 @@
   <script>
     const SUPABASE_URL      = 'https://qbqsbdswcqmrxoizgfrw.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_v0fbhx8NkRNxYYVw8VGz_g_7Eqja11K';
-
     const { createClient } = supabase;
-    const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { persistSession: true, storage: window.localStorage },
-    });
+    const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, storage: window.localStorage } });
 
     const $       = id => document.getElementById(id);
-    const fmt     = n  => '$' + Number(n ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const fmt     = n  => '$' + Number(n ?? 0).toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
     const escHtml = s  => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
     let currentUserId   = null;
+    let selectedWriter  = null;
     let selectedBook    = null;
     let selectedChapter = null;
     let allComments     = [];
     let rejectChapterId = null;
 
-    // ── AUTH GUARD ─────────────────────────────────────────────
+    // ── AUTH ────────────────────────────────────────────────────────
     function guardAdmin() {
       return new Promise((resolve, reject) => {
         const { data: { subscription } } = db.auth.onAuthStateChange(async (event, session) => {
           if (event !== 'INITIAL_SESSION') return;
           subscription.unsubscribe();
-          if (!session) { window.location.replace('admin-login.html'); return reject(new Error('unauthenticated')); }
-          const { data: profile, error } = await db.from('profiles').select('name, is_admin').eq('id', session.user.id).single();
-          if (error || !profile?.is_admin) { window.location.replace('admin-login.html'); return reject(new Error('not admin')); }
+          if (!session) { window.location.replace('admin-login.html'); return reject(); }
+          const { data: profile } = await db.from('profiles').select('name, is_admin').eq('id', session.user.id).single();
+          if (!profile?.is_admin) { window.location.replace('admin-login.html'); return reject(); }
           resolve({ session, profile });
         });
       });
     }
 
-    // ── SECTION SWITCHING ──────────────────────────────────────
+    // ── SECTION SWITCHING ───────────────────────────────────────────
     function switchSection(section) {
-      ['reviews','income'].forEach(s => {
+      ['writers','income'].forEach(s => {
         $(`tab-${s}`).classList.toggle('text-crimson-light', s === section);
-        $(`tab-${s}`).classList.toggle('border-crimson',    s === section);
-        $(`tab-${s}`).classList.toggle('text-muted',        s !== section);
+        $(`tab-${s}`).classList.toggle('border-crimson',     s === section);
+        $(`tab-${s}`).classList.toggle('text-muted',         s !== section);
         $(`tab-${s}`).classList.toggle('border-transparent', s !== section);
         $(`sidebar-${s}`).classList.toggle('hidden', s !== section);
         $(`sidebar-${s}`).classList.toggle('flex',   s === section);
-        $(`panel-${s}`).classList.toggle('active',   s === section);
+      });
+      $('panel-writers').classList.toggle('hidden', section !== 'writers');
+      $('panel-income').classList.toggle('hidden',  section !== 'income');
+    }
+
+    // ── VIEW ROUTER ─────────────────────────────────────────────────
+    function showView(id) {
+      ['view-empty','view-writer-books','view-book-chapters','view-chapter'].forEach(v => {
+        $(v).classList.toggle('hidden', v !== id);
       });
     }
 
-    // ── BOOK LIST (books with submitted chapters + pending edit requests) ──
-    async function loadBooksForReview() {
-      const [{ data: submittedChaps }, { data: editReqs }] = await Promise.all([
-        db.from('chapters').select('book_id').eq('status', 'submitted'),
-        db.from('edit_requests').select('id, chapter_id, chapters(book_id)').eq('status', 'pending'),
-      ]);
+    // ── WRITERS SIDEBAR ─────────────────────────────────────────────
+    async function loadWritersList() {
+      const { data } = await db.from('profiles').select('id, name, email').order('name');
+      const container = $('writers-list');
+      if (!data?.length) { container.innerHTML = `<p class="text-muted text-xs px-2 pt-2">No writers yet.</p>`; return; }
+      container.innerHTML = data.map(w => `
+        <button onclick='selectWriter(${JSON.stringify(w)})' data-wid="${w.id}"
+                class="writer-btn w-full text-left px-3 py-2.5 rounded-lg text-sm text-white/80 hover:text-white hover:bg-surface border border-transparent hover:border-border transition-all duration-150">
+          <p class="font-medium truncate">${escHtml(w.name)}</p>
+          <p class="text-muted text-xs truncate">${escHtml(w.email)}</p>
+        </button>`).join('');
+    }
 
-      // Count pending edit requests per book
-      const reqCount = {};
-      (editReqs || []).forEach(r => {
-        const bid = r.chapters?.book_id;
-        if (bid) reqCount[bid] = (reqCount[bid] || 0) + 1;
+    async function selectWriter(writer) {
+      selectedWriter  = writer;
+      selectedBook    = null;
+      selectedChapter = null;
+      document.querySelectorAll('.writer-btn').forEach(b => {
+        const on = b.dataset.wid === writer.id;
+        b.classList.toggle('bg-surface', on);
+        b.classList.toggle('border-border', on);
       });
+      showView('view-writer-books');
+      $('writer-name-heading').textContent  = writer.name;
+      $('writer-email-heading').textContent = writer.email;
+      $('writer-books-grid').innerHTML = '<div class="skeleton h-64 rounded-2xl col-span-full"></div>';
+      const { data: books } = await db.from('books')
+        .select('id, title, description, cover_url, status, is_signed, admin_notes, created_at')
+        .eq('author_id', writer.id)
+        .order('created_at', { ascending: false });
+      renderWriterBooks(books ?? []);
+    }
 
-      // Collect all book IDs that need attention
-      const bookIds = new Set([
-        ...(submittedChaps || []).map(c => c.book_id).filter(Boolean),
-        ...Object.keys(reqCount),
-      ]);
-
-      const container = $('book-list');
-      if (!bookIds.size) {
-        container.innerHTML = `<p class="text-muted text-xs px-2 pt-2">No books need attention.</p>`;
+    function renderWriterBooks(books) {
+      const grid = $('writer-books-grid');
+      if (!books.length) {
+        grid.innerHTML = `<div class="col-span-full text-center py-16 text-muted text-sm">This writer has no books yet.</div>`;
         return;
       }
-
-      const { data: books } = await db.from('books')
-        .select('id, title, status, author_id, profiles(name)')
-        .in('id', [...bookIds]);
-
-      const allBooks = (books || []).map(b => ({ ...b, pendingCount: reqCount[b.id] || 0 }));
-
-      container.innerHTML = allBooks.map(b => `
-        <button onclick='selectBook(${JSON.stringify(b)})'
-                class="book-btn w-full text-left px-3 py-2.5 rounded-lg text-sm text-white/80 hover:text-white hover:bg-surface border border-transparent hover:border-border transition-all duration-150">
-          <div class="flex items-center justify-between gap-2">
-            <div class="min-w-0">
-              <p class="font-medium truncate">${escHtml(b.title)}</p>
-              <p class="text-muted text-xs truncate">${escHtml(b.profiles?.name ?? 'Unknown')}</p>
+      const statusMap = { draft:'bg-muted/20 text-muted', submitted:'bg-gold/15 text-gold', approved:'bg-emerald-400/15 text-emerald-400' };
+      grid.innerHTML = books.map(b => {
+        const signed = b.is_signed;
+        return `
+          <button onclick='selectBook(${JSON.stringify(b)})'
+                  class="text-left rounded-2xl border border-border bg-surface hover:border-crimson/30 hover:shadow-lg hover:shadow-crimson/5 transition-all duration-200 overflow-hidden group">
+            ${b.cover_url
+              ? `<img src="${escHtml(b.cover_url)}" class="w-full h-56 object-cover" alt="${escHtml(b.title)}"/>`
+              : `<div class="w-full h-56 bg-charcoal flex items-center justify-center">
+                   <span class="font-serif text-5xl text-muted/25">${escHtml(b.title[0]||'?')}</span>
+                 </div>`}
+            <div class="p-4">
+              <div class="flex items-start justify-between gap-2 mb-2">
+                <p class="font-medium text-white text-sm leading-snug group-hover:text-crimson-light transition-colors">${escHtml(b.title)}</p>
+                <span class="flex-shrink-0 text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full ${statusMap[b.status]||'bg-muted/10 text-muted'}">${b.status}</span>
+              </div>
+              <span class="inline-block text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-full ${signed ? 'bg-emerald-400/10 text-emerald-400 border border-emerald-400/30' : 'bg-muted/10 text-muted border border-border'}">
+                ${signed ? '✓ Signed' : 'Unsigned'}
+              </span>
             </div>
-            ${b.pendingCount > 0 ? `<span class="flex-shrink-0 text-[10px] font-bold text-crimson-light bg-crimson/15 border border-crimson/30 rounded-full px-1.5 py-0.5">${b.pendingCount}</span>` : ''}
-          </div>
-        </button>`
-      ).join('');
+          </button>`;
+      }).join('');
     }
 
     async function selectBook(book) {
       selectedBook    = book;
       selectedChapter = null;
-
-      document.querySelectorAll('.book-btn').forEach(btn => {
-        btn.classList.toggle('bg-surface',    btn.textContent.trim().startsWith(book.title.trim()));
-        btn.classList.toggle('border-border', btn.textContent.trim().startsWith(book.title.trim()));
-      });
-
-      $('reviews-empty').classList.add('hidden');
-      $('reviews-viewer').classList.add('hidden');
-      $('reviews-chapters').classList.remove('hidden');
-
+      showView('view-book-chapters');
       $('book-title-heading').textContent  = book.title;
-      $('book-author-heading').textContent = `by ${book.profiles?.name ?? 'Unknown'}`;
-      $('chapter-list').innerHTML = '<div class="skeleton h-12 w-full"></div>'.repeat(4);
+      $('book-author-heading').textContent = `by ${selectedWriter?.name ?? 'Unknown'}`;
+      $('book-cover-initial').textContent  = book.title[0] || '?';
+      $('book-notes-input').value          = book.admin_notes || '';
+      if (book.cover_url) {
+        $('book-cover-img').src = book.cover_url;
+        $('book-cover-img').classList.remove('hidden');
+        $('book-cover-placeholder').classList.add('hidden');
+      } else {
+        $('book-cover-img').classList.add('hidden');
+        $('book-cover-placeholder').classList.remove('hidden');
+      }
+      const sMap = { draft:'bg-muted/20 text-muted', submitted:'bg-gold/15 text-gold', approved:'bg-emerald-400/15 text-emerald-400' };
+      $('book-status-badge').className  = `text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full ${sMap[book.status]||''}`;
+      $('book-status-badge').textContent = book.status;
+      updateSignedBtn(book.is_signed);
+      $('chapter-list').innerHTML = '<div class="skeleton h-16 rounded-xl"></div>'.repeat(3);
       $('edit-requests-section').classList.add('hidden');
-
       const [{ data: chapters }, editReqs] = await Promise.all([
         db.from('chapters').select('id, chapter_number, title, word_count, status').eq('book_id', book.id).order('chapter_number', { ascending: false }),
         loadEditRequestsForBook(book.id),
       ]);
-
-      renderChapterList(chapters ?? []);
+      renderInlineChapterList(chapters ?? []);
       renderEditRequests(editReqs);
     }
 
-    function clearBookSelection() {
-      selectedBook = selectedChapter = null;
-      $('reviews-chapters').classList.add('hidden');
-      $('reviews-viewer').classList.add('hidden');
-      $('reviews-empty').classList.remove('hidden');
-      document.querySelectorAll('.book-btn').forEach(b => b.classList.remove('bg-surface','border-border'));
-    }
-
-    function renderChapterList(chapters) {
-      const container = $('chapter-list');
-      if (!chapters.length) {
-        container.innerHTML = `<p class="text-muted text-sm px-2">No chapters found.</p>`;
-        return;
+    function updateSignedBtn(isSigned) {
+      const btn = $('toggle-signed-btn');
+      if (isSigned) {
+        btn.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all duration-200 bg-emerald-400/10 border-emerald-400/30 text-emerald-400 hover:bg-emerald-400/20';
+        btn.textContent = '✓ Signed — click to unsign';
+      } else {
+        btn.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all duration-200 bg-muted/10 border-border text-muted hover:text-white hover:border-white/20';
+        btn.textContent = 'Unsigned — click to sign';
       }
-
-      const statusBadge = s => {
-        const map = { draft:'bg-muted/20 text-muted', submitted:'bg-gold/15 text-gold', approved:'bg-emerald-400/15 text-emerald-400', revision_requested:'bg-red-400/15 text-red-400' };
-        return `<span class="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full ${map[s]||''}">${s.replace('_',' ')}</span>`;
-      };
-
-      container.innerHTML = chapters.map(ch => `
-        <button onclick='openChapter(${JSON.stringify(ch)})'
-                class="w-full text-left rounded-xl border border-border bg-surface hover:border-crimson/30 hover:shadow-lg hover:shadow-crimson/5 p-4 transition-all duration-200 group">
-          <div class="flex items-center justify-between gap-3">
-            <div class="min-w-0">
-              <p class="text-[10px] font-semibold tracking-[0.16em] uppercase text-muted mb-0.5 group-hover:text-crimson-light/70 transition-colors">Chapter ${ch.chapter_number}</p>
-              <p class="text-white font-medium truncate">${escHtml(ch.title ?? '(Untitled)')}</p>
-              <p class="text-muted text-xs mt-0.5">${(ch.word_count||0).toLocaleString()} words</p>
-            </div>
-            <div class="flex-shrink-0 flex flex-col items-end gap-1.5">
-              ${statusBadge(ch.status)}
-              <svg class="w-4 h-4 text-muted group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-            </div>
-          </div>
-        </button>`
-      ).join('');
     }
 
-    // ── EDIT REQUESTS ──────────────────────────────────────────
+    async function toggleSigned() {
+      if (!selectedBook) return;
+      const newVal = !selectedBook.is_signed;
+      const { error } = await db.from('books').update({ is_signed: newVal }).eq('id', selectedBook.id);
+      if (error) { showToast('Error: ' + error.message); return; }
+      selectedBook.is_signed = newVal;
+      updateSignedBtn(newVal);
+      showToast(newVal ? 'Book marked as Signed ✓' : 'Book marked as Unsigned');
+    }
+
+    async function saveBookNotes() {
+      if (!selectedBook) return;
+      const notes = $('book-notes-input').value.trim() || null;
+      const { error } = await db.from('books').update({ admin_notes: notes }).eq('id', selectedBook.id);
+      if (error) { showToast('Error: ' + error.message); return; }
+      selectedBook.admin_notes = notes;
+      showToast('Notes saved ✓');
+    }
+
+    function backToWriterBooks() { selectedBook = selectedChapter = null; showView('view-writer-books'); }
+    function backToBookChapters() { selectedChapter = null; showView('view-book-chapters'); }
+
+    // ── INLINE CHAPTER LIST ─────────────────────────────────────────
+    function renderInlineChapterList(chapters) {
+      const container = $('chapter-list');
+      if (!chapters.length) { container.innerHTML = `<p class="text-muted text-sm px-2">No chapters yet.</p>`; return; }
+      const sMap = { draft:'bg-muted/20 text-muted', submitted:'bg-gold/15 text-gold', approved:'bg-emerald-400/15 text-emerald-400', revision_requested:'bg-red-400/15 text-red-400' };
+      const badge = s => `<span class="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full ${sMap[s]||''}">${s.replace('_',' ')}</span>`;
+      container.innerHTML = chapters.map(ch => {
+        const canReview = ch.status === 'submitted';
+        return `
+          <div class="rounded-xl border border-border bg-surface p-4 hover:border-white/10 transition-all duration-200">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div class="min-w-0 flex-1">
+                <p class="text-[10px] font-semibold tracking-wide uppercase text-muted mb-0.5">Chapter ${ch.chapter_number}</p>
+                <p class="text-white font-medium truncate">${escHtml(ch.title ?? '(Untitled)')}</p>
+                <p class="text-muted text-xs mt-0.5">${(ch.word_count||0).toLocaleString()} words</p>
+              </div>
+              <div class="flex flex-col items-end gap-2 flex-shrink-0">
+                ${badge(ch.status)}
+                <div class="flex items-center gap-1.5 flex-wrap justify-end">
+                  <button onclick='openChapter(${JSON.stringify(ch)})'
+                          class="text-[10px] font-semibold px-2 py-1 rounded border border-border text-muted hover:text-white hover:border-white/20 transition-all">
+                    Open →
+                  </button>
+                  ${canReview ? `
+                    <button onclick='approveChapter("${ch.id}")'
+                            class="text-[10px] font-semibold px-2 py-1 rounded border bg-emerald-400/10 border-emerald-400/30 text-emerald-400 hover:bg-emerald-400/20 transition-all">
+                      Approve
+                    </button>
+                    <button onclick='openRejectModal("${ch.id}","${escHtml(ch.title ?? `Chapter ${ch.chapter_number}`)}")'
+                            class="text-[10px] font-semibold px-2 py-1 rounded border bg-crimson/10 border-crimson/30 text-red-400 hover:bg-crimson/20 transition-all">
+                      Reject
+                    </button>` : ''}
+                </div>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    // ── EDIT REQUESTS ───────────────────────────────────────────────
     async function loadEditRequestsForBook(bookId) {
       const { data: chapters } = await db.from('chapters').select('id').eq('book_id', bookId);
       if (!chapters?.length) return [];
-
       const { data } = await db.from('edit_requests')
-        .select('id, reason, status, admin_reply, created_at, chapter_id, author_id, profiles(name), chapters(chapter_number, title)')
+        .select('id, reason, status, admin_reply, created_at, chapter_id, profiles(name), chapters(chapter_number, title)')
         .in('chapter_id', chapters.map(c => c.id))
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
-
       return data || [];
     }
 
     function renderEditRequests(requests) {
-      const section = $('edit-requests-section');
-      const list    = $('edit-requests-list');
-
+      const section = $('edit-requests-section'), list = $('edit-requests-list');
       if (!requests.length) { section.classList.add('hidden'); return; }
       section.classList.remove('hidden');
       $('edit-requests-count').textContent = requests.length;
-
       list.innerHTML = requests.map(r => {
-        const ch   = r.chapters;
+        const ch = r.chapters;
         const date = new Date(r.created_at).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
         return `
           <div class="rounded-xl border border-crimson/25 bg-crimson/5 p-4" id="er-${escHtml(r.id)}">
             <div class="flex flex-wrap items-start justify-between gap-2 mb-3">
               <div>
-                <p class="text-white text-sm font-semibold">Chapter ${ch?.chapter_number || '?'} — ${escHtml(ch?.title || 'Untitled')}</p>
-                <p class="text-muted text-xs">${escHtml(r.profiles?.name || 'Writer')} · ${date}</p>
+                <p class="text-white text-sm font-semibold">Chapter ${ch?.chapter_number||'?'} — ${escHtml(ch?.title||'Untitled')}</p>
+                <p class="text-muted text-xs">${escHtml(r.profiles?.name||'Writer')} · ${date}</p>
               </div>
               <span class="text-[10px] font-semibold uppercase text-crimson-light bg-crimson/15 border border-crimson/30 rounded-full px-2 py-0.5">Pending</span>
             </div>
-
             <div class="bg-charcoal/60 rounded-lg p-3 mb-3">
               <p class="text-[10px] font-semibold uppercase text-muted mb-1">Writer's Reason</p>
               <p class="text-white/80 text-sm leading-relaxed">${escHtml(r.reason)}</p>
             </div>
-
-            <!-- Admin reply -->
             <div class="mb-3">
-              <label class="block text-xs font-medium text-white/60 tracking-wide mb-1.5">Reply to writer <span class="text-muted font-normal">(optional)</span></label>
-              <textarea id="reply-${escHtml(r.id)}" rows="2"
-                        placeholder="Leave a message for the writer…"
+              <textarea id="reply-${escHtml(r.id)}" rows="2" placeholder="Reply to writer (optional)…"
                         class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-xs rounded-lg px-3 py-2 resize-none transition-all duration-200"></textarea>
             </div>
-
             <div class="flex flex-wrap gap-2">
               <button onclick="approveEditRequest('${escHtml(r.id)}','${escHtml(r.chapter_id)}')"
-                      class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-400/10 hover:bg-emerald-400/20 border border-emerald-400/30 hover:border-emerald-400/60 text-emerald-400 text-xs font-semibold rounded-lg transition-all duration-200">
+                      class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-400/10 hover:bg-emerald-400/20 border border-emerald-400/30 text-emerald-400 text-xs font-semibold rounded-lg transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                 Approve Edit
               </button>
               <button onclick="rejectEditRequest('${escHtml(r.id)}')"
-                      class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-crimson/10 hover:bg-crimson/20 border border-crimson/30 hover:border-crimson/60 text-red-400 text-xs font-semibold rounded-lg transition-all duration-200">
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                      class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-crimson/10 hover:bg-crimson/20 border border-crimson/30 text-red-400 text-xs font-semibold rounded-lg transition-all">
                 Reject
               </button>
               <button onclick="sendAdminReply('${escHtml(r.id)}')"
-                      class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-surface hover:bg-charcoal border border-border hover:border-white/20 text-white/70 hover:text-white text-xs font-semibold rounded-lg transition-all duration-200">
+                      class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-surface hover:bg-charcoal border border-border text-white/70 hover:text-white text-xs font-semibold rounded-lg transition-all">
                 Reply Only
               </button>
             </div>
@@ -527,11 +581,10 @@
 
     async function approveEditRequest(requestId, chapterId) {
       const reply = $(`reply-${requestId}`)?.value?.trim() || null;
-      const updates = [
-        db.from('edit_requests').update({ status: 'approved', admin_reply: reply, updated_at: new Date().toISOString() }).eq('id', requestId),
-        db.from('chapters').update({ status: 'draft', updated_at: new Date().toISOString() }).eq('id', chapterId),
-      ];
-      await Promise.all(updates);
+      await Promise.all([
+        db.from('edit_requests').update({ status:'approved', admin_reply:reply, updated_at:new Date().toISOString() }).eq('id', requestId),
+        db.from('chapters').update({ status:'draft', updated_at:new Date().toISOString() }).eq('id', chapterId),
+      ]);
       $(`er-${requestId}`)?.remove();
       showToast('Edit approved — chapter returned to draft.');
       checkEditRequestsEmpty();
@@ -539,7 +592,7 @@
 
     async function rejectEditRequest(requestId) {
       const reply = $(`reply-${requestId}`)?.value?.trim() || null;
-      await db.from('edit_requests').update({ status: 'rejected', admin_reply: reply, updated_at: new Date().toISOString() }).eq('id', requestId);
+      await db.from('edit_requests').update({ status:'rejected', admin_reply:reply, updated_at:new Date().toISOString() }).eq('id', requestId);
       $(`er-${requestId}`)?.remove();
       showToast('Edit request rejected.');
       checkEditRequestsEmpty();
@@ -548,82 +601,79 @@
     async function sendAdminReply(requestId) {
       const reply = $(`reply-${requestId}`)?.value?.trim();
       if (!reply) { showToast('Type a reply first.'); return; }
-      await db.from('edit_requests').update({ admin_reply: reply, updated_at: new Date().toISOString() }).eq('id', requestId);
+      await db.from('edit_requests').update({ admin_reply:reply, updated_at:new Date().toISOString() }).eq('id', requestId);
       if ($(`reply-${requestId}`)) $(`reply-${requestId}`).value = '';
-      showToast('Reply sent to writer.');
+      showToast('Reply sent.');
     }
 
     function checkEditRequestsEmpty() {
-      if (!$('edit-requests-list').children.length) {
-        $('edit-requests-section').classList.add('hidden');
-      } else {
-        $('edit-requests-count').textContent = $('edit-requests-list').children.length;
-      }
+      const list = $('edit-requests-list');
+      if (!list.children.length) $('edit-requests-section').classList.add('hidden');
+      else $('edit-requests-count').textContent = list.children.length;
     }
 
-    // ── CHAPTER VIEWER ─────────────────────────────────────────
+    // ── CHAPTER VIEWER ──────────────────────────────────────────────
     async function openChapter(chapter) {
-      selectedChapter = chapter;
-      $('reviews-chapters').classList.add('hidden');
-      $('reviews-viewer').classList.remove('hidden');
-
+      selectedChapter = { ...chapter };
+      showView('view-chapter');
       $('viewer-chapter-num').textContent   = `Chapter ${chapter.chapter_number}`;
       $('viewer-chapter-title').textContent = chapter.title ?? '(Untitled)';
       $('viewer-chapter-meta').textContent  = `${(chapter.word_count||0).toLocaleString()} words · ${chapter.status.replace('_',' ')}`;
-
+      $('chapter-content').innerHTML = '<p class="text-muted text-sm animate-pulse">Loading…</p>';
+      $('general-comment-input').value = '';
       $('approve-btn').onclick = () => approveChapter(chapter.id);
       $('reject-btn').onclick  = () => openRejectModal(chapter.id, chapter.title ?? `Chapter ${chapter.chapter_number}`);
-
       const reviewable = chapter.status === 'submitted';
       $('approve-btn').disabled = !reviewable;
       $('reject-btn').disabled  = !reviewable;
       $('approve-btn').classList.toggle('opacity-40', !reviewable);
       $('reject-btn').classList.toggle('opacity-40',  !reviewable);
-
-      $('chapter-content').innerHTML = '<p class="text-muted text-sm">Loading…</p>';
-
-      const [{ data: fullChapter }, { data: comments }] = await Promise.all([
+      const [{ data: full }, { data: comments }] = await Promise.all([
         db.from('chapters').select('content').eq('id', chapter.id).single(),
-        db.from('comments')
-          .select('id, paragraph_ref, body, resolved, reviewer_id')
-          .eq('chapter_id', chapter.id)
-          .order('created_at', { ascending: true }),
+        db.from('comments').select('id, paragraph_ref, body, resolved, reviewer_id, created_at').eq('chapter_id', chapter.id).order('created_at', { ascending: true }),
       ]);
-
+      selectedChapter.content = full?.content ?? '';
       allComments = comments ?? [];
-      renderChapterContent(fullChapter?.content ?? '');
+      renderChapterContent(selectedChapter.content);
       renderCommentThread();
     }
 
-    function closeChapterViewer() {
-      selectedChapter = null;
-      $('reviews-viewer').classList.add('hidden');
-      $('reviews-chapters').classList.remove('hidden');
+    // ── CONTENT FORMATTER ───────────────────────────────────────────
+    function formatContent(raw) {
+      if (!raw?.trim()) return [];
+      const normalized = raw.replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+      return normalized.split(/\n\n+/).map(block => {
+        const t = block.trim();
+        if (!t) return null;
+        if (/^[\*\-]{3,}$/.test(t) || t === '***' || t === '---') return { type:'break' };
+        return { type:'para', text: t.replace(/\n/g, ' ').replace(/\s+/g, ' ') };
+      }).filter(Boolean);
     }
 
-    function renderChapterContent(rawContent) {
-      const paragraphs = rawContent.split(/\n\n+/).filter(p => p.trim());
-      if (!paragraphs.length) {
+    function renderChapterContent(raw) {
+      const blocks = formatContent(raw);
+      if (!blocks.length) {
         $('chapter-content').innerHTML = `<p class="text-muted text-sm italic">No content yet.</p>`;
         return;
       }
-      $('chapter-content').innerHTML = paragraphs.map((para, idx) => {
-        const paraComments = allComments.filter(c => c.paragraph_ref === idx);
+      let pIdx = 0;
+      $('chapter-content').innerHTML = blocks.map(block => {
+        if (block.type === 'break') return `<div class="scene-break">* * *</div>`;
+        const idx = pIdx++;
+        const pComments = allComments.filter(c => c.paragraph_ref === idx);
         return `
-          <div class="para-wrap relative py-3 border-b border-border/30 group" data-para="${idx}">
-            <p class="text-white/80 leading-relaxed pr-10 text-[15px]">${escHtml(para)}</p>
-            ${paraComments.length ? `<span class="absolute right-10 top-3 text-[10px] font-semibold text-crimson-light bg-crimson/10 border border-crimson/20 rounded-full px-1.5 py-0.5 leading-none">${paraComments.length}</span>` : ''}
-            <button class="para-btn absolute right-2 top-3 w-6 h-6 rounded-full bg-surface border border-border hover:border-crimson/50 flex items-center justify-center text-muted hover:text-crimson-light text-sm leading-none transition-all duration-150"
-                    onclick="toggleCommentForm(${idx})" title="Comment on paragraph ${idx+1}">+</button>
+          <div class="para-wrap relative py-2 border-b border-border/20 group" data-para="${idx}">
+            <p class="prose-para pr-10">${escHtml(block.text)}</p>
+            ${pComments.length ? `<span class="absolute right-10 top-3 text-[10px] font-semibold text-crimson-light bg-crimson/10 border border-crimson/20 rounded-full px-1.5 py-0.5 leading-none">${pComments.length}</span>` : ''}
+            <button class="para-btn absolute right-2 top-3 w-6 h-6 rounded-full bg-surface border border-border hover:border-crimson/50 flex items-center justify-center text-muted hover:text-crimson-light text-sm leading-none transition-all"
+                    onclick="toggleCommentForm(${idx})">+</button>
             <div id="cf-${idx}" class="hidden mt-3 bg-charcoal border border-border rounded-lg p-3">
               <textarea id="ct-${idx}" rows="3" placeholder="Comment on paragraph ${idx+1}…"
-                        class="form-input w-full bg-obsidian border border-border text-white placeholder-muted text-xs rounded-md px-3 py-2 resize-none transition-all duration-200"></textarea>
+                        class="form-input w-full bg-obsidian border border-border text-white placeholder-muted text-xs rounded-md px-3 py-2 resize-none transition-all"></textarea>
               <div class="flex gap-2 mt-2">
                 <button onclick="submitParagraphComment(${idx})"
-                        class="px-3 py-1.5 bg-crimson/10 hover:bg-crimson/20 border border-crimson/30 text-crimson-light text-xs font-semibold rounded-lg transition-all duration-200">
-                  Post Comment
-                </button>
-                <button onclick="toggleCommentForm(${idx})" class="px-3 py-1.5 text-muted hover:text-white text-xs rounded-lg transition-colors duration-200">Cancel</button>
+                        class="px-3 py-1.5 bg-crimson/10 hover:bg-crimson/20 border border-crimson/30 text-crimson-light text-xs font-semibold rounded-lg transition-all">Post</button>
+                <button onclick="toggleCommentForm(${idx})" class="px-3 py-1.5 text-muted hover:text-white text-xs rounded-lg transition-colors">Cancel</button>
               </div>
             </div>
           </div>`;
@@ -631,9 +681,9 @@
     }
 
     function toggleCommentForm(idx) {
-      const form = $(`cf-${idx}`);
-      form.classList.toggle('hidden');
-      if (!form.classList.contains('hidden')) $(`ct-${idx}`)?.focus();
+      const f = $(`cf-${idx}`);
+      f.classList.toggle('hidden');
+      if (!f.classList.contains('hidden')) $(`ct-${idx}`)?.focus();
     }
 
     async function submitParagraphComment(paraIdx) {
@@ -644,31 +694,47 @@
       }).select().single();
       if (error) { alert('Error: ' + error.message); return; }
       allComments.push(data);
-      renderChapterContent(selectedChapter.content ?? '');
+      renderChapterContent(selectedChapter.content);
       renderCommentThread();
       toggleCommentForm(paraIdx);
+    }
+
+    async function submitGeneralComment() {
+      const body = $('general-comment-input')?.value?.trim();
+      if (!body || !selectedChapter) return;
+      const { data, error } = await db.from('comments').insert({
+        chapter_id: selectedChapter.id, reviewer_id: currentUserId, paragraph_ref: null, body,
+      }).select().single();
+      if (error) { alert('Error: ' + error.message); return; }
+      allComments.push(data);
+      $('general-comment-input').value = '';
+      renderCommentThread();
+      showToast('Comment posted.');
     }
 
     function renderCommentThread() {
       const container = $('comment-thread');
       if (!allComments.length) {
-        container.innerHTML = `<p class="text-muted text-xs">No comments yet. Hover a paragraph and click <span class="text-white">+</span> to add one.</p>`;
+        container.innerHTML = `<p class="text-muted text-xs">No comments yet. Click + next to any paragraph to comment.</p>`;
         return;
       }
-      const sorted = [...allComments].sort((a, b) => (a.paragraph_ref ?? -1) - (b.paragraph_ref ?? -1));
+      const sorted = [...allComments].sort((a, b) => {
+        if (a.paragraph_ref === null && b.paragraph_ref !== null) return -1;
+        if (a.paragraph_ref !== null && b.paragraph_ref === null) return 1;
+        return (a.paragraph_ref ?? 0) - (b.paragraph_ref ?? 0);
+      });
       container.innerHTML = sorted.map(c => `
         <div class="rounded-lg border ${c.resolved ? 'border-border/40 opacity-50' : 'border-border'} bg-charcoal/60 p-3">
           <div class="flex items-center justify-between mb-1.5">
             <span class="text-[10px] font-semibold uppercase tracking-wide ${c.paragraph_ref !== null ? 'text-crimson-light' : 'text-muted'}">
-              ${c.paragraph_ref !== null ? `¶ Paragraph ${c.paragraph_ref + 1}` : 'General'}
+              ${c.paragraph_ref !== null ? `¶ Paragraph ${c.paragraph_ref + 1}` : 'Chapter Note'}
             </span>
             ${!c.resolved
               ? `<button onclick="resolveComment('${c.id}')" class="text-[10px] text-muted hover:text-emerald-400 transition-colors font-medium">Resolve</button>`
               : '<span class="text-[10px] text-emerald-400/60">Resolved</span>'}
           </div>
           <p class="text-white/80 text-xs leading-relaxed">${escHtml(c.body)}</p>
-        </div>`
-      ).join('');
+        </div>`).join('');
     }
 
     async function resolveComment(commentId) {
@@ -677,16 +743,25 @@
       renderCommentThread();
     }
 
-    // ── APPROVE / REJECT CHAPTER ───────────────────────────────
+    // ── APPROVE / REJECT ────────────────────────────────────────────
     async function approveChapter(chapterId) {
       if (!confirm('Mark this chapter as Approved?')) return;
-      const { error } = await db.from('chapters').update({ status: 'approved', updated_at: new Date().toISOString() }).eq('id', chapterId);
+      const { error } = await db.from('chapters').update({ status:'approved', updated_at:new Date().toISOString() }).eq('id', chapterId);
       if (error) { alert('Error: ' + error.message); return; }
-      selectedChapter.status = 'approved';
-      $('viewer-chapter-meta').textContent = `${(selectedChapter.word_count||0).toLocaleString()} words · approved`;
-      $('approve-btn').disabled = true; $('reject-btn').disabled = true;
-      $('approve-btn').classList.add('opacity-40'); $('reject-btn').classList.add('opacity-40');
       showToast('Chapter approved ✓');
+      if (selectedChapter?.id === chapterId) {
+        selectedChapter.status = 'approved';
+        $('viewer-chapter-meta').textContent = `${(selectedChapter.word_count||0).toLocaleString()} words · approved`;
+        $('approve-btn').disabled = true; $('reject-btn').disabled = true;
+        $('approve-btn').classList.add('opacity-40'); $('reject-btn').classList.add('opacity-40');
+      }
+      refreshChapterList();
+    }
+
+    async function refreshChapterList() {
+      if (!selectedBook) return;
+      const { data } = await db.from('chapters').select('id, chapter_number, title, word_count, status').eq('book_id', selectedBook.id).order('chapter_number', { ascending: false });
+      renderInlineChapterList(data ?? []);
     }
 
     function openRejectModal(chapterId, chapterTitle) {
@@ -697,61 +772,67 @@
       $('reject-reason').focus();
     }
 
-    function closeRejectModal() { $('reject-modal').classList.add('hidden'); rejectChapterId = null; }
+    function cancelReject() { $('reject-modal').classList.add('hidden'); rejectChapterId = null; }
+    async function rejectNoReason() { await doReject(null); }
 
     $('reject-confirm-btn').onclick = async () => {
-      const reason = $('reject-reason').value.trim();
-      if (!reason) { $('reject-reason').focus(); return; }
-      const { error: commentErr } = await db.from('comments').insert({
-        chapter_id: rejectChapterId, reviewer_id: currentUserId, paragraph_ref: null, body: reason,
-      });
-      if (commentErr) { alert('Error: ' + commentErr.message); return; }
-      const { error: statusErr } = await db.from('chapters').update({ status: 'revision_requested', updated_at: new Date().toISOString() }).eq('id', rejectChapterId);
-      if (statusErr) { alert('Error: ' + statusErr.message); return; }
-      closeRejectModal();
-      if (selectedChapter?.id === rejectChapterId) {
+      await doReject($('reject-reason').value.trim() || null);
+    };
+
+    async function doReject(reason) {
+      if (!rejectChapterId) return;
+      const id = rejectChapterId;
+      $('reject-modal').classList.add('hidden');
+      rejectChapterId = null;
+      if (reason) {
+        await db.from('comments').insert({ chapter_id: id, reviewer_id: currentUserId, paragraph_ref: null, body: reason });
+      }
+      const { error } = await db.from('chapters').update({ status:'revision_requested', updated_at:new Date().toISOString() }).eq('id', id);
+      if (error) { showToast('Error: ' + error.message); return; }
+      showToast('Revision requested.');
+      if (selectedChapter?.id === id) {
         selectedChapter.status = 'revision_requested';
         $('viewer-chapter-meta').textContent = `${(selectedChapter.word_count||0).toLocaleString()} words · revision requested`;
         $('approve-btn').disabled = true; $('reject-btn').disabled = true;
         $('approve-btn').classList.add('opacity-40'); $('reject-btn').classList.add('opacity-40');
-        const { data: fresh } = await db.from('comments').select('id, paragraph_ref, body, resolved, reviewer_id').eq('chapter_id', rejectChapterId).order('created_at', { ascending: true });
-        allComments = fresh ?? [];
-        renderCommentThread();
+        if (reason) {
+          const { data: fresh } = await db.from('comments').select('id, paragraph_ref, body, resolved, reviewer_id, created_at').eq('chapter_id', id).order('created_at', { ascending: true });
+          allComments = fresh ?? [];
+          renderCommentThread();
+        }
       }
-      showToast('Revision requested — writer notified.');
-    };
+      refreshChapterList();
+    }
 
-    $('reject-modal').addEventListener('click', e => { if (e.target === $('reject-modal')) closeRejectModal(); });
+    $('reject-modal').addEventListener('click', e => { if (e.target === $('reject-modal')) cancelReject(); });
 
-    // ── INCOME ─────────────────────────────────────────────────
+    // ── INCOME ──────────────────────────────────────────────────────
     async function loadWriters() {
       const { data } = await db.from('profiles').select('id, name, email').order('name');
       const select = $('income-writer'), container = $('writer-list');
       if (!data?.length) { container.innerHTML = `<p class="text-muted text-xs px-2 pt-2">No writers found.</p>`; return; }
       container.innerHTML = data.map(w => `
-        <button onclick="selectIncomeWriter('${w.id}','${escHtml(w.name)}')" data-writer-id="${w.id}"
-                class="income-writer-btn w-full text-left px-3 py-2.5 rounded-lg text-sm text-white/80 hover:text-white hover:bg-surface border border-transparent hover:border-border transition-all duration-150">
+        <button onclick="selectIncomeWriter('${w.id}')" data-wid="${w.id}"
+                class="income-writer-btn w-full text-left px-3 py-2.5 rounded-lg text-sm text-white/80 hover:text-white hover:bg-surface border border-transparent hover:border-border transition-all">
           <p class="font-medium truncate">${escHtml(w.name)}</p>
           <p class="text-muted text-xs truncate">${escHtml(w.email)}</p>
         </button>`).join('');
-      select.innerHTML = '<option value="">Select a writer…</option>' +
-        data.map(w => `<option value="${w.id}">${escHtml(w.name)}</option>`).join('');
+      select.innerHTML = '<option value="">Select a writer…</option>' + data.map(w => `<option value="${w.id}">${escHtml(w.name)}</option>`).join('');
     }
 
     function selectIncomeWriter(writerId) {
       $('income-writer').value = writerId;
-      document.querySelectorAll('.income-writer-btn').forEach(btn => {
-        const active = btn.dataset.writerId === writerId;
-        btn.classList.toggle('bg-surface',    active);
-        btn.classList.toggle('border-border', active);
+      document.querySelectorAll('.income-writer-btn').forEach(b => {
+        const on = b.dataset.wid === writerId;
+        b.classList.toggle('bg-surface', on);
+        b.classList.toggle('border-border', on);
       });
       loadBooksForWriter(writerId);
     }
 
     async function loadBooksForWriter(writerId) {
       const { data } = await db.from('books').select('id, title').eq('author_id', writerId).order('title');
-      $('income-book').innerHTML = '<option value="">No specific book</option>' +
-        (data ?? []).map(b => `<option value="${b.id}">${escHtml(b.title)}</option>`).join('');
+      $('income-book').innerHTML = '<option value="">No specific book</option>' + (data ?? []).map(b => `<option value="${b.id}">${escHtml(b.title)}</option>`).join('');
     }
 
     $('income-writer').addEventListener('change', e => {
@@ -760,16 +841,14 @@
     });
 
     async function loadRecentEarnings() {
-      const { data } = await db.from('earnings')
-        .select('id, date, amount_earned, note, profiles(name), books(title)')
-        .order('created_at', { ascending: false }).limit(8);
+      const { data } = await db.from('earnings').select('id, date, amount_earned, note, profiles(name), books(title)').order('created_at', { ascending: false }).limit(8);
       const container = $('recent-earnings');
       if (!data?.length) { container.innerHTML = `<p class="text-muted text-xs">No entries yet.</p>`; return; }
       container.innerHTML = data.map(e => `
         <div class="flex items-center justify-between rounded-lg border border-border bg-surface px-4 py-2.5">
           <div class="min-w-0">
-            <p class="text-white text-sm font-medium truncate">${escHtml(e.profiles?.name ?? '—')}</p>
-            <p class="text-muted text-xs">${e.date} · ${escHtml(e.books?.title ?? 'General')}${e.note ? ' · '+escHtml(e.note) : ''}</p>
+            <p class="text-white text-sm font-medium truncate">${escHtml(e.profiles?.name??'—')}</p>
+            <p class="text-muted text-xs">${e.date} · ${escHtml(e.books?.title??'General')}${e.note?' · '+escHtml(e.note):''}</p>
           </div>
           <span class="text-gold font-semibold text-sm flex-shrink-0 ml-3">${fmt(e.amount_earned)}</span>
         </div>`).join('');
@@ -782,7 +861,7 @@
       const date = $('income-date').value, amount = parseFloat($('income-amount').value);
       const note = $('income-note').value.trim() || null;
       if (!writerId || !date || isNaN(amount) || amount < 0) {
-        $('income-error').textContent = 'Please fill in Writer, Date, and a valid Amount.';
+        $('income-error').textContent = 'Fill in Writer, Date and Amount.';
         $('income-error').classList.remove('hidden'); return;
       }
       const btn = $('income-submit'); btn.disabled = true; btn.textContent = 'Recording…';
@@ -790,10 +869,10 @@
       btn.disabled = false;
       btn.innerHTML = 'Record Earnings <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>';
       if (error) { $('income-error').textContent = error.message; $('income-error').classList.remove('hidden'); }
-      else { $('income-success').textContent = `Earnings of ${fmt(amount)} recorded for ${date}.`; $('income-success').classList.remove('hidden'); $('income-amount').value = ''; $('income-note').value = ''; loadRecentEarnings(); }
+      else { $('income-success').textContent = `${fmt(amount)} recorded for ${date}.`; $('income-success').classList.remove('hidden'); $('income-amount').value = ''; $('income-note').value = ''; loadRecentEarnings(); }
     });
 
-    // ── TOAST ──────────────────────────────────────────────────
+    // ── TOAST / SIGNOUT / BOOT ──────────────────────────────────────
     function showToast(msg) {
       const t = document.createElement('div');
       t.className = 'fixed bottom-6 right-6 z-[70] px-4 py-3 bg-surface border border-border rounded-xl text-sm text-white shadow-xl shadow-black/50 transition-opacity duration-300';
@@ -802,57 +881,38 @@
       setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3000);
     }
 
-    // ── SIGN OUT ───────────────────────────────────────────────
-    $('sign-out-btn').addEventListener('click', async () => {
-      await db.auth.signOut();
-      window.location.replace('admin-login.html');
-    });
+    $('sign-out-btn').addEventListener('click', async () => { await db.auth.signOut(); window.location.replace('admin-login.html'); });
 
-    // ── BOOT ───────────────────────────────────────────────────
     (async () => {
       $('income-date').value = new Date().toISOString().slice(0, 10);
       const { session, profile } = await guardAdmin();
       currentUserId = session.user.id;
       document.body.style.opacity = '1';
       $('nav-name').textContent = profile.name;
-      await Promise.all([ loadBooksForReview(), loadWriters(), loadRecentEarnings() ]);
+      await Promise.all([ loadWritersList(), loadWriters(), loadRecentEarnings() ]);
     })();
   </script>
 
-  <!-- Cursor spotlight: crimson — mobile drift / desktop cursor -->
   <script>
     const afsGlow = document.getElementById('afs-glow');
     const afsGrid = document.getElementById('afs-grid');
-
     function paintAt(x, y) {
-      afsGlow.style.background =
-        `radial-gradient(700px circle at ${x}px ${y}px, rgba(163,22,33,0.09), transparent 40%)`;
+      afsGlow.style.background = `radial-gradient(700px circle at ${x}px ${y}px, rgba(163,22,33,0.09), transparent 40%)`;
       const mask = `radial-gradient(circle 520px at ${x}px ${y}px, black 0%, transparent 68%)`;
       afsGrid.style.webkitMaskImage = mask;
-      afsGrid.style.maskImage       = mask;
+      afsGrid.style.maskImage = mask;
     }
-
     if (window.matchMedia('(pointer: coarse)').matches) {
       (function drift(ts) {
-        paintAt(
-          window.innerWidth  * (0.5 + 0.35 * Math.sin(ts / 13000 * Math.PI * 2)),
-          window.innerHeight * (0.5 + 0.28 * Math.sin(ts / 19000 * Math.PI * 2))
-        );
+        paintAt(window.innerWidth*(0.5+0.35*Math.sin(ts/13000*Math.PI*2)), window.innerHeight*(0.5+0.28*Math.sin(ts/19000*Math.PI*2)));
         requestAnimationFrame(drift);
       })(0);
     } else {
-      let raf = null, curX = -9999, curY = -9999;
-      function paint() { paintAt(curX, curY); raf = null; }
-      window.addEventListener('mousemove', e => {
-        curX = e.clientX; curY = e.clientY;
-        if (!raf) raf = requestAnimationFrame(paint);
-      }, { passive: true });
-      document.addEventListener('mouseleave', () => {
-        curX = -9999; curY = -9999;
-        if (!raf) raf = requestAnimationFrame(paint);
-      });
+      let raf=null, curX=-9999, curY=-9999;
+      function paint() { paintAt(curX,curY); raf=null; }
+      window.addEventListener('mousemove', e => { curX=e.clientX; curY=e.clientY; if(!raf) raf=requestAnimationFrame(paint); }, {passive:true});
+      document.addEventListener('mouseleave', () => { curX=-9999; curY=-9999; if(!raf) raf=requestAnimationFrame(paint); });
     }
   </script>
-
 </body>
 </html>
