@@ -81,31 +81,6 @@
     </nav>
   </header>
 
-  <!-- REJECT MODAL -->
-  <div id="reject-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center px-4" style="background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);">
-    <div class="relative w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-2xl shadow-black/60">
-      <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-crimson/50 to-transparent"></div>
-      <h3 class="font-serif text-xl text-white mb-1">Request Revision</h3>
-      <p id="reject-modal-subtitle" class="text-muted text-xs mb-5">Leave feedback for the writer.</p>
-      <textarea id="reject-reason" rows="5" placeholder="Describe what needs to be changed… (optional)"
-                class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 resize-none transition-all duration-200"></textarea>
-      <div class="flex flex-wrap gap-3 mt-4">
-        <button id="reject-confirm-btn"
-                class="flex-1 px-4 py-2.5 bg-crimson hover:bg-crimson-light text-white text-sm font-semibold rounded-lg transition-colors duration-200">
-          Send &amp; Request Revision
-        </button>
-        <button onclick="rejectNoReason()"
-                class="px-4 py-2.5 border border-crimson/30 hover:border-crimson/60 text-red-400 text-sm rounded-lg transition-all duration-200">
-          Reject Without Message
-        </button>
-        <button onclick="cancelReject()"
-                class="px-4 py-2.5 border border-border text-muted hover:text-white text-sm rounded-lg transition-all duration-200">
-          Cancel
-        </button>
-      </div>
-    </div>
-  </div>
-
   <!-- DELETE BOOK MODAL -->
   <div id="delete-book-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center px-4" style="background:rgba(0,0,0,0.82);backdrop-filter:blur(4px);">
     <div class="relative w-full max-w-md rounded-2xl border border-red-500/25 bg-surface p-6 shadow-2xl shadow-black/60">
@@ -360,21 +335,20 @@
           </div>
 
           <!-- Comment panel -->
-          <div class="md:w-80 md:flex-shrink-0 border-t md:border-t-0 md:border-l border-border bg-charcoal/30 overflow-y-auto thin-scroll p-4 flex flex-col gap-5">
-            <div>
-              <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted mb-2">Chapter Comment</p>
+          <div class="md:w-80 md:flex-shrink-0 border-t md:border-t-0 md:border-l border-border bg-charcoal/25 overflow-y-auto thin-scroll flex flex-col">
+            <div class="p-4 border-b border-border/40">
+              <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted mb-2.5">Add Note</p>
               <textarea id="general-comment-input" rows="3" placeholder="Leave a general note on this chapter…"
-                        class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-xs rounded-lg px-3 py-2 resize-none transition-all duration-200"></textarea>
+                        class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-xs rounded-lg px-3 py-2.5 resize-none transition-all duration-200"></textarea>
               <button onclick="submitGeneralComment()"
-                      class="mt-2 w-full px-3 py-1.5 bg-crimson/10 hover:bg-crimson/20 border border-crimson/30 text-crimson-light text-xs font-semibold rounded-lg transition-all duration-200">
-                Post Comment
+                      class="mt-2 w-full px-3 py-2 bg-crimson/10 hover:bg-crimson/20 border border-crimson/30 text-crimson-light text-xs font-semibold rounded-lg transition-all duration-200">
+                Post Note
               </button>
             </div>
-            <div class="border-t border-border/40"></div>
-            <div>
-              <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted mb-3">All Comments</p>
-              <div id="comment-thread" class="space-y-3">
-                <p class="text-muted text-xs">No comments yet. Click + next to any paragraph to comment.</p>
+            <div class="flex-1 p-4">
+              <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted mb-3">All Notes</p>
+              <div id="comment-thread">
+                <p class="text-muted/60 text-xs italic">No comments yet.</p>
               </div>
             </div>
           </div>
@@ -492,7 +466,6 @@
     let selectedChapter = null;
     let _cachedChapters = [];
     let allComments     = [];
-    let rejectChapterId = null;
     const _writerReg   = new Map(); // id → writer
     const _adminBookReg = new Map(); // id → book
     const _adminChapReg = new Map(); // id → chapter
@@ -545,13 +518,16 @@
         _writerReg.set(w.id, w);
         return `
         <button onclick='selectWriter("${w.id}")' data-wid="${w.id}"
-                class="writer-btn w-full text-left px-3 py-2.5 rounded-lg text-sm text-white/80 hover:text-white hover:bg-surface border border-transparent hover:border-border transition-all duration-150">
-          <div class="flex items-center justify-between gap-2">
-            <div class="min-w-0">
-              <p class="font-medium truncate">${escHtml(w.name)}</p>
-              <p class="text-muted text-xs truncate">${escHtml(w.email)}</p>
+                class="writer-btn w-full text-left px-3 py-2.5 rounded-xl text-sm text-white/80 hover:text-white hover:bg-surface border border-transparent hover:border-border transition-all duration-150">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-full bg-crimson/12 border border-crimson/25 flex items-center justify-center flex-shrink-0 text-[11px] font-bold text-crimson-light uppercase">
+              ${escHtml((w.name||'?')[0])}
             </div>
-            ${pendingSet.has(w.id) ? '<span class="notif-dot"></span>' : ''}
+            <div class="min-w-0 flex-1">
+              <p class="font-semibold truncate text-[13px]">${escHtml(w.name)}</p>
+              <p class="text-muted text-[11px] truncate">${escHtml(w.email)}</p>
+            </div>
+            ${pendingSet.has(w.id) ? '<span class="notif-dot flex-shrink-0"></span>' : ''}
           </div>
         </button>`;
       }).join('');
@@ -703,8 +679,9 @@
     function renderInlineChapterList(chapters) {
       const container = $('chapter-list');
       if (!chapters.length) { container.innerHTML = `<p class="text-muted text-sm px-2">No chapters yet.</p>`; return; }
-      const sMap = { draft:'bg-muted/20 text-muted', submitted:'bg-gold/15 text-gold', approved:'bg-emerald-400/15 text-emerald-400', revision_requested:'bg-red-400/15 text-red-400' };
-      const badge = s => `<span class="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full ${sMap[s]||''}">${s.replace('_',' ')}</span>`;
+      const sMap   = { draft:'bg-muted/20 text-muted', submitted:'bg-gold/15 text-gold border border-gold/20', approved:'bg-emerald-400/15 text-emerald-400 border border-emerald-400/20', revision_requested:'bg-red-400/12 text-red-400 border border-red-400/20' };
+      const sLabel = { draft:'Draft', submitted:'Awaiting Review', approved:'Approved', revision_requested:'Revisions Due' };
+      const badge  = s => '<span class="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full ' + (sMap[s]||'bg-muted/10 text-muted') + '">' + (sLabel[s] || s.replace('_',' ')) + '</span>';
       container.innerHTML = chapters.map(ch => {
         _adminChapReg.set(ch.id, ch);
         const canApprove = ch.status === 'submitted' || ch.status === 'revision_requested';
@@ -731,7 +708,7 @@
                       Approve
                     </button>` : ''}
                   ${canReject ? `
-                    <button onclick='openRejectModal("${ch.id}","${escHtml(ch.title ?? `Chapter ${ch.chapter_number}`)}")'
+                    <button onclick='doReject("${ch.id}")'
                             class="text-[10px] font-semibold px-2 py-1 rounded border bg-crimson/10 border-crimson/30 text-red-400 hover:bg-crimson/20 transition-all">
                       Reject
                     </button>` : ''}
@@ -847,7 +824,7 @@
       $('admin-edit-btn').textContent = '';
       $('admin-edit-btn').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit';
       $('approve-btn').onclick = () => approveChapter(chapter.id);
-      $('reject-btn').onclick  = () => openRejectModal(chapter.id, chapter.title ?? `Chapter ${chapter.chapter_number}`);
+      $('reject-btn').onclick  = () => doReject(chapter.id);
       const canApprove = chapter.status === 'submitted' || chapter.status === 'revision_requested';
       const canReject  = chapter.status === 'submitted';
       $('approve-btn').disabled = !canApprove;
@@ -1174,22 +1151,26 @@
     function renderCommentThread() {
       const container = $('comment-thread');
       if (!allComments.length) {
-        container.innerHTML = `<p class="text-muted text-xs">No comments yet. Click + next to any paragraph to comment.</p>`;
+        container.innerHTML = '<p class="text-muted/60 text-xs italic">No comments yet.</p>';
         return;
       }
-      container.innerHTML = allComments.map(c => `
-        <div class="comment-card rounded-lg border ${c.resolved ? 'border-border/40 opacity-50' : 'border-border'} bg-charcoal/60 p-3"
-             data-comment-id="${c.id}" data-para-ref="${c.paragraph_ref ?? 'general'}">
-          <div class="flex items-center justify-between mb-1.5">
-            <span class="text-[10px] font-semibold uppercase tracking-wide ${c.paragraph_ref !== null ? 'text-crimson-light' : 'text-muted'}">
-              ${c.paragraph_ref !== null ? `¶ Paragraph ${c.paragraph_ref + 1}` : 'Chapter Note'}
-            </span>
-            ${!c.resolved
-              ? `<button onclick="resolveComment('${c.id}')" class="text-[10px] text-muted hover:text-emerald-400 transition-colors font-medium">Resolve</button>`
-              : '<span class="text-[10px] text-emerald-400/60">Resolved</span>'}
-          </div>
-          <p class="text-white/80 text-xs leading-relaxed">${escHtml(c.body)}</p>
-        </div>`).join('');
+      container.innerHTML = allComments.map(c => {
+        const isPara    = c.paragraph_ref !== null && c.paragraph_ref !== undefined;
+        const isGeneral = !isPara;
+        const resolved  = c.resolved;
+        const accentCls = resolved ? 'border-l-2 border-border/30 opacity-40' : isPara ? 'border-l-2 border-crimson/50' : 'border-l-2 border-border/50';
+        const labelCls  = isPara ? 'text-crimson-light' : 'text-muted';
+        const label     = isPara ? '¶ Para ' + (c.paragraph_ref + 1) : 'Chapter Note';
+        return '<div class="' + accentCls + ' pl-3 py-2.5 bg-charcoal/40 rounded-r-lg mb-2 last:mb-0" data-comment-id="' + c.id + '">'
+          + '<div class="flex items-center justify-between mb-1">'
+          + '<span class="text-[10px] font-semibold uppercase tracking-wide ' + labelCls + '">' + label + '</span>'
+          + (resolved
+            ? '<span class="text-[10px] text-emerald-400/50 font-medium">✓ Done</span>'
+            : '<button onclick="resolveComment(\'' + c.id + '\')" class="text-[10px] text-muted hover:text-emerald-400 transition-colors font-medium">Resolve</button>')
+          + '</div>'
+          + '<p class="text-white/75 text-xs leading-relaxed">' + escHtml(c.body) + '</p>'
+          + '</div>';
+      }).join('');
     }
 
     async function resolveComment(commentId) {
@@ -1317,64 +1298,38 @@
       el.textContent = total.toLocaleString() + ' words';
     }
 
-    function openRejectModal(chapterId, chapterTitle) {
-      rejectChapterId = chapterId;
-      $('reject-modal-subtitle').textContent = `Requesting revision for: "${chapterTitle}"`;
-      $('reject-reason').value = '';
-      $('reject-modal').classList.remove('hidden');
-      $('reject-reason').focus();
-    }
+    async function doReject(chapId) {
+      const id = chapId || selectedChapter?.id;
+      if (!id) return;
 
-    function cancelReject() { $('reject-modal').classList.add('hidden'); rejectChapterId = null; }
-    async function rejectNoReason() { await doReject(null); }
-
-    $('reject-confirm-btn').onclick = async () => {
-      await doReject($('reject-reason').value.trim() || null);
-    };
-
-    async function doReject(reason) {
-      if (!rejectChapterId) return;
-      const id = rejectChapterId;
-      $('reject-modal').classList.add('hidden');
-      rejectChapterId = null;
-
-      // Fetch current chapter data so we have the snapshot and edited content
       const { data: chapterData } = await db.from('chapters')
         .select('content, content_snapshot, chapter_number, title, word_count')
         .eq('id', id).single();
 
-      const editedContent  = chapterData?.content ?? '';
-      const snapshot       = chapterData?.content_snapshot ?? null;
-      const chNum          = chapterData?.chapter_number ?? selectedChapter?.chapter_number ?? '';
-      const chTitle        = chapterData?.title ?? selectedChapter?.title ?? '';
-      const bookTitle      = selectedBook?.title ?? '';
+      const editedContent = chapterData?.content ?? '';
+      const snapshot      = chapterData?.content_snapshot ?? null;
+      const chNum         = chapterData?.chapter_number ?? selectedChapter?.chapter_number ?? '';
+      const chTitle       = chapterData?.title ?? selectedChapter?.title ?? '';
+      const bookTitle     = selectedBook?.title ?? '';
 
-      // Build revision doc HTML (writer's submitted version) to embed in their notification
       const revisionDocHtml = editedContent
-        ? generateRevisionDoc(chNum, chTitle, bookTitle, reason, editedContent)
+        ? generateRevisionDoc(chNum, chTitle, bookTitle, null, editedContent)
         : null;
 
       const updatePayload = { status: 'revision_requested', updated_at: new Date().toISOString() };
       if (snapshot) {
-        // Revert content to the pre-edit approved state
         updatePayload.content          = snapshot;
         updatePayload.content_snapshot = null;
         updatePayload.snapshot_at      = null;
         updatePayload.word_count       = snapshot.trim() ? snapshot.trim().split(/\s+/).length : 0;
       }
 
-      if (reason) {
-        await db.from('comments').insert({ chapter_id: id, reviewer_id: currentUserId, paragraph_ref: null, body: reason });
-      }
-
       const { error } = await db.from('chapters').update(updatePayload).eq('id', id);
       if (error) { showToast('Error: ' + error.message); return; }
 
-      // Notify the writer — include their edited version in the body
       const writerId = selectedWriter?.id;
       if (writerId) {
-        let notifBody = `Chapter ${chNum}${chTitle ? ': "' + chTitle + '"' : ''} has been sent back for revision.`;
-        if (reason) notifBody += '\n\nAdmin feedback: ' + reason;
+        let notifBody = 'Chapter ' + chNum + (chTitle ? ': "' + chTitle + '"' : '') + ' has been sent back for revision.';
         if (revisionDocHtml) notifBody += '\n<revision-doc>' + revisionDocHtml + '</revision-doc>';
         await db.from('notifications').insert({
           user_id: writerId, type: 'chapter_rejected', title: 'Revision Requested',
@@ -1390,7 +1345,7 @@
           selectedChapter.content_snapshot = null;
         }
         const wc = updatePayload.word_count ?? chapterData?.word_count ?? 0;
-        $('viewer-chapter-meta').textContent = `${wc.toLocaleString()} words · revision requested`;
+        $('viewer-chapter-meta').textContent = wc.toLocaleString() + ' words · revision requested';
         $('approve-btn').disabled = false; $('reject-btn').disabled = true;
         $('approve-btn').classList.remove('opacity-40'); $('reject-btn').classList.add('opacity-40');
         const { data: fresh } = await db.from('comments').select('id, paragraph_ref, body, resolved, reviewer_id, created_at').eq('chapter_id', id).order('created_at', { ascending: true });
@@ -1400,8 +1355,6 @@
       }
       refreshChapterList();
     }
-
-    $('reject-modal').addEventListener('click', e => { if (e.target === $('reject-modal')) cancelReject(); });
 
     // ── DELETE BOOK ─────────────────────────────────────────────────
     function openDeleteBookModal() {

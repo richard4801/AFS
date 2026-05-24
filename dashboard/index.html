@@ -353,15 +353,18 @@
   </main>
 
   <!-- NOTIFICATION PANEL -->
-  <div id="notif-panel" class="hidden fixed z-[80] right-4 top-16 w-80 rounded-2xl border border-border bg-surface shadow-2xl shadow-black/60 overflow-hidden">
-    <div class="flex items-center justify-between px-4 py-3 border-b border-border/50">
-      <p class="text-sm font-semibold text-white">Notifications</p>
-      <div class="flex items-center gap-3">
-        <button onclick="clearAllNotifs()" class="text-muted hover:text-gold text-xs transition-colors">Clear all</button>
-        <button onclick="toggleNotifPanel()" class="text-muted hover:text-white text-lg leading-none">×</button>
+  <div id="notif-panel" class="hidden fixed z-[80] right-4 top-16 w-[340px] rounded-2xl border border-border bg-surface shadow-2xl shadow-black/70 overflow-hidden">
+    <div class="flex items-center justify-between px-4 py-3.5 border-b border-border/50 bg-charcoal/40">
+      <div class="flex items-center gap-2">
+        <svg class="w-3.5 h-3.5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"/></svg>
+        <p class="text-[13px] font-semibold text-white tracking-tight">Notifications</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="clearAllNotifs()" class="text-muted hover:text-gold text-[11px] font-medium transition-colors px-2 py-1 rounded hover:bg-charcoal">Clear all</button>
+        <button onclick="toggleNotifPanel()" class="w-6 h-6 flex items-center justify-center rounded-full text-muted hover:text-white hover:bg-charcoal text-base leading-none transition-all">×</button>
       </div>
     </div>
-    <div id="notif-list" class="max-h-80 overflow-y-auto thin-scroll divide-y divide-border/30"></div>
+    <div id="notif-list" class="max-h-[420px] overflow-y-auto thin-scroll divide-y divide-border/20"></div>
   </div>
 
   <!-- PROFILE MODAL -->
@@ -1268,13 +1271,14 @@
     }
 
     // ── NOTIFICATIONS ──────────────────────────────────────────
-    let _notifications = [];
+    let _notifications      = [];
+    let _dismissedNotifIds  = new Set();
 
     async function loadNotifications() {
       const { data } = await db.from('notifications')
         .select('*').eq('user_id', currentUserId)
         .order('created_at', { ascending: false }).limit(30);
-      _notifications = data ?? [];
+      _notifications = (data ?? []).filter(n => !_dismissedNotifIds.has(n.id));
       renderNotifBadge();
     }
 
@@ -1299,13 +1303,16 @@
     function renderNotifList() {
       const list = $('notif-list');
       if (!_notifications.length) {
-        list.innerHTML = '<p class="text-muted text-xs text-center py-8">No notifications.</p>';
+        list.innerHTML = '<div class="flex flex-col items-center justify-center py-10 px-4">'
+          + '<div class="w-10 h-10 rounded-full bg-charcoal border border-border flex items-center justify-center mb-3">'
+          + '<svg class="w-4 h-4 text-muted/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"/></svg>'
+          + '</div>'
+          + '<p class="text-muted/60 text-xs text-center">All caught up</p>'
+          + '</div>';
         return;
       }
       list.innerHTML = _notifications.map(n => {
-        const dot = !n.read ? '<span class="w-1.5 h-1.5 rounded-full bg-gold mt-1.5 flex-shrink-0"></span>' : '<span class="w-1.5 flex-shrink-0"></span>';
-
-        // Extract <revision-doc> block from body, keep it off visible text
+        // Extract <revision-doc> block — keep it out of visible text
         let visibleBody = n.body || '';
         const docMatch = visibleBody.match(/<revision-doc>([\s\S]*?)<\/revision-doc>/);
         if (docMatch) {
@@ -1313,21 +1320,27 @@
           visibleBody = visibleBody.replace(/<revision-doc>[\s\S]*?<\/revision-doc>/, '').trim();
         }
 
-        const bodyHtml = visibleBody ? '<p class="text-muted text-xs mt-0.5 leading-relaxed" style="white-space:pre-line">' + escHtml(visibleBody) + '</p>' : '';
-        const dlBtn = _revDocs.has(n.id)
-          ? '<button onclick="downloadRevisionDocById(\'' + n.id + '\')" class="mt-1.5 flex items-center gap-1 text-[10px] font-semibold text-gold hover:text-gold/80 transition-colors">&#x2B07; Download Revision Doc</button>'
-          : '';
-        const dateStr = new Date(n.created_at).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'});
-        const opacityClass = n.read ? ' opacity-55' : '';
-        return '<div class="flex items-start group">'
-          + '<button data-notif-id="' + n.id + '" onclick="readNotif(this.dataset.notifId)" class="flex-1 text-left px-4 py-3 hover:bg-charcoal transition-colors' + opacityClass + '">'
-          + '<div class="flex items-start gap-2.5">' + dot
-          + '<div class="min-w-0"><p class="text-white text-xs font-semibold">' + escHtml(n.title) + '</p>'
-          + bodyHtml
-          + dlBtn
-          + '<p class="text-muted/50 text-[10px] mt-1">' + dateStr + '</p>'
-          + '</div></div></button>'
-          + '<button data-notif-id="' + n.id + '" onclick="dismissNotif(this.dataset.notifId)" class="px-3 py-3 text-muted/30 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0 text-sm">×</button>'
+        const isUnread    = !n.read;
+        const hasDoc      = _revDocs.has(n.id);
+        const dateStr     = new Date(n.created_at).toLocaleDateString('en-US', {month:'short', day:'numeric'});
+        const bodyPreview = visibleBody.length > 110 ? visibleBody.slice(0, 107) + '…' : visibleBody;
+        const accentCls   = isUnread ? 'border-l-2 border-gold bg-obsidian/60' : '';
+
+        return '<div class="relative group ' + accentCls + '">'
+          + '<button onclick="readNotif(\'' + n.id + '\')" class="w-full text-left px-4 py-3.5 hover:bg-charcoal/50 transition-colors">'
+          + '<div class="flex items-start gap-2.5">'
+          + (isUnread ? '<span class="w-1.5 h-1.5 rounded-full bg-gold mt-1.5 flex-shrink-0"></span>' : '<span class="w-1.5 flex-shrink-0"></span>')
+          + '<div class="min-w-0 flex-1">'
+          + '<p class="text-[13px] font-semibold leading-snug ' + (isUnread ? 'text-white' : 'text-white/70') + '">' + escHtml(n.title) + '</p>'
+          + (bodyPreview ? '<p class="text-muted text-[11px] leading-relaxed mt-0.5 line-clamp-2">' + escHtml(bodyPreview) + '</p>' : '')
+          + (hasDoc
+            ? '<button onclick="event.stopPropagation();downloadRevisionDocById(\'' + n.id + '\')" class="mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold text-gold hover:text-gold/80 bg-gold/8 hover:bg-gold/14 border border-gold/25 rounded-full px-3 py-1 transition-all">&#x2B07; Download Chapter Doc</button>'
+            : '')
+          + '<p class="text-muted/40 text-[10px] mt-1.5">' + dateStr + '</p>'
+          + '</div>'
+          + '</div>'
+          + '</button>'
+          + '<button onclick="dismissNotif(\'' + n.id + '\')" class="absolute top-3 right-2.5 w-6 h-6 flex items-center justify-center rounded-full text-muted/30 hover:text-white hover:bg-charcoal opacity-0 group-hover:opacity-100 transition-all text-xs" title="Dismiss">×</button>'
           + '</div>';
       }).join('');
     }
@@ -1354,19 +1367,19 @@
     }
 
     async function dismissNotif(id) {
-      await db.from('notifications').delete().eq('id', id);
+      _dismissedNotifIds.add(id);
       _notifications = _notifications.filter(n => n.id !== id);
-      renderNotifBadge();
-      renderNotifList();
+      renderNotifBadge(); renderNotifList();
+      await db.from('notifications').delete().eq('id', id);
     }
 
     async function clearAllNotifs() {
       if (!_notifications.length) return;
-      const ids = _notifications.map(n => n.id);
-      await db.from('notifications').delete().in('id', ids);
+      _notifications.forEach(n => _dismissedNotifIds.add(n.id));
       _notifications = [];
-      renderNotifBadge();
-      renderNotifList();
+      renderNotifBadge(); renderNotifList();
+      const ids = [..._dismissedNotifIds];
+      await db.from('notifications').delete().in('id', ids);
     }
 
     document.addEventListener('click', e => {
