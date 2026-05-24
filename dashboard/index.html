@@ -539,6 +539,7 @@
     let editingChapter = null;
     const _bookReg  = new Map(); // id → book (avoids JSON-in-onclick; safe with apostrophes)
     const _chapReg  = new Map(); // id → chapter
+    const _revDocs  = new Map(); // notif-id → revision doc HTML
     let pendingCoverFile = null;
 
     // ── AUTH ───────────────────────────────────────────────────
@@ -1303,7 +1304,19 @@
       }
       list.innerHTML = _notifications.map(n => {
         const dot = !n.read ? '<span class="w-1.5 h-1.5 rounded-full bg-gold mt-1.5 flex-shrink-0"></span>' : '<span class="w-1.5 flex-shrink-0"></span>';
-        const bodyHtml = n.body ? '<p class="text-muted text-xs mt-0.5 leading-relaxed" style="white-space:pre-line">' + escHtml(n.body) + '</p>' : '';
+
+        // Extract <revision-doc> block from body, keep it off visible text
+        let visibleBody = n.body || '';
+        const docMatch = visibleBody.match(/<revision-doc>([\s\S]*?)<\/revision-doc>/);
+        if (docMatch) {
+          _revDocs.set(n.id, docMatch[1]);
+          visibleBody = visibleBody.replace(/<revision-doc>[\s\S]*?<\/revision-doc>/, '').trim();
+        }
+
+        const bodyHtml = visibleBody ? '<p class="text-muted text-xs mt-0.5 leading-relaxed" style="white-space:pre-line">' + escHtml(visibleBody) + '</p>' : '';
+        const dlBtn = _revDocs.has(n.id)
+          ? '<button onclick="downloadRevisionDocById(\'' + n.id + '\')" class="mt-1.5 flex items-center gap-1 text-[10px] font-semibold text-gold hover:text-gold/80 transition-colors">&#x2B07; Download Revision Doc</button>'
+          : '';
         const dateStr = new Date(n.created_at).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'});
         const opacityClass = n.read ? ' opacity-55' : '';
         return '<div class="flex items-start group">'
@@ -1311,11 +1324,26 @@
           + '<div class="flex items-start gap-2.5">' + dot
           + '<div class="min-w-0"><p class="text-white text-xs font-semibold">' + escHtml(n.title) + '</p>'
           + bodyHtml
+          + dlBtn
           + '<p class="text-muted/50 text-[10px] mt-1">' + dateStr + '</p>'
           + '</div></div></button>'
           + '<button data-notif-id="' + n.id + '" onclick="dismissNotif(this.dataset.notifId)" class="px-3 py-3 text-muted/30 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0 text-sm">×</button>'
           + '</div>';
       }).join('');
+    }
+
+    function downloadRevisionDocById(notifId) {
+      const html = _revDocs.get(notifId);
+      if (!html) return;
+      const blob = new Blob([html], { type: 'application/msword' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = 'revision-notes.doc';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     }
 
     async function readNotif(id) {

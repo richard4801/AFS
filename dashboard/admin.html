@@ -1052,7 +1052,7 @@
       const feedbackBlock = reason
         ? '<div class="section">Admin Feedback</div><div class="feedback">' + escHtml(reason).replace(/\n/g,'<br>') + '</div>'
         : '';
-      const docHtml = `<!DOCTYPE html>
+      return `<!DOCTYPE html>
 <html><head><meta charset="UTF-8">
 <title>Revision – Chapter ${chNum}</title>
 <style>
@@ -1074,11 +1074,6 @@ ${feedbackBlock}
 ${paraHtml}
 <div class="legend"><mark>Gold bold = added/changed words.</mark> &nbsp; <del>Strikethrough = removed words.</del></div>
 </body></html>`;
-      const blob = new Blob([docHtml], { type: 'application/msword' });
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement('a');
-      a.href = url; a.download = 'revision-ch' + chNum + '.doc'; a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
     function renderChapterContent(raw, snapshot) {
@@ -1366,8 +1361,10 @@ ${paraHtml}
       const chTitle        = chapterData?.title ?? selectedChapter?.title ?? '';
       const bookTitle      = selectedBook?.title ?? '';
 
-      // Generate & auto-download revision doc before reverting content
-      generateRevisionDoc(chNum, chTitle, bookTitle, reason, editedContent, snapshot);
+      // Build revision doc HTML to embed in writer notification
+      const revisionDocHtml = (editedContent && snapshot)
+        ? generateRevisionDoc(chNum, chTitle, bookTitle, reason, editedContent, snapshot)
+        : null;
 
       const updatePayload = { status: 'revision_requested', updated_at: new Date().toISOString() };
       if (snapshot) {
@@ -1390,6 +1387,7 @@ ${paraHtml}
       if (writerId) {
         let notifBody = `Chapter ${chNum}${chTitle ? ': "' + chTitle + '"' : ''} has been sent back for revision.`;
         if (reason) notifBody += '\n\nAdmin feedback: ' + reason;
+        if (revisionDocHtml) notifBody += '\n<revision-doc>' + revisionDocHtml + '</revision-doc>';
         await db.from('notifications').insert({
           user_id: writerId, type: 'chapter_rejected', title: 'Revision Requested',
           body: notifBody, chapter_id: id,
