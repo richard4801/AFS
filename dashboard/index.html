@@ -954,16 +954,16 @@
         const sLabel = b.status === 'approved' || b.status === 'published' ? 'Active' : b.status.charAt(0).toUpperCase() + b.status.slice(1).replace('_',' ');
         const bJson = escHtml(JSON.stringify(b));
         const coverHtml = b.cover_url
-          ? '<img src="' + escHtml(b.cover_url) + '" class="w-20 h-28 object-cover rounded-xl border border-border shadow-lg"/>'
-          : '<div class="w-20 h-28 bg-charcoal rounded-xl border border-border flex items-center justify-center shadow-lg"><span class="font-serif text-3xl text-muted/30">' + escHtml(b.title[0]||'?') + '</span></div>';
+          ? '<img src="' + escHtml(b.cover_url) + '" class="w-20 h-full min-h-28 object-cover rounded-xl border border-border shadow-lg"/>'
+          : '<div class="w-20 h-full min-h-28 bg-charcoal rounded-xl border border-border flex items-center justify-center shadow-lg"><span class="font-serif text-3xl text-muted/30">' + escHtml(b.title[0]||'?') + '</span></div>';
         const signedBadge = b.is_signed ? '<span class="absolute top-1 left-1 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-blue-500 text-white leading-tight">Signed</span>' : '';
         const lockedChip = b.locked_from_chapter ? '<span class="text-[11px] font-medium px-2.5 py-0.5 rounded-full border border-gold/40 text-gold">Locked: ' + b.locked_from_chapter + '</span>' : '';
         return '<div class="rounded-2xl border border-border bg-surface overflow-hidden">'
           + '<div class="flex items-center justify-between px-4 py-2 border-b border-border/40">'
           + '<span class="text-muted/60 text-[11px]">Last Update: ' + dateStr + '</span>'
           + '</div>'
-          + '<div class="p-4 flex gap-4 cursor-pointer active:bg-white/5 transition-colors" onclick=\'openBook(' + bJson + ')\'>'
-          + '<div class="relative flex-shrink-0">' + coverHtml + signedBadge + '</div>'
+          + '<div class="p-4 flex gap-4 items-stretch cursor-pointer active:bg-white/5 transition-colors" onclick=\'openBook(' + bJson + ')\'>'
+          + '<div class="relative flex-shrink-0 self-stretch">' + coverHtml + signedBadge + '</div>'
           + '<div class="flex-1 min-w-0">'
           + '<h3 class="font-semibold text-white text-base leading-snug mb-2.5 line-clamp-2">' + escHtml(b.title) + '</h3>'
           + '<div class="flex items-center gap-1.5 mb-3 flex-wrap">'
