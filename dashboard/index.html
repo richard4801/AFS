@@ -1312,7 +1312,7 @@
         return;
       }
       list.innerHTML = _notifications.map(n => {
-        // Extract <revision-doc> block — keep it out of visible text
+        // Extract <revision-doc> block from body
         let visibleBody = n.body || '';
         const docMatch = visibleBody.match(/<revision-doc>([\s\S]*?)<\/revision-doc>/);
         if (docMatch) {
@@ -1322,25 +1322,27 @@
 
         const isUnread    = !n.read;
         const hasDoc      = _revDocs.has(n.id);
-        const dateStr     = new Date(n.created_at).toLocaleDateString('en-US', {month:'short', day:'numeric'});
-        const bodyPreview = visibleBody.length > 110 ? visibleBody.slice(0, 107) + '…' : visibleBody;
-        const accentCls   = isUnread ? 'border-l-2 border-gold bg-obsidian/60' : '';
+        const dateStr     = new Date(n.created_at).toLocaleDateString('en-US', {month:'short',day:'numeric'});
+        const unreadAccent = isUnread ? 'bg-obsidian border-l-2 border-gold' : '';
+        const bodyPreview = visibleBody.length > 100 ? visibleBody.slice(0, 97) + '…' : visibleBody;
 
-        return '<div class="relative group ' + accentCls + '">'
-          + '<button onclick="readNotif(\'' + n.id + '\')" class="w-full text-left px-4 py-3.5 hover:bg-charcoal/50 transition-colors">'
-          + '<div class="flex items-start gap-2.5">'
-          + (isUnread ? '<span class="w-1.5 h-1.5 rounded-full bg-gold mt-1.5 flex-shrink-0"></span>' : '<span class="w-1.5 flex-shrink-0"></span>')
-          + '<div class="min-w-0 flex-1">'
-          + '<p class="text-[13px] font-semibold leading-snug ' + (isUnread ? 'text-white' : 'text-white/70') + '">' + escHtml(n.title) + '</p>'
-          + (bodyPreview ? '<p class="text-muted text-[11px] leading-relaxed mt-0.5 line-clamp-2">' + escHtml(bodyPreview) + '</p>' : '')
+        return '<div class="relative group ' + unreadAccent + '">'
+          + '<button onclick="readNotif(\'' + n.id + '\')" class="w-full text-left px-4 py-3.5 hover:bg-charcoal/50 transition-colors block">'
+          + '<div class="flex items-start gap-3">'
+          + '<div class="flex-1 min-w-0">'
+          + '<div class="flex items-center gap-2 mb-0.5">'
+          + (isUnread ? '<span class="w-1.5 h-1.5 rounded-full bg-gold flex-shrink-0"></span>' : '')
+          + '<p class="text-' + (isUnread ? 'white' : 'white/75') + ' text-[13px] font-semibold leading-snug truncate">' + escHtml(n.title) + '</p>'
+          + '</div>'
+          + (bodyPreview ? '<p class="text-muted text-[11px] leading-relaxed mt-0.5 line-clamp-2" style="display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden">' + escHtml(bodyPreview) + '</p>' : '')
           + (hasDoc
-            ? '<button onclick="event.stopPropagation();downloadRevisionDocById(\'' + n.id + '\')" class="mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold text-gold hover:text-gold/80 bg-gold/8 hover:bg-gold/14 border border-gold/25 rounded-full px-3 py-1 transition-all">&#x2B07; Download Chapter Doc</button>'
-            : '')
+              ? '<button onclick="event.stopPropagation();downloadRevisionDocById(\'' + n.id + '\')" class="mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold text-gold hover:text-gold/80 bg-gold/8 hover:bg-gold/15 border border-gold/25 rounded-full px-3 py-1 transition-all">&#x2B07; Download Chapter Doc</button>'
+              : '')
           + '<p class="text-muted/40 text-[10px] mt-1.5">' + dateStr + '</p>'
           + '</div>'
           + '</div>'
           + '</button>'
-          + '<button onclick="dismissNotif(\'' + n.id + '\')" class="absolute top-3 right-2.5 w-6 h-6 flex items-center justify-center rounded-full text-muted/30 hover:text-white hover:bg-charcoal opacity-0 group-hover:opacity-100 transition-all text-xs" title="Dismiss">×</button>'
+          + '<button onclick="dismissNotif(\'' + n.id + '\')" class="absolute top-3 right-3 w-6 h-6 flex items-center justify-center rounded-full text-muted/30 hover:text-white hover:bg-charcoal opacity-0 group-hover:opacity-100 transition-all text-xs" title="Dismiss">×</button>'
           + '</div>';
       }).join('');
     }
