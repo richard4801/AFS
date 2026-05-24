@@ -47,6 +47,12 @@
     }
     #editor-content:focus { outline: none; border-color: #C9A84C; box-shadow: 0 0 0 2px rgba(201,168,76,0.15); }
     #editor-content:disabled { opacity: 0.6; cursor: not-allowed; }
+    .prose-editor { width:100%; background:transparent; border:none; color:rgba(255,255,255,0.88); font-family:'DM Serif Display',Georgia,serif; font-size:17px; line-height:2.0; letter-spacing:0.015em; resize:none; padding:1.5rem 0 2rem; caret-color:#C9A84C; }
+    .prose-editor:focus { outline:none; }
+    .prose-editor::placeholder { color:rgba(122,122,122,0.4); font-style:italic; font-family:inherit; }
+    .prose-title-input { width:100%; background:transparent; border:none; border-bottom:1px solid rgba(46,46,46,0.9); color:rgba(255,255,255,0.9); font-family:'DM Serif Display',Georgia,serif; font-size:1.2rem; padding:0.25rem 0 0.65rem; margin-bottom:0.25rem; }
+    .prose-title-input:focus { outline:none; border-bottom-color:rgba(201,168,76,0.5); }
+    .prose-title-input::placeholder { color:rgba(122,122,122,0.35); }
     .thin-scroll::-webkit-scrollbar       { width: 4px; }
     .thin-scroll::-webkit-scrollbar-track { background: transparent; }
     .thin-scroll::-webkit-scrollbar-thumb { background: #2E2E2E; border-radius: 4px; }
@@ -80,8 +86,15 @@
         <span class="w-6 h-6 rounded-sm bg-gold flex items-center justify-center text-obsidian font-serif font-bold text-xs">A</span>
         <span class="hidden sm:inline font-serif text-base tracking-wide text-white whitespace-nowrap">Apex Fiction Studio</span>
       </div>
-      <div class="flex items-center gap-4">
-        <span id="nav-name" class="hidden sm:block text-muted text-sm truncate max-w-[180px]"></span>
+      <div class="flex items-center gap-3">
+        <button id="nav-name-btn" onclick="openProfileModal()"
+                class="hidden sm:block text-muted hover:text-white text-sm truncate max-w-[160px] transition-colors cursor-pointer"
+                title="Edit profile"></button>
+        <button id="notif-btn" onclick="toggleNotifPanel()"
+                class="relative flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-white hover:bg-surface border border-border hover:border-white/20 transition-all duration-200">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span id="notif-badge" class="hidden absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-gold text-obsidian text-[9px] font-bold rounded-full flex items-center justify-center px-0.5"></span>
+        </button>
         <button id="sign-out-btn"
                 class="flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium text-muted hover:text-white border border-border hover:border-white/20 rounded-full transition-all duration-200">
           Sign Out
@@ -334,6 +347,40 @@
     </p>
   </main>
 
+  <!-- NOTIFICATION PANEL -->
+  <div id="notif-panel" class="hidden fixed z-[80] right-4 top-16 w-80 rounded-2xl border border-border bg-surface shadow-2xl shadow-black/60 overflow-hidden">
+    <div class="flex items-center justify-between px-4 py-3 border-b border-border/50">
+      <p class="text-sm font-semibold text-white">Notifications</p>
+      <button onclick="toggleNotifPanel()" class="text-muted hover:text-white text-lg leading-none">×</button>
+    </div>
+    <div id="notif-list" class="max-h-80 overflow-y-auto thin-scroll divide-y divide-border/30"></div>
+  </div>
+
+  <!-- PROFILE MODAL -->
+  <div id="profile-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center px-4"
+       style="background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);">
+    <div class="relative w-full max-w-sm rounded-2xl border border-border bg-surface p-6 shadow-2xl shadow-black/60">
+      <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent"></div>
+      <h3 class="font-serif text-xl text-white mb-1">Your Profile</h3>
+      <p class="text-muted text-xs mb-5">Update your display name.</p>
+      <div class="mb-5">
+        <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Display Name</label>
+        <input id="profile-name-input" type="text"
+               class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 transition-all duration-200"/>
+      </div>
+      <div class="flex gap-3">
+        <button onclick="saveProfile()"
+                class="flex-1 px-4 py-2.5 bg-gold hover:bg-gold-light text-obsidian text-sm font-semibold rounded-lg transition-colors">
+          Save
+        </button>
+        <button onclick="closeProfileModal()"
+                class="px-4 py-2.5 border border-border hover:border-white/20 text-muted hover:text-white text-sm rounded-lg transition-all">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- WRITER PARAGRAPH COMMENT POPOVER -->
   <div id="writer-pop" class="hidden fixed z-[150] rounded-2xl border border-border bg-surface shadow-2xl shadow-black/70 flex flex-col" style="width:272px;max-height:360px;">
     <div class="flex items-center justify-between px-4 pt-3.5 pb-2.5 border-b border-border/50 flex-shrink-0">
@@ -555,10 +602,14 @@
     // ── CHAPTER VIEW STATE ─────────────────────────────────────
     let _writerChapterComments = [];
     let _writerEditModeActive  = false;
+    let _originalChapterContent = '';
+    let _hasExistingSnapshot    = false;
 
     function showEditorView(chapter) {
-      editingChapter       = chapter || null;
+      editingChapter        = chapter || null;
       _writerEditModeActive = false;
+      _originalChapterContent = '';
+      _hasExistingSnapshot    = false;
 
       $('view-books').classList.add('hidden');
       $('view-chapters').classList.add('hidden');
@@ -568,7 +619,6 @@
       const isNew = !chapter;
       $('editor-chapter-num').textContent = isNew ? `Chapter ${window._nextChNum || '—'}` : `Chapter ${chapter.chapter_number}`;
       $('editor-heading').textContent     = isNew ? 'New Chapter' : (chapter.title || '(Untitled)');
-      $('editor-chapter-title').value     = chapter?.title || '';
       $('editor-error').classList.add('hidden');
 
       // Status badge
@@ -584,30 +634,42 @@
       }
 
       if (isNew) {
-        // New chapter: go straight to edit mode
         $('editor-read-mode').classList.add('hidden');
         $('editor-edit-mode').classList.remove('hidden');
         $('writer-edit-btn').classList.add('hidden');
         $('writer-chapter-sidebar').classList.add('hidden');
         $('editor-submit-btn').innerHTML = 'Submit for Review <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>';
+        // New chapter: standard styled textarea + title input + docx upload
+        $('editor-chapter-title').value = '';
+        $('editor-chapter-title').className = 'form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 transition-all duration-200';
+        $('editor-content').className = 'w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 resize-y transition-all duration-200 leading-relaxed thin-scroll';
+        $('editor-content').style = 'font-size:15px;line-height:1.85;letter-spacing:0.01em;';
+        $('docx-section').classList.remove('hidden');
         $('editor-content').value = '';
         $('editor-word-count').textContent = '0 words';
       } else {
-        // Existing: show formatted read mode, Edit toggle button
         $('editor-read-mode').classList.remove('hidden');
         $('editor-edit-mode').classList.add('hidden');
         $('writer-edit-btn').classList.remove('hidden');
         $('writer-edit-btn').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit';
         $('editor-submit-btn').textContent = 'Update';
+        // Existing chapter: clean prose editor (no docx, no box)
+        $('editor-chapter-title').className = 'prose-title-input';
+        $('editor-content').className = 'w-full prose-editor thin-scroll';
+        $('editor-content').style = '';
+        $('docx-section').classList.add('hidden');
         $('chapter-preview-content').innerHTML = '<p class="text-muted text-sm animate-pulse">Loading…</p>';
         $('writer-chapter-sidebar').classList.add('hidden');
 
         Promise.all([
-          db.from('chapters').select('content').eq('id', chapter.id).single(),
+          db.from('chapters').select('content, content_snapshot').eq('id', chapter.id).single(),
           db.from('comments').select('id,paragraph_ref,body,resolved,created_at')
             .eq('chapter_id', chapter.id).order('created_at', { ascending: true }),
         ]).then(([{ data: full }, { data: comments }]) => {
-          _writerChapterComments = comments ?? [];
+          _writerChapterComments  = comments ?? [];
+          _originalChapterContent = full?.content || '';
+          _hasExistingSnapshot    = !!full?.content_snapshot;
+          $('editor-chapter-title').value    = chapter?.title || '';
           $('editor-content').value          = full?.content || '';
           $('editor-word-count').textContent = countWords(full?.content || '') + ' words';
           renderWriterChapterView(full?.content ?? '', _writerChapterComments);
@@ -616,18 +678,22 @@
       }
     }
 
-    function toggleWriterEditMode() {
+        function toggleWriterEditMode() {
       _writerEditModeActive = !_writerEditModeActive;
       if (_writerEditModeActive) {
         closeWriterPopover();
         $('editor-read-mode').classList.add('hidden');
         $('editor-edit-mode').classList.remove('hidden');
         $('writer-edit-btn').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg> View';
-        $('editor-content').focus();
+        setTimeout(() => $('editor-content').focus(), 50);
       } else {
         $('editor-read-mode').classList.remove('hidden');
         $('editor-edit-mode').classList.add('hidden');
         $('writer-edit-btn').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit';
+        // Refresh prose view with any content changes
+        if (_originalChapterContent !== $('editor-content').value) {
+          renderWriterChapterView($('editor-content').value, _writerChapterComments);
+        }
       }
     }
 
@@ -966,10 +1032,13 @@
       const words = countWords(content);
 
       if (editingChapter) {
-        // Update existing draft
-        const { error } = await db.from('chapters').update({
-          title, content, word_count: words, status: statusToSave, updated_at: new Date().toISOString(),
-        }).eq('id', editingChapter.id);
+        const updateData = { title, content, word_count: words, status: statusToSave, updated_at: new Date().toISOString() };
+        // Snapshot original content so admin can diff / revert on rejection
+        if (statusToSave === 'submitted' && _originalChapterContent && !_hasExistingSnapshot) {
+          updateData.content_snapshot = _originalChapterContent;
+          updateData.snapshot_at = new Date().toISOString();
+        }
+        const { error } = await db.from('chapters').update(updateData).eq('id', editingChapter.id);
         if (error) { errBox.textContent = error.message; errBox.classList.remove('hidden'); return; }
       } else {
         // Insert new chapter
@@ -1078,6 +1147,87 @@
       return paras.join('\n\n');
     }
 
+    // ── NOTIFICATIONS ──────────────────────────────────────────
+    let _notifications = [];
+
+    async function loadNotifications() {
+      const { data } = await db.from('notifications')
+        .select('*').eq('user_id', currentUserId)
+        .order('created_at', { ascending: false }).limit(30);
+      _notifications = data ?? [];
+      renderNotifBadge();
+    }
+
+    function renderNotifBadge() {
+      const unread = _notifications.filter(n => !n.read).length;
+      const badge = $('notif-badge');
+      if (unread > 0) {
+        badge.textContent = unread > 9 ? '9+' : String(unread);
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    let _notifPanelOpen = false;
+    function toggleNotifPanel() {
+      _notifPanelOpen = !_notifPanelOpen;
+      $('notif-panel').classList.toggle('hidden', !_notifPanelOpen);
+      if (_notifPanelOpen) renderNotifList();
+    }
+
+    function renderNotifList() {
+      const list = $('notif-list');
+      if (!_notifications.length) {
+        list.innerHTML = '<p class="text-muted text-xs text-center py-8">No notifications yet.</p>';
+        return;
+      }
+      list.innerHTML = _notifications.map(n =>
+        '<button onclick="readNotif('' + n.id + '')" class="w-full text-left px-4 py-3 hover:bg-charcoal transition-colors' + (n.read ? ' opacity-55' : '') + '">'
+        + '<div class="flex items-start gap-2.5">'
+        + (!n.read ? '<span class="w-1.5 h-1.5 rounded-full bg-gold mt-1.5 flex-shrink-0"></span>' : '<span class="w-1.5 flex-shrink-0"></span>')
+        + '<div class="min-w-0">'
+        + '<p class="text-white text-xs font-semibold">' + escHtml(n.title) + '</p>'
+        + (n.body ? '<p class="text-muted text-xs mt-0.5 leading-relaxed">' + escHtml(n.body) + '</p>' : '')
+        + '<p class="text-muted/50 text-[10px] mt-1">' + new Date(n.created_at).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'}) + '</p>'
+        + '</div></div></button>'
+      ).join('');
+    }
+
+    async function readNotif(id) {
+      await db.from('notifications').update({ read: true }).eq('id', id);
+      _notifications = _notifications.map(n => n.id === id ? { ...n, read: true } : n);
+      renderNotifBadge();
+      renderNotifList();
+    }
+
+    document.addEventListener('click', e => {
+      if (_notifPanelOpen && !$('notif-panel').contains(e.target) && !$('notif-btn').contains(e.target)) {
+        _notifPanelOpen = false;
+        $('notif-panel').classList.add('hidden');
+      }
+    });
+
+    // ── WRITER PROFILE ─────────────────────────────────────────
+    function openProfileModal() {
+      $('profile-name-input').value = $('nav-name-btn').textContent.trim();
+      $('profile-modal').classList.remove('hidden');
+      setTimeout(() => $('profile-name-input').focus(), 50);
+    }
+    function closeProfileModal() { $('profile-modal').classList.add('hidden'); }
+    $('profile-modal').addEventListener('click', e => { if (e.target === $('profile-modal')) closeProfileModal(); });
+
+    async function saveProfile() {
+      const name = $('profile-name-input').value.trim();
+      if (!name) return;
+      const { error } = await db.from('profiles').update({ name }).eq('id', currentUserId);
+      if (error) { showToast('Error: ' + error.message); return; }
+      $('nav-name-btn').textContent    = name;
+      $('greeting-name').textContent   = name.split(' ')[0];
+      closeProfileModal();
+      showToast('Profile updated!');
+    }
+
     // ── TOAST ──────────────────────────────────────────────────
     function showToast(msg) {
       const t = document.createElement('div');
@@ -1117,8 +1267,10 @@
       ]);
 
       const firstName = (profile?.name || 'Writer').split(' ')[0];
-      $('greeting-name').textContent = firstName;
-      $('nav-name').textContent = profile?.name || '';
+      $('greeting-name').textContent    = firstName;
+      $('nav-name-btn').textContent     = profile?.name || profile?.email || '';
+      $('nav-name-btn').classList.remove('hidden');
+      loadNotifications();
 
       const monthly = earnings30
         .filter(r => r.date.startsWith(new Date().toISOString().slice(0, 7)))
