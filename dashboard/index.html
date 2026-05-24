@@ -228,88 +228,101 @@
           Chapters
         </button>
 
-        <div class="relative rounded-2xl border border-border bg-surface p-6 space-y-5">
-          <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent"></div>
+        <div class="flex flex-col lg:flex-row gap-6 items-start">
 
-          <!-- Chapter heading -->
-          <div class="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p id="editor-chapter-num" class="text-[10px] font-semibold tracking-[0.18em] uppercase text-gold mb-1"></p>
-              <h2 id="editor-heading" class="font-serif text-2xl text-white">New Chapter</h2>
+          <!-- LEFT: Main content panel -->
+          <div class="flex-1 min-w-0 relative rounded-2xl border border-border bg-surface overflow-hidden">
+            <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent pointer-events-none"></div>
+
+            <!-- Header -->
+            <div class="p-6 pb-4 flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p id="editor-chapter-num" class="text-[10px] font-semibold tracking-[0.18em] uppercase text-gold mb-1"></p>
+                <h2 id="editor-heading" class="font-serif text-2xl text-white">New Chapter</h2>
+                <span id="editor-status-badge" class="hidden text-[10px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full mt-1 inline-block"></span>
+              </div>
+              <button id="writer-edit-btn" class="hidden inline-flex items-center gap-1.5 px-4 py-2 bg-surface hover:bg-charcoal border border-border hover:border-white/20 text-white text-xs font-semibold rounded-lg transition-all duration-200" onclick="toggleWriterEditMode()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Edit
+              </button>
             </div>
-            <span id="editor-status-badge" class="hidden text-[10px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full"></span>
-          </div>
 
-          <!-- Chapter title -->
-          <div>
-            <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">
-              Chapter Title <span class="text-muted font-normal">(optional)</span>
-            </label>
-            <input id="editor-chapter-title" type="text" placeholder="e.g. The Encounter"
-                   class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 transition-all duration-200"/>
-          </div>
-
-          <!-- Edit mode: docx upload + textarea -->
-          <div id="editor-textarea-mode">
-
-          <!-- Docx upload (edit mode only) -->
-          <div id="docx-section">
-            <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">
-              Upload Word Document <span class="text-muted font-normal">(auto-converts to plain text)</span>
-            </label>
-            <div id="docx-dropzone"
-                 class="border-2 border-dashed border-border hover:border-gold/40 rounded-lg p-6 text-center cursor-pointer transition-colors duration-200 group">
-              <svg class="w-8 h-8 mx-auto mb-2 text-muted group-hover:text-gold/70 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m6.75 12-3-3m0 0-3 3m3-3v6m-1.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9z"/>
-              </svg>
-              <p class="text-sm text-muted group-hover:text-white/70 transition-colors">
-                Drag & drop a <span class="text-white">.docx</span> file, or <span class="text-gold">browse</span>
-              </p>
-              <p id="docx-filename" class="text-xs text-gold mt-1 hidden"></p>
-              <input type="file" id="docx-input" accept=".docx" class="hidden"/>
+            <!-- READ MODE: formatted prose -->
+            <div id="editor-read-mode" class="hidden px-6 pb-6">
+              <div id="chapter-preview-content" class="min-h-[120px]"></div>
             </div>
+
+            <!-- EDIT MODE: title + docx + textarea + actions -->
+            <div id="editor-edit-mode" class="px-6 pb-6 space-y-5">
+
+              <!-- Chapter title -->
+              <div>
+                <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">
+                  Chapter Title <span class="text-muted font-normal">(optional)</span>
+                </label>
+                <input id="editor-chapter-title" type="text" placeholder="e.g. The Encounter"
+                       class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 transition-all duration-200"/>
+              </div>
+
+              <!-- Docx upload -->
+              <div id="docx-section">
+                <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">
+                  Upload Word Document <span class="text-muted font-normal">(auto-converts to plain text)</span>
+                </label>
+                <div id="docx-dropzone"
+                     class="border-2 border-dashed border-border hover:border-gold/40 rounded-lg p-6 text-center cursor-pointer transition-colors duration-200 group">
+                  <svg class="w-8 h-8 mx-auto mb-2 text-muted group-hover:text-gold/70 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m6.75 12-3-3m0 0-3 3m3-3v6m-1.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9z"/>
+                  </svg>
+                  <p class="text-sm text-muted group-hover:text-white/70 transition-colors">
+                    Drag &amp; drop a <span class="text-white">.docx</span> file, or <span class="text-gold">browse</span>
+                  </p>
+                  <p id="docx-filename" class="text-xs text-gold mt-1 hidden"></p>
+                  <input type="file" id="docx-input" accept=".docx" class="hidden"/>
+                </div>
+              </div>
+
+              <!-- Content textarea -->
+              <div>
+                <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Chapter Content</label>
+                <textarea id="editor-content" rows="22"
+                          placeholder="Start writing your chapter here, or upload a .docx above to auto-fill…"
+                          class="w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 resize-y transition-all duration-200 leading-relaxed thin-scroll"
+                          style="font-size:15px;line-height:1.85;letter-spacing:0.01em;"></textarea>
+                <div class="flex items-center justify-between mt-1.5">
+                  <p id="editor-status-label" class="text-muted text-xs"></p>
+                  <p id="editor-word-count" class="text-muted text-xs">0 words</p>
+                </div>
+              </div>
+
+              <!-- Error -->
+              <div id="editor-error" class="hidden text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-3"></div>
+
+              <!-- Actions -->
+              <div id="editor-actions" class="flex flex-wrap gap-3">
+                <button onclick="saveChapter('draft')"
+                        class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-surface hover:bg-charcoal border border-border hover:border-white/20 text-white text-sm font-medium rounded-lg transition-all duration-200">
+                  Save Draft
+                </button>
+                <button id="editor-submit-btn" onclick="saveChapter('submitted')"
+                        class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gold hover:bg-gold-light text-obsidian text-sm font-semibold rounded-lg transition-colors duration-200">
+                  Submit for Review
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                </button>
+              </div>
+
+            </div><!-- /editor-edit-mode -->
           </div>
 
-          <!-- Content textarea -->
-          <div>
-            <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">
-              Chapter Content
-            </label>
-            <textarea id="editor-content" rows="22"
-                      placeholder="Start writing your chapter here, or upload a .docx above to auto-fill…"
-                      class="w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 resize-y transition-all duration-200 leading-relaxed thin-scroll" style="font-size:15px;line-height:1.85;letter-spacing:0.01em;"></textarea>
-            <div class="flex items-center justify-between mt-1.5">
-              <p id="editor-status-label" class="text-muted text-xs"></p>
-              <p id="editor-word-count" class="text-muted text-xs">0 words</p>
-            </div>
-          </div>
-
-          </div><!-- /editor-textarea-mode -->
-
-          <!-- Admin comments (visible when editing existing chapter) -->
-          <div id="editor-comments-section" class="hidden border-t border-border/40 pt-5">
+          <!-- RIGHT: Comments sidebar (shown for existing chapters with comments) -->
+          <div id="writer-chapter-sidebar" class="hidden lg:w-72 flex-shrink-0 rounded-2xl border border-border bg-surface p-5">
             <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted mb-3 flex items-center gap-2">
               Editor Comments
-              <span id="editor-comments-count" class="text-[10px] font-semibold text-gold bg-gold/10 border border-gold/25 rounded-full px-1.5 py-0.5"></span>
+              <span id="writer-sidebar-count" class="text-[10px] font-semibold text-gold bg-gold/10 border border-gold/25 rounded-full px-1.5 py-0.5"></span>
             </p>
-            <div id="editor-comments-list" class="space-y-2"></div>
+            <div id="writer-sidebar-list" class="space-y-3 text-xs"></div>
           </div>
 
-          <!-- Error -->
-          <div id="editor-error" class="hidden text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-3"></div>
-
-          <!-- Actions -->
-          <div id="editor-actions" class="flex flex-wrap gap-3">
-            <button onclick="saveChapter('draft')"
-                    class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-surface hover:bg-charcoal border border-border hover:border-white/20 text-white text-sm font-medium rounded-lg transition-all duration-200">
-              Save Draft
-            </button>
-            <button id="editor-submit-btn" onclick="saveChapter('submitted')"
-                    class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gold hover:bg-gold-light text-obsidian text-sm font-semibold rounded-lg transition-colors duration-200">
-              Submit for Review
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-            </button>
-          </div>
         </div>
       </div>
 
@@ -320,6 +333,24 @@
       <a href="mailto:support@apexfictionstudio.com" class="text-gold/70 hover:text-gold transition-colors">Contact your editor.</a>
     </p>
   </main>
+
+  <!-- WRITER PARAGRAPH COMMENT POPOVER -->
+  <div id="writer-pop" class="hidden fixed z-[150] rounded-2xl border border-border bg-surface shadow-2xl shadow-black/70 flex flex-col" style="width:272px;max-height:360px;">
+    <div class="flex items-center justify-between px-4 pt-3.5 pb-2.5 border-b border-border/50 flex-shrink-0">
+      <span id="writer-pop-label" class="text-[10px] font-semibold uppercase tracking-widest text-gold"></span>
+      <button onclick="closeWriterPopover()" class="text-muted hover:text-white text-lg leading-none w-5 h-5 flex items-center justify-center">×</button>
+    </div>
+    <div id="writer-pop-thread" class="flex-1 overflow-y-auto px-4 py-3 space-y-2 text-xs"></div>
+    <div class="px-4 pb-4 pt-2 border-t border-border/40 flex-shrink-0">
+      <input type="hidden" id="writer-pop-para" value=""/>
+      <textarea id="writer-pop-input" rows="2" placeholder="Reply to this comment…"
+                class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-xs rounded-lg px-3 py-2 resize-none transition-all"></textarea>
+      <button onclick="submitWriterPopoverReply()"
+              class="mt-2 w-full px-3 py-1.5 bg-gold/10 hover:bg-gold/20 border border-gold/30 text-gold text-xs font-semibold rounded-lg transition-all">
+        Send Reply
+      </button>
+    </div>
+  </div>
 
   <!-- ── NEW BOOK MODAL ───────────────────────────────────────── -->
   <div id="new-book-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center px-4"
@@ -521,70 +552,218 @@
       loadChapters(selectedBook.id);
     }
 
+    // ── CHAPTER VIEW STATE ─────────────────────────────────────
+    let _writerChapterComments = [];
+    let _writerEditModeActive  = false;
+
     function showEditorView(chapter) {
-      editingChapter = chapter || null;
+      editingChapter       = chapter || null;
+      _writerEditModeActive = false;
 
       $('view-books').classList.add('hidden');
       $('view-chapters').classList.add('hidden');
       $('view-editor').classList.remove('hidden');
+      closeWriterPopover();
 
       const isNew = !chapter;
       $('editor-chapter-num').textContent = isNew ? `Chapter ${window._nextChNum || '—'}` : `Chapter ${chapter.chapter_number}`;
       $('editor-heading').textContent     = isNew ? 'New Chapter' : (chapter.title || '(Untitled)');
       $('editor-chapter-title').value     = chapter?.title || '';
       $('editor-error').classList.add('hidden');
-      $('editor-comments-section').classList.add('hidden');
 
       // Status badge
       const badge = $('editor-status-badge');
       if (!isNew) {
         const s = chapter.status;
-        const styleMap = { draft:'bg-muted/20 text-muted', submitted:'bg-gold/15 text-gold', approved:'bg-emerald-400/15 text-emerald-400', revision_requested:'bg-red-400/15 text-red-400' };
-        badge.className = 'text-[10px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full ' + (styleMap[s] || 'bg-muted/20 text-muted');
+        const sm = { draft:'bg-muted/20 text-muted', submitted:'bg-gold/15 text-gold', approved:'bg-emerald-400/15 text-emerald-400', revision_requested:'bg-red-400/15 text-red-400' };
+        badge.className = 'text-[10px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full mt-1 inline-block ' + (sm[s] || 'bg-muted/20 text-muted');
         badge.textContent = s.replace('_', ' ');
         badge.classList.remove('hidden');
       } else {
         badge.classList.add('hidden');
       }
 
-      // Update submit button label
-      const submitBtn = $('editor-submit-btn');
       if (isNew) {
-        submitBtn.innerHTML = 'Submit for Review <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>';
+        // New chapter: go straight to edit mode
+        $('editor-read-mode').classList.add('hidden');
+        $('editor-edit-mode').classList.remove('hidden');
+        $('writer-edit-btn').classList.add('hidden');
+        $('writer-chapter-sidebar').classList.add('hidden');
+        $('editor-submit-btn').innerHTML = 'Submit for Review <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>';
+        $('editor-content').value = '';
+        $('editor-word-count').textContent = '0 words';
       } else {
-        submitBtn.textContent = 'Update';
-      }
+        // Existing: show formatted read mode, Edit toggle button
+        $('editor-read-mode').classList.remove('hidden');
+        $('editor-edit-mode').classList.add('hidden');
+        $('writer-edit-btn').classList.remove('hidden');
+        $('writer-edit-btn').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit';
+        $('editor-submit-btn').textContent = 'Update';
+        $('chapter-preview-content').innerHTML = '<p class="text-muted text-sm animate-pulse">Loading…</p>';
+        $('writer-chapter-sidebar').classList.add('hidden');
 
-      $('editor-status-label').textContent = '';
-      $('editor-content').value            = '';
-      $('editor-word-count').textContent   = isNew ? '0 words' : '…';
-      $('docx-section').classList.remove('hidden');
-
-      if (chapter?.id) {
         Promise.all([
           db.from('chapters').select('content').eq('id', chapter.id).single(),
-          db.from('comments').select('id,paragraph_ref,body,resolved,created_at').eq('chapter_id', chapter.id).order('created_at', { ascending: true }),
+          db.from('comments').select('id,paragraph_ref,body,resolved,created_at')
+            .eq('chapter_id', chapter.id).order('created_at', { ascending: true }),
         ]).then(([{ data: full }, { data: comments }]) => {
+          _writerChapterComments = comments ?? [];
           $('editor-content').value          = full?.content || '';
           $('editor-word-count').textContent = countWords(full?.content || '') + ' words';
-          renderEditorComments(comments ?? []);
+          renderWriterChapterView(full?.content ?? '', _writerChapterComments);
+          renderWriterCommentsSidebar(_writerChapterComments);
         });
       }
     }
 
-    function renderEditorComments(comments) {
-      const active = comments.filter(c => !c.resolved);
-      if (!active.length) { $('editor-comments-section').classList.add('hidden'); return; }
-      $('editor-comments-section').classList.remove('hidden');
-      $('editor-comments-count').textContent = active.length;
-      $('editor-comments-list').innerHTML = active.map(c => {
-        const label = c.paragraph_ref !== null ? `Paragraph ${c.paragraph_ref + 1}` : 'Chapter Note';
-        return '<div class="rounded-xl border border-border bg-charcoal/60 p-3">'
-          + '<p class="text-[10px] font-semibold uppercase tracking-wide text-gold mb-1">' + label + '</p>'
-          + '<p class="text-white/80 text-xs leading-relaxed">' + escHtml(c.body) + '</p>'
+    function toggleWriterEditMode() {
+      _writerEditModeActive = !_writerEditModeActive;
+      if (_writerEditModeActive) {
+        closeWriterPopover();
+        $('editor-read-mode').classList.add('hidden');
+        $('editor-edit-mode').classList.remove('hidden');
+        $('writer-edit-btn').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg> View';
+        $('editor-content').focus();
+      } else {
+        $('editor-read-mode').classList.remove('hidden');
+        $('editor-edit-mode').classList.add('hidden');
+        $('writer-edit-btn').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit';
+      }
+    }
+
+    // ── FORMATTED PROSE VIEW (mirrors admin) ─────────────────────
+    function formatBlocks(raw) {
+      if (!raw?.trim()) return [];
+      const lines = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+      const paraTexts = [];
+      let cur = '';
+      for (const line of lines) {
+        const t = line.trim();
+        if (!t) { if (cur) { paraTexts.push(cur); cur = ''; } continue; }
+        if (/^[-*_~=]{3,}$/.test(t) || t === '* * *') {
+          if (cur) { paraTexts.push(cur); cur = ''; }
+          paraTexts.push('---'); continue;
+        }
+        if (!cur) { cur = t; continue; }
+        const prevEnds = /[.!?"'“”‘’)\]]$/.test(cur);
+        const nextCaps = /^[A-Z"“‘(\[]/.test(t);
+        if (prevEnds && nextCaps) { paraTexts.push(cur); cur = t; }
+        else { cur += ' ' + t; }
+      }
+      if (cur) paraTexts.push(cur);
+      const blocks = [];
+      for (const text of paraTexts) {
+        if (text === '---') { blocks.push({ type:'break' }); continue; }
+        const prev = blocks.length ? blocks[blocks.length - 1].type : 'start';
+        const atBoundary = !blocks.length || prev === 'break';
+        const wc = text.split(/\s+/).length;
+        const looksTitle = /^chapter\b/i.test(text) || /^part\b/i.test(text)
+          || (/^\d+[.:]?\s/.test(text) && wc <= 5)
+          || (text === text.toUpperCase() && /[A-Z]/.test(text) && text.length <= 60);
+        if (atBoundary && wc <= 8 && !/[.!?]$/.test(text) && looksTitle) {
+          blocks.push({ type:'title', text });
+        } else {
+          blocks.push({ type:'para', text });
+        }
+      }
+      return blocks;
+    }
+
+    function renderWriterChapterView(raw, comments) {
+      const active = (comments ?? []).filter(c => !c.resolved);
+      const blocks = formatBlocks(raw);
+      if (!blocks.length) {
+        $('chapter-preview-content').innerHTML = '<p class="text-muted text-sm italic">No content yet.</p>';
+        return;
+      }
+      let pIdx = 0, fp = true;
+      $('chapter-preview-content').innerHTML = blocks.map(b => {
+        if (b.type === 'break') return '<div class="wp-scene-break">* * *</div>';
+        if (b.type === 'title') return '<h4 class="wp-title">' + escHtml(b.text) + '</h4>';
+        const idx = pIdx++;
+        const cnt = active.filter(c => c.paragraph_ref === idx).length;
+        const isFirst = fp; fp = false;
+        return '<div class="wp-para-wrap relative" data-para="' + idx + '">'
+          + '<p class="wp-para' + (isFirst ? ' first-para' : '') + '">' + escHtml(b.text) + '</p>'
+          + (cnt
+            ? '<button class="wp-cbadge" onclick="openWriterPopover(' + idx + ',this)">'
+              + '<svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>'
+              + cnt + '</button>'
+            : '')
           + '</div>';
       }).join('');
     }
+
+    function renderWriterCommentsSidebar(comments) {
+      const active = comments.filter(c => !c.resolved);
+      const sidebar = $('writer-chapter-sidebar');
+      if (!active.length) { sidebar.classList.add('hidden'); return; }
+      sidebar.classList.remove('hidden');
+      $('writer-sidebar-count').textContent = active.length;
+      $('writer-sidebar-list').innerHTML = active.map(c => {
+        const label = c.paragraph_ref !== null ? 'Paragraph ' + (c.paragraph_ref + 1) : 'Chapter Note';
+        return '<div class="rounded-xl border border-border bg-charcoal/60 p-3 mb-2">'
+          + '<p class="text-[10px] font-semibold uppercase tracking-wide text-gold mb-1">' + label + '</p>'
+          + '<p class="text-white/80 leading-relaxed">' + escHtml(c.body) + '</p>'
+          + '</div>';
+      }).join('');
+    }
+
+    // ── WRITER PARAGRAPH COMMENT POPOVER ─────────────────────────
+    let _writerPopoverPara = null;
+
+    function openWriterPopover(paraIdx, triggerEl) {
+      if (_writerPopoverPara === paraIdx) { closeWriterPopover(); return; }
+      _writerPopoverPara = paraIdx;
+      const pop = $('writer-pop');
+      const comments = _writerChapterComments.filter(c => c.paragraph_ref === paraIdx && !c.resolved);
+      $('writer-pop-label').textContent = 'Paragraph ' + (paraIdx + 1);
+      $('writer-pop-thread').innerHTML = comments.length
+        ? comments.map(c =>
+            '<div class="border-b border-border/30 pb-2 mb-2 last:border-0 last:pb-0 last:mb-0">'
+            + '<p class="text-white/85 leading-relaxed">' + escHtml(c.body) + '</p>'
+            + '</div>'
+          ).join('')
+        : '<p class="text-muted">No comments on this paragraph.</p>';
+      $('writer-pop-input').value = '';
+      $('writer-pop-para').value  = paraIdx;
+      const rect = triggerEl.getBoundingClientRect();
+      const pw = 272, ph = 280;
+      let top  = rect.bottom + 8;
+      let left = rect.left;
+      if (left + pw > window.innerWidth  - 12) left = window.innerWidth  - pw - 12;
+      if (top  + ph > window.innerHeight - 12) top  = rect.top - ph - 8;
+      pop.style.top  = Math.max(8, top)  + 'px';
+      pop.style.left = Math.max(8, left) + 'px';
+      pop.classList.remove('hidden');
+    }
+
+    function closeWriterPopover() {
+      const pop = $('writer-pop');
+      if (pop) pop.classList.add('hidden');
+      _writerPopoverPara = null;
+    }
+
+    async function submitWriterPopoverReply() {
+      const text    = $('writer-pop-input').value.trim();
+      const paraIdx = parseInt($('writer-pop-para').value);
+      if (!text || !editingChapter) { showToast('Write a reply first.'); return; }
+      const { error } = await db.from('comments').insert({
+        chapter_id: editingChapter.id, reviewer_id: currentUserId,
+        paragraph_ref: paraIdx, body: '[Writer] ' + text,
+      });
+      if (error) { showToast('Error: ' + error.message); return; }
+      showToast('Reply sent.');
+      closeWriterPopover();
+      showEditorView(editingChapter);
+    }
+
+    document.addEventListener('click', e => {
+      const pop = $('writer-pop');
+      if (pop && !pop.classList.contains('hidden') && !pop.contains(e.target) && !e.target.closest('.wp-cbadge')) {
+        closeWriterPopover();
+      }
+    });
 
     // ── BOOKS ──────────────────────────────────────────────────
     async function loadBooks() {
