@@ -1388,25 +1388,13 @@
     })();
 
     async function initChat(userId) {
-      // Use site_config to find admin ID — avoids profiles RLS blocking the lookup
-      const { data: cfg } = await db.from('site_config').select('value').eq('key', 'admin_id').maybeSingle();
-      if (!cfg?.value) return;
-      _chatAdminId = cfg.value;
-
-      // Count unread messages from admin to writer
-      const { count } = await db.from('messages')
-        .select('id', { count: 'exact', head: true })
-        .eq('sender_id', _chatAdminId).eq('recipient_id', userId).is('read_at', null);
-      _chatUnread = count || 0;
-      _updateChatBadge();
-
-      // Subscribe to new incoming messages
+      // Set up subscription FIRST — writer must receive messages regardless of admin lookup
       _chatSub = db.channel('writer-chat-' + userId)
         .on('postgres_changes', {
           event: 'INSERT', schema: 'public', table: 'messages',
           filter: 'recipient_id=eq.' + userId,
         }, payload => {
-          if (payload.new.sender_id !== _chatAdminId) return;
+          if (_chatMessages.some(m => m.id === payload.new.id)) return; // dedupe
           _chatMessages.push(payload.new);
           if (_chatOpen) {
             _renderChatMessages();
@@ -1417,6 +1405,22 @@
           }
         })
         .subscribe();
+
+      // Find admin ID via site_config (avoids profiles RLS)
+      const { data: cfg } = await db.from('site_config').select('value').eq('key', 'admin_id').maybeSingle();
+      _chatAdminId = cfg?.value || null;
+      // Fallback: try profiles table directly
+      if (!_chatAdminId) {
+        const { data: admin } = await db.from('profiles').select('id').eq('is_admin', true).maybeSingle();
+        _chatAdminId = admin?.id || null;
+      }
+      if (!_chatAdminId) return;
+
+      const { count } = await db.from('messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('sender_id', _chatAdminId).eq('recipient_id', userId).is('read_at', null);
+      _chatUnread = count || 0;
+      _updateChatBadge();
     }
 
     function _updateChatBadge() {
