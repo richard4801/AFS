@@ -128,7 +128,7 @@
       </div>
       <div class="flex-1 min-w-0">
         <p id="admin-chat-writer-name" class="text-white text-[13px] font-semibold leading-none truncate">Writer</p>
-        <p class="text-muted/60 text-[10px] mt-0.5">Direct message</p>
+        <p id="admin-chat-writer-status" class="text-muted/60 text-[10px] mt-0.5">Offline</p>
       </div>
       <div class="flex items-center gap-1">
         <button id="admin-chat-fs-btn" onclick="toggleAdminChatFullscreen()" title="Fullscreen"
@@ -657,8 +657,8 @@
           if (payload.new.sender_id !== writerId) return;
           if (_adminChatMessages.some(m => m.id === payload.new.id)) return;
           _adminChatMessages.push(payload.new);
-          if (_adminChatOpen) { _renderAdminChatMessages(); _markAdminChatRead(); }
-          else { _adminChatUnread[writerId] = (_adminChatUnread[writerId] || 0) + 1; _updateAdminChatBadge(); }
+          if (_adminChatOpen) { _renderAdminChatMessages(); _markAdminChatRead(); _playChime(true); }
+          else { _adminChatUnread[writerId] = (_adminChatUnread[writerId] || 0) + 1; _updateAdminChatBadge(); _playChime(false); }
         })
         .subscribe();
 
@@ -700,6 +700,70 @@
         .update({ read_at: new Date().toISOString() })
         .eq('sender_id', _adminChatWriterId).eq('recipient_id', currentUserId).is('read_at', null)
         .then(() => { _adminChatUnread[_adminChatWriterId] = 0; _updateAdminChatBadge(); });
+    }
+
+    // ── Chime ────────────────────────────────────────────────────────────────
+    let _audioCtx = null;
+    function _getAudioCtx() {
+      if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (_audioCtx.state === 'suspended') _audioCtx.resume();
+      return _audioCtx;
+    }
+    function _playChime(subtle) {
+      try {
+        const ctx = _getAudioCtx();
+        if (subtle) {
+          const o = ctx.createOscillator(), g = ctx.createGain();
+          o.connect(g); g.connect(ctx.destination);
+          o.frequency.value = 880; o.type = 'sine';
+          g.gain.setValueAtTime(0.06, ctx.currentTime);
+          g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+          o.start(); o.stop(ctx.currentTime + 0.25);
+        } else {
+          [[660, 0], [880, 0.18]].forEach(([freq, delay]) => {
+            const o = ctx.createOscillator(), g = ctx.createGain();
+            o.connect(g); g.connect(ctx.destination);
+            o.frequency.value = freq; o.type = 'sine';
+            const t = ctx.currentTime + delay;
+            g.gain.setValueAtTime(0.001, t);
+            g.gain.linearRampToValueAtTime(0.18, t + 0.03);
+            g.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+            o.start(t); o.stop(t + 0.5);
+          });
+        }
+      } catch (e) {}
+    }
+    document.addEventListener('click',    () => { try { _getAudioCtx(); } catch(e){} }, { once: true });
+    document.addEventListener('touchend', () => { try { _getAudioCtx(); } catch(e){} }, { once: true });
+
+    // ── Presence (admin side) ─────────────────────────────────────────────────
+    let _adminPresenceCh = null;
+    let _onlineWriters = new Set();
+    function _initAdminPresence(userId) {
+      _adminPresenceCh = db.channel('presence-afs')
+        .on('presence', { event: 'sync' }, () => {
+          const all = Object.values(_adminPresenceCh.presenceState()).flat();
+          _onlineWriters = new Set(all.filter(p => p.role === 'writer').map(p => p.userId));
+          _updateAllWriterOnlineDots();
+          _updateAdminChatWriterStatus();
+        })
+        .subscribe(async status => {
+          if (status === 'SUBSCRIBED') await _adminPresenceCh.track({ userId, role: 'admin' });
+        });
+    }
+    function _updateAllWriterOnlineDots() {
+      document.querySelectorAll('[data-woid]').forEach(el => {
+        const online = _onlineWriters.has(el.dataset.woid);
+        el.className = 'w-2 h-2 rounded-full flex-shrink-0 ' + (online ? 'bg-emerald-400' : 'bg-gray-600');
+        el.title = online ? 'Online' : 'Offline';
+      });
+    }
+    function _updateAdminChatWriterStatus() {
+      const txt = $('admin-chat-writer-status');
+      if (!txt || !_adminChatWriterId) return;
+      const online = _onlineWriters.has(_adminChatWriterId);
+      txt.textContent = online ? 'Online' : 'Offline';
+      txt.className = online ? 'text-emerald-400/70 text-[10px] mt-0.5' : 'text-muted/60 text-[10px] mt-0.5';
     }
 
     // ── Admin typing indicator ────────────────────────────────────────────────
@@ -869,6 +933,7 @@
               <p class="text-muted text-[11px] truncate">${escHtml(w.email)}</p>
             </div>
             ${pendingSet.has(w.id) ? '<span class="notif-dot flex-shrink-0"></span>' : ''}
+            <span data-woid="${w.id}" class="w-2 h-2 rounded-full bg-gray-600 flex-shrink-0" title="Offline"></span>
           </div>
         </button>`;
       }).join('');
@@ -892,6 +957,7 @@
       const wNameEl = $('admin-chat-writer-name');
       if (wInitEl) wInitEl.textContent = (writer.name || 'W')[0].toUpperCase();
       if (wNameEl) wNameEl.textContent = writer.name || 'Writer';
+      _updateAdminChatWriterStatus();
       // Close any open chat panel when switching writers
       if (_adminChatOpen) { _adminChatOpen = false; $('admin-chat-panel').classList.add('hidden'); }
       $('writer-books-grid').innerHTML = '<div class="skeleton h-64 rounded-2xl col-span-full"></div>';
@@ -1836,6 +1902,7 @@
       document.body.style.opacity = '1';
       $('nav-name').textContent = profile.name;
       _initAdminReceiptSub();
+      _initAdminPresence(currentUserId);
       await Promise.all([ loadWritersList(), loadWriters(), loadRecentEarnings() ]);
     })();
   </script>
