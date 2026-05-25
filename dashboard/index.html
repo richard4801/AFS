@@ -1271,8 +1271,18 @@
     }
 
     // ── NOTIFICATIONS ──────────────────────────────────────────
-    let _notifications      = [];
-    let _dismissedNotifIds  = new Set();
+    let _notifications     = [];
+
+    // Persist dismissed IDs in localStorage so page reloads don't bring cleared notifications back
+    function _loadDismissedIds() {
+      try { return new Set(JSON.parse(localStorage.getItem('afs_dismissed_notifs') || '[]')); }
+      catch { return new Set(); }
+    }
+    function _saveDismissedIds() {
+      try { localStorage.setItem('afs_dismissed_notifs', JSON.stringify([..._dismissedNotifIds])); }
+      catch {}
+    }
+    let _dismissedNotifIds = _loadDismissedIds();
 
     async function loadNotifications() {
       const { data } = await db.from('notifications')
@@ -1326,22 +1336,25 @@
         const unreadAccent = isUnread ? 'bg-obsidian border-l-2 border-gold' : '';
         const bodyPreview = visibleBody.length > 100 ? visibleBody.slice(0, 97) + '…' : visibleBody;
 
+        // Outer wrapper — no nested buttons (invalid HTML); readNotif area is a div, download is its own row
         return '<div class="relative group ' + unreadAccent + '">'
-          + '<button onclick="readNotif(\'' + n.id + '\')" class="w-full text-left px-4 py-3.5 hover:bg-charcoal/50 transition-colors block">'
+          + '<div onclick="readNotif(\'' + n.id + '\')" class="cursor-pointer px-4 pt-3.5 ' + (hasDoc ? 'pb-2' : 'pb-3.5') + ' hover:bg-charcoal/50 transition-colors">'
           + '<div class="flex items-start gap-3">'
-          + '<div class="flex-1 min-w-0">'
+          + '<div class="flex-1 min-w-0 pr-5">'
           + '<div class="flex items-center gap-2 mb-0.5">'
           + (isUnread ? '<span class="w-1.5 h-1.5 rounded-full bg-gold flex-shrink-0"></span>' : '')
-          + '<p class="text-' + (isUnread ? 'white' : 'white/75') + ' text-[13px] font-semibold leading-snug truncate">' + escHtml(n.title) + '</p>'
+          + '<p class="text-' + (isUnread ? 'white' : 'white/75') + ' text-[13px] font-semibold leading-snug">' + escHtml(n.title) + '</p>'
           + '</div>'
-          + (bodyPreview ? '<p class="text-muted text-[11px] leading-relaxed mt-0.5 line-clamp-2" style="display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden">' + escHtml(bodyPreview) + '</p>' : '')
-          + (hasDoc
-              ? '<button onclick="event.stopPropagation();downloadRevisionDocById(\'' + n.id + '\')" class="mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold text-gold hover:text-gold/80 bg-gold/8 hover:bg-gold/15 border border-gold/25 rounded-full px-3 py-1 transition-all">&#x2B07; Download Chapter Doc</button>'
-              : '')
+          + (bodyPreview ? '<p class="text-muted text-[11px] leading-relaxed mt-0.5" style="display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden">' + escHtml(bodyPreview) + '</p>' : '')
           + '<p class="text-muted/40 text-[10px] mt-1.5">' + dateStr + '</p>'
           + '</div>'
           + '</div>'
-          + '</button>'
+          + '</div>'
+          + (hasDoc
+              ? '<div class="px-4 pb-3">'
+                + '<button onclick="downloadRevisionDocById(\'' + n.id + '\')" class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-gold hover:text-gold/80 bg-gold/8 hover:bg-gold/15 border border-gold/25 rounded-full px-3 py-1 transition-all">&#x2B07; Download Chapter Doc</button>'
+                + '</div>'
+              : '')
           + '<button onclick="dismissNotif(\'' + n.id + '\')" class="absolute top-3 right-3 w-6 h-6 flex items-center justify-center rounded-full text-muted/30 hover:text-white hover:bg-charcoal opacity-0 group-hover:opacity-100 transition-all text-xs" title="Dismiss">×</button>'
           + '</div>';
       }).join('');
@@ -1370,6 +1383,7 @@
 
     async function dismissNotif(id) {
       _dismissedNotifIds.add(id);
+      _saveDismissedIds();
       _notifications = _notifications.filter(n => n.id !== id);
       renderNotifBadge(); renderNotifList();
       await db.from('notifications').delete().eq('id', id);
@@ -1378,6 +1392,7 @@
     async function clearAllNotifs() {
       if (!_notifications.length) return;
       _notifications.forEach(n => _dismissedNotifIds.add(n.id));
+      _saveDismissedIds();
       _notifications = [];
       renderNotifBadge(); renderNotifList();
       const ids = [..._dismissedNotifIds];
