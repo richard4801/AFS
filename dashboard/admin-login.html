@@ -219,6 +219,19 @@
       auth: { persistSession: true, storage: window.localStorage },
     });
 
+    const TRUST_PREFIX = 'afs_dev_';
+    const TRUST_MS     = 30 * 24 * 60 * 60 * 1000;
+
+    function getDeviceTrust(userId) {
+      try {
+        const v = JSON.parse(localStorage.getItem(TRUST_PREFIX + userId) || 'null');
+        return v && (Date.now() - v.at < TRUST_MS);
+      } catch { return false; }
+    }
+    function setDeviceTrust(userId) {
+      localStorage.setItem(TRUST_PREFIX + userId, JSON.stringify({ at: Date.now() }));
+    }
+
     const form    = document.getElementById('login-form');
     const errBox  = document.getElementById('error-msg');
     const btn     = document.getElementById('submit-btn');
@@ -226,17 +239,14 @@
     const arrow   = document.getElementById('btn-arrow');
     const spinner = document.getElementById('btn-spinner');
 
+    let _pendingEmail  = '';
+    let _pendingUserId = '';
+
     function setLoading(on) {
       btn.disabled = on;
       label.textContent = on ? 'Verifying…' : 'Access Dashboard';
       arrow.classList.toggle('hidden', on);
       spinner.classList.toggle('hidden', !on);
-    }
-
-    function showError(msg) {
-      errBox.textContent = msg;
-      errBox.classList.remove('hidden');
-      setLoading(false);
     }
 
     form.addEventListener('submit', async (e) => {
@@ -247,29 +257,165 @@
       const email    = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
 
-      const { data: authData, error } = await db.auth.signInWithPassword({ email, password });
+      const { data, error } = await db.auth.signInWithPassword({ email, password });
 
       if (error) {
-        showError(error.message);
+        errBox.textContent = error.message;
+        errBox.classList.remove('hidden');
+        setLoading(false);
         return;
       }
 
-      // Verify the account actually has admin rights
-      const { data: profile } = await db
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', authData.user.id)
-        .single();
+      const userId = data.user?.id;
 
+      // Verify admin status
+      const { data: profile } = await db.from('profiles').select('is_admin').eq('id', userId).single();
       if (!profile?.is_admin) {
-        // Sign them back out — they authenticated but aren't an admin
         await db.auth.signOut();
-        showError('Access denied. This portal is for authorised admins only.');
+        errBox.textContent = 'Access denied. This portal is for admins only.';
+        errBox.classList.remove('hidden');
+        setLoading(false);
         return;
       }
 
-      window.location.replace('admin.html');
+      // Trusted device? Go straight to dashboard
+      if (getDeviceTrust(userId)) {
+        window.location.replace('admin.html');
+        return;
+      }
+
+      // Untrusted device — send OTP
+      _pendingEmail  = email;
+      _pendingUserId = userId;
+
+      await db.auth.signOut();
+
+      const { error: otpErr } = await db.auth.signInWithOtp({
+        email,
+        options: { shouldCreateUser: false },
+      });
+
+      setLoading(false);
+
+      if (otpErr) {
+        errBox.textContent = 'Could not send verification code: ' + otpErr.message;
+        errBox.classList.remove('hidden');
+        return;
+      }
+
+      showVerifyStep();
     });
+
+    function showVerifyStep() {
+      document.getElementById('login-form').style.display = 'none';
+      const step = document.getElementById('verify-step');
+      step.style.display = 'block';
+      document.getElementById('verify-email-display').textContent = _pendingEmail;
+      document.getElementById('verify-error').classList.add('hidden');
+      const boxes = document.querySelectorAll('.digit-box');
+      boxes.forEach(b => { b.value = ''; b.classList.remove('filled'); });
+      setTimeout(() => boxes[0]?.focus(), 80);
+      startResendCooldown();
+    }
+
+    function backToLogin() {
+      document.getElementById('verify-step').style.display = 'none';
+      document.getElementById('login-form').style.display = '';
+      document.getElementById('error-msg').classList.add('hidden');
+      _pendingEmail = _pendingUserId = '';
+    }
+
+    document.getElementById('digit-row').addEventListener('input', e => {
+      if (!e.target.classList.contains('digit-box')) return;
+      const v = e.target.value.replace(/\D/g, '');
+      e.target.value = v.slice(-1);
+      e.target.classList.toggle('filled', !!e.target.value);
+      if (e.target.value) {
+        const boxes = [...document.querySelectorAll('.digit-box')];
+        const idx = boxes.indexOf(e.target);
+        if (idx < boxes.length - 1) boxes[idx + 1].focus();
+        else submitVerification();
+      }
+    });
+
+    document.getElementById('digit-row').addEventListener('keydown', e => {
+      if (e.key === 'Backspace' && !e.target.value) {
+        const boxes = [...document.querySelectorAll('.digit-box')];
+        const idx = boxes.indexOf(e.target);
+        if (idx > 0) { boxes[idx - 1].value = ''; boxes[idx - 1].classList.remove('filled'); boxes[idx - 1].focus(); }
+      }
+    });
+
+    document.getElementById('digit-row').addEventListener('paste', e => {
+      e.preventDefault();
+      const text = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 6);
+      const boxes = [...document.querySelectorAll('.digit-box')];
+      text.split('').forEach((ch, i) => { if (boxes[i]) { boxes[i].value = ch; boxes[i].classList.add('filled'); } });
+      const next = boxes[text.length] || boxes[boxes.length - 1];
+      next.focus();
+      if (text.length === 6) submitVerification();
+    });
+
+    async function submitVerification() {
+      const token = [...document.querySelectorAll('.digit-box')].map(b => b.value).join('');
+      if (token.length < 6) return;
+
+      const vBtn     = document.getElementById('verify-btn');
+      const vLabel   = document.getElementById('verify-btn-label');
+      const vArrow   = document.getElementById('verify-btn-arrow');
+      const vSpinner = document.getElementById('verify-btn-spinner');
+      const vErr     = document.getElementById('verify-error');
+
+      vBtn.disabled = true;
+      vLabel.textContent = 'Verifying…';
+      vArrow.classList.add('hidden');
+      vSpinner.classList.remove('hidden');
+      vErr.classList.add('hidden');
+
+      const { error } = await db.auth.verifyOtp({ email: _pendingEmail, token, type: 'email' });
+
+      vBtn.disabled = false;
+      vLabel.textContent = 'Verify Device';
+      vArrow.classList.remove('hidden');
+      vSpinner.classList.add('hidden');
+
+      if (error) {
+        vErr.textContent = error.message.includes('expired') || error.message.includes('invalid')
+          ? 'Invalid or expired code. Please try again or resend.'
+          : error.message;
+        vErr.classList.remove('hidden');
+        document.querySelectorAll('.digit-box').forEach(b => { b.value = ''; b.classList.remove('filled'); });
+        document.querySelector('.digit-box')?.focus();
+        return;
+      }
+
+      setDeviceTrust(_pendingUserId);
+      window.location.replace('admin.html');
+    }
+
+    let _resendTimer = null;
+    function startResendCooldown() {
+      const btn = document.getElementById('resend-btn');
+      let s = 60;
+      btn.disabled = true;
+      btn.textContent = 'Resend in ' + s + 's';
+      clearInterval(_resendTimer);
+      _resendTimer = setInterval(() => {
+        s--;
+        if (s <= 0) { clearInterval(_resendTimer); btn.disabled = false; btn.textContent = 'Resend code'; }
+        else btn.textContent = 'Resend in ' + s + 's';
+      }, 1000);
+    }
+
+    async function resendCode() {
+      if (!_pendingEmail) return;
+      document.getElementById('resend-btn').disabled = true;
+      document.getElementById('verify-error').classList.add('hidden');
+      await db.auth.signInWithOtp({ email: _pendingEmail, options: { shouldCreateUser: false } });
+      startResendCooldown();
+      document.querySelectorAll('.digit-box').forEach(b => { b.value = ''; b.classList.remove('filled'); });
+      document.querySelector('.digit-box')?.focus();
+    }
   </script>
 
   <!-- Cursor spotlight: crimson glow + illuminating grid -->
