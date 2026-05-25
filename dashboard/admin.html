@@ -117,7 +117,7 @@
   </div>
 
   <!-- ADMIN CHAT PANEL -->
-  <div id="admin-chat-panel" class="hidden fixed z-[70] flex flex-col rounded-2xl border border-border bg-surface shadow-2xl shadow-black/70 overflow-hidden" style="right:24px;bottom:24px;width:340px;height:520px;transition:all 0.2s ease;">
+  <div id="admin-chat-panel" class="hidden fixed z-[70] flex flex-col rounded-2xl border border-border bg-surface shadow-2xl shadow-black/70 overflow-hidden" style="right:24px;bottom:96px;width:340px;height:520px;transition:all 0.2s ease;">
     <!-- Header -->
     <div class="flex items-center gap-3 px-4 py-3.5 border-b border-border/50 bg-charcoal/40 flex-shrink-0">
       <div class="w-9 h-9 rounded-full bg-crimson/15 border border-crimson/25 flex items-center justify-center flex-shrink-0">
@@ -151,6 +151,16 @@
         </button>
       </div>
     </div>
+  </div>
+
+  <!-- ADMIN FLOATING CHAT BUTTON -->
+  <div id="admin-chat-float" style="position:fixed;right:24px;bottom:24px;z-index:90;touch-action:none;">
+    <button id="admin-chat-float-btn" onclick="toggleAdminChat()"
+            class="relative w-14 h-14 rounded-full bg-crimson text-white shadow-xl shadow-black/50 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform duration-200">
+      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span id="admin-chat-pulse" class="hidden absolute inset-0 rounded-full bg-crimson/50 animate-ping"></span>
+      <span id="admin-chat-badge" class="hidden absolute -top-1 -right-1 min-w-[20px] h-5 bg-gold text-obsidian text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none shadow-lg"></span>
+    </button>
   </div>
 
   <!-- ADMIN PARAGRAPH COMMENT POPOVER -->
@@ -226,13 +236,6 @@
               <h2 id="writer-name-heading" class="font-serif text-3xl text-white"></h2>
               <p id="writer-email-heading" class="text-muted text-sm mt-0.5"></p>
             </div>
-            <button id="admin-chat-btn" onclick="toggleAdminChat()"
-                    class="relative flex-shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-surface border border-border hover:border-crimson/40 text-muted hover:text-white text-xs font-semibold transition-all duration-200 mt-1">
-              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              <span>Chat</span>
-              <span id="admin-chat-pulse" class="hidden absolute inset-0 rounded-xl border-2 border-crimson animate-ping opacity-50"></span>
-              <span id="admin-chat-badge" class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-crimson text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1 leading-none"></span>
-            </button>
           </div>
           <div id="writer-books-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
         </div>
@@ -520,13 +523,54 @@
       if (_adminChatFullscreen) {
         panel.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border-radius:0;z-index:200;display:flex;flex-direction:column;';
       } else {
-        panel.style.cssText = 'right:24px;bottom:24px;width:340px;height:520px;transition:all 0.2s ease;';
+        panel.style.cssText = 'right:24px;bottom:96px;width:340px;height:520px;transition:all 0.2s ease;';
         panel.classList.remove('hidden');
       }
       icon.innerHTML = _adminChatFullscreen
         ? '<path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>'
         : '<path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>';
     }
+
+    // Draggable floating admin chat button
+    (function() {
+      const handle = document.getElementById('admin-chat-float');
+      if (!handle) return;
+      let dragging = false, hasMoved = false;
+      let startX, startY, origLeft, origTop;
+      function getPos() {
+        const r = handle.getBoundingClientRect();
+        return { left: r.left, top: r.top };
+      }
+      function onDown(cx, cy) {
+        hasMoved = false; dragging = true;
+        const pos = getPos();
+        handle.style.right = 'auto'; handle.style.bottom = 'auto';
+        handle.style.left = pos.left + 'px';
+        handle.style.top  = pos.top  + 'px';
+        startX = cx; startY = cy;
+        origLeft = pos.left; origTop = pos.top;
+      }
+      function onMove(cx, cy) {
+        if (!dragging) return;
+        const dx = cx - startX, dy = cy - startY;
+        if (Math.abs(dx) > 4 || Math.abs(dy) > 4) hasMoved = true;
+        if (!hasMoved) return;
+        handle.style.left = Math.max(0, Math.min(window.innerWidth  - 56, origLeft + dx)) + 'px';
+        handle.style.top  = Math.max(0, Math.min(window.innerHeight - 56, origTop  + dy)) + 'px';
+      }
+      function onUp() {
+        dragging = false;
+        if (hasMoved) {
+          handle.addEventListener('click', e => e.stopImmediatePropagation(), { once: true, capture: true });
+        }
+      }
+      handle.addEventListener('mousedown',  e => { onDown(e.clientX, e.clientY); });
+      handle.addEventListener('touchstart', e => { onDown(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+      document.addEventListener('mousemove', e => onMove(e.clientX, e.clientY));
+      document.addEventListener('touchmove', e => onMove(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
+      document.addEventListener('mouseup',  onUp);
+      document.addEventListener('touchend', onUp);
+    })();
 
     function _adminFmtTime(isoStr) {
       return new Date(isoStr).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -540,7 +584,7 @@
     }
 
     function _updateAdminChatBadge() {
-      const btn   = $('admin-chat-btn');
+      const btn   = $('admin-chat-float-btn');
       const badge = $('admin-chat-badge');
       const pulse = $('admin-chat-pulse');
       if (!btn || !badge || !pulse) return;
