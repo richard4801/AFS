@@ -37,7 +37,8 @@
       border-color: #A31621;
       box-shadow: 0 0 0 2px rgba(163,22,33,0.18);
     }
-    .digit-box { width:40px; height:48px; text-align:center; font-size:1.25rem; font-weight:700; background:#161616; border:1px solid #2A2A2A; border-radius:8px; color:#fff; transition:border-color .15s, box-shadow .15s; caret-color:#A31621; -moz-appearance:textfield; }
+    .digit-box { width:38px; height:46px; text-align:center; font-size:1.15rem; font-weight:700; background:#161616; border:1px solid #2A2A2A; border-radius:8px; color:#fff; transition:border-color .15s, box-shadow .15s; caret-color:#A31621; -moz-appearance:textfield; }
+    @media (min-width: 400px) { .digit-box { width:42px; height:50px; font-size:1.25rem; } }
     .digit-box::-webkit-outer-spin-button, .digit-box::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
     .digit-box:focus { outline:none; border-color:#A31621; box-shadow:0 0 0 2px rgba(163,22,33,0.18); }
     .digit-box.filled { border-color:rgba(163,22,33,0.35); }
@@ -82,7 +83,7 @@
          will-change: mask-image, -webkit-mask-image;
        "></div>
 
-  <div class="relative z-10 w-full max-w-sm">
+  <div class="relative z-10 w-full max-w-sm mx-auto">
 
     <!-- Logo + wordmark -->
     <div class="flex items-center justify-center gap-3 mb-10">
@@ -94,7 +95,7 @@
     </div>
 
     <!-- Card -->
-    <div class="relative rounded-2xl border border-border bg-surface p-8 shadow-2xl shadow-black/80">
+    <div class="relative rounded-2xl border border-border bg-surface p-6 sm:p-8 shadow-2xl shadow-black/80">
 
       <!-- Top accent — crimson instead of gold -->
       <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-crimson/60 to-transparent rounded-full"></div>
