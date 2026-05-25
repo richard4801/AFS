@@ -69,6 +69,9 @@
     .fs-tool-btn.active { background:rgba(201,168,76,0.15); border-color:rgba(201,168,76,0.3); color:#C9A84C; }
     #fs-content:empty::before { content:attr(data-placeholder); color:rgba(122,122,122,0.35); font-style:italic; pointer-events:none; }
     #fs-content p { margin-bottom:1.5em; line-height:2.0; font-family:'DM Serif Display',Georgia,serif; font-size:17px; letter-spacing:0.015em; color:rgba(255,255,255,0.88); }
+    @keyframes typingBounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
+    .typing-dot { width:7px;height:7px;border-radius:50%;background:rgba(106,106,106,0.65);animation:typingBounce 1.1s ease-in-out infinite;flex-shrink:0; }
+    @media (max-width:767px) { #chat-fs-btn { display:none !important; } }
   </style>
 </head>
 
@@ -383,23 +386,31 @@
         <p class="text-emerald-400/70 text-[10px] mt-0.5">Online</p>
       </div>
       <div class="flex items-center gap-1">
-        <button onclick="toggleChatFullscreen()" title="Fullscreen"
+        <button id="chat-fs-btn" onclick="toggleChatFullscreen()" title="Fullscreen"
                 class="w-7 h-7 flex items-center justify-center rounded-full text-muted hover:text-white hover:bg-charcoal transition-all">
           <svg id="chat-fs-icon" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
         </button>
-        <button onclick="toggleChat()" class="w-7 h-7 flex items-center justify-center rounded-full text-muted hover:text-white hover:bg-charcoal transition-all text-xl leading-none">×</button>
+        <button onclick="closeChat()" class="w-7 h-7 flex items-center justify-center rounded-full text-muted hover:text-white hover:bg-charcoal transition-all text-xl leading-none">×</button>
       </div>
     </div>
     <!-- Messages -->
     <div id="chat-messages" class="flex-1 overflow-y-auto thin-scroll p-4 flex flex-col gap-2"></div>
+    <!-- Typing indicator -->
+    <div id="chat-typing" style="display:none" class="flex-shrink-0 px-4 pb-2">
+      <div class="bg-[#252525] border border-border/40 rounded-2xl rounded-bl-sm px-3.5 py-3 flex items-center gap-1.5 w-fit">
+        <span class="typing-dot" style="animation-delay:0ms"></span>
+        <span class="typing-dot" style="animation-delay:160ms"></span>
+        <span class="typing-dot" style="animation-delay:320ms"></span>
+      </div>
+    </div>
     <!-- Input -->
-    <div class="flex-shrink-0 border-t border-border/50 bg-charcoal/30 p-3">
+    <div class="flex-shrink-0 border-t border-border/50 bg-charcoal/30 p-3" style="padding-bottom:max(12px,env(safe-area-inset-bottom))">
       <div class="flex items-end gap-2">
         <textarea id="chat-input" rows="1" placeholder="Type a message…"
                   class="flex-1 bg-charcoal border border-border focus:border-gold/40 text-white placeholder-muted text-sm rounded-2xl px-4 py-2.5 resize-none transition-all duration-200 outline-none"
                   style="max-height:112px;overflow-y:auto"
                   onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMessage()}"
-                  oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,112)+'px'"></textarea>
+                  oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,112)+'px';_broadcastWriterTyping()"></textarea>
         <button onclick="sendChatMessage()"
                 class="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-full bg-gold hover:bg-gold/80 text-obsidian transition-all duration-200">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m3 3 3.5 9-3.5 9 19-9Z"/><path d="m6.5 12H22" fill="none" stroke="currentColor" stroke-width="2"/></svg>
@@ -1329,17 +1340,41 @@
     let _chatUnread   = 0;
 
     let _chatFullscreen = false;
+    const _isMobile = () => window.innerWidth < 768;
+
+    function _openChatPanel() {
+      const panel = $('chat-panel');
+      $('chat-float').classList.add('hidden');
+      if (_isMobile()) {
+        _chatFullscreen = true;
+        panel.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border-radius:0;z-index:10000;display:flex;flex-direction:column;';
+      } else {
+        panel.style.cssText = 'position:fixed;right:24px;bottom:96px;width:340px;height:520px;border-radius:16px;display:flex;flex-direction:column;z-index:9998;';
+      }
+    }
+
+    function closeChat() {
+      _chatOpen = false;
+      _chatFullscreen = false;
+      const panel = $('chat-panel');
+      panel.style.cssText = '';
+      panel.classList.add('hidden');
+      $('chat-float').classList.remove('hidden');
+      // hide typing indicator
+      const typing = $('chat-typing');
+      if (typing) typing.style.display = 'none';
+    }
+
     function toggleChatFullscreen() {
+      // Desktop only — button hidden on mobile via CSS
       _chatFullscreen = !_chatFullscreen;
       const panel = $('chat-panel');
       const icon  = $('chat-fs-icon');
       if (_chatFullscreen) {
-        panel.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border-radius:0;z-index:200;display:flex;flex-direction:column;';
+        panel.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border-radius:0;z-index:10000;display:flex;flex-direction:column;';
       } else {
-        panel.style.cssText = 'right:24px;bottom:96px;width:340px;height:520px;transition:all 0.2s ease;';
-        panel.classList.remove('hidden');
+        panel.style.cssText = 'position:fixed;right:24px;bottom:96px;width:340px;height:520px;border-radius:16px;display:flex;flex-direction:column;z-index:9998;';
       }
-      // Swap icon between expand and compress
       icon.innerHTML = _chatFullscreen
         ? '<path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>'
         : '<path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>';
@@ -1387,34 +1422,66 @@
       document.addEventListener('touchend', onUp);
     })();
 
+    // ── Typing indicator (writer side) ───────────────────────────────────────
+    let _writerTypingCh = null, _writerTypingHideTimer = null, _writerTypingThrottle = null;
+    function _showWriterTyping() {
+      const el = $('chat-typing');
+      if (!el || !_chatOpen) return;
+      el.style.display = 'flex';
+      const msgs = $('chat-messages');
+      if (msgs) msgs.scrollTop = msgs.scrollHeight;
+      clearTimeout(_writerTypingHideTimer);
+      _writerTypingHideTimer = setTimeout(() => { el.style.display = 'none'; }, 2500);
+    }
+    function _broadcastWriterTyping() {
+      if (!_writerTypingCh || !_chatOpen) return;
+      if (_writerTypingThrottle) return;
+      _writerTypingCh.send({ type: 'broadcast', event: 'typing', payload: { role: 'writer' } });
+      _writerTypingThrottle = setTimeout(() => { _writerTypingThrottle = null; }, 800);
+    }
+
     async function initChat(userId) {
-      // Set up subscription FIRST — writer must receive messages regardless of admin lookup
+      // INSERT subscription — receive new messages
       _chatSub = db.channel('writer-chat-' + userId)
         .on('postgres_changes', {
           event: 'INSERT', schema: 'public', table: 'messages',
           filter: 'recipient_id=eq.' + userId,
         }, payload => {
-          if (_chatMessages.some(m => m.id === payload.new.id)) return; // dedupe
+          if (_chatMessages.some(m => m.id === payload.new.id)) return;
           _chatMessages.push(payload.new);
-          if (_chatOpen) {
-            _renderChatMessages();
-            _markChatRead();
-          } else {
-            _chatUnread++;
-            _updateChatBadge();
-          }
+          if (_chatOpen) { _renderChatMessages(); _markChatRead(); }
+          else { _chatUnread++; _updateChatBadge(); }
         })
         .subscribe();
 
-      // Find admin ID via site_config (avoids profiles RLS)
+      // UPDATE subscription — catch read receipts on messages I sent
+      db.channel('writer-receipts-' + userId)
+        .on('postgres_changes', {
+          event: 'UPDATE', schema: 'public', table: 'messages',
+          filter: 'sender_id=eq.' + userId,
+        }, payload => {
+          if (!payload.new.read_at) return;
+          const idx = _chatMessages.findIndex(m => m.id === payload.new.id);
+          if (idx !== -1) { _chatMessages[idx].read_at = payload.new.read_at; if (_chatOpen) _renderChatMessages(); }
+        })
+        .subscribe();
+
+      // Find admin ID
       const { data: cfg } = await db.from('site_config').select('value').eq('key', 'admin_id').maybeSingle();
       _chatAdminId = cfg?.value || null;
-      // Fallback: try profiles table directly
       if (!_chatAdminId) {
         const { data: admin } = await db.from('profiles').select('id').eq('is_admin', true).maybeSingle();
         _chatAdminId = admin?.id || null;
       }
       if (!_chatAdminId) return;
+
+      // Typing channel — sorted IDs so both sides share same channel name
+      const typingCh = 'typing-' + [userId, _chatAdminId].sort().join('-');
+      _writerTypingCh = db.channel(typingCh)
+        .on('broadcast', { event: 'typing' }, ({ payload }) => {
+          if (payload?.role === 'admin') _showWriterTyping();
+        })
+        .subscribe();
 
       const { count } = await db.from('messages')
         .select('id', { count: 'exact', head: true })
@@ -1436,14 +1503,14 @@
     }
 
     async function toggleChat() {
-      _chatOpen = !_chatOpen;
-      $('chat-panel').classList.toggle('hidden', !_chatOpen);
-      if (_chatOpen) {
-        await _loadChatMessages();
-        _markChatRead();
-        const inp = $('chat-input');
-        if (inp) setTimeout(() => inp.focus(), 50);
-      }
+      if (_chatOpen) { closeChat(); return; }
+      _chatOpen = true;
+      _openChatPanel();
+      _chatUnread = 0;
+      _updateChatBadge();
+      _markChatRead(); // fire immediately — don't await
+      await _loadChatMessages();
+      setTimeout(() => $('chat-input')?.focus(), 80);
     }
 
     async function _loadChatMessages() {
@@ -1457,13 +1524,12 @@
       _renderChatMessages();
     }
 
-    async function _markChatRead() {
-      if (!_chatAdminId) return;
-      await db.from('messages')
+    function _markChatRead() {
+      if (!_chatAdminId || !currentUserId) return;
+      db.from('messages')
         .update({ read_at: new Date().toISOString() })
-        .eq('sender_id', _chatAdminId).eq('recipient_id', currentUserId).is('read_at', null);
-      _chatUnread = 0;
-      _updateChatBadge();
+        .eq('sender_id', _chatAdminId).eq('recipient_id', currentUserId).is('read_at', null)
+        .then(() => { _chatUnread = 0; _updateChatBadge(); });
     }
 
     function _fmtTime(isoStr) {
