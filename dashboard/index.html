@@ -1215,7 +1215,7 @@
       $('docx-filename').classList.remove('hidden');
       try {
         const buffer = await file.arrayBuffer();
-        const result = await mammoth.extractRawValue({ arrayBuffer: buffer });
+        const result = await mammoth.extractRawText({ arrayBuffer: buffer });
         $('editor-content').value = normalizeContent(result.value);
         updateWordCount();
         showToast('Document converted and formatted — review below.');
