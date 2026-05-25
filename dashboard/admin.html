@@ -76,8 +76,8 @@
       <div class="flex items-center gap-3">
         <span id="nav-name" class="hidden sm:block text-muted text-sm truncate max-w-[160px]"></span>
         <a href="index.html" class="hidden sm:inline-flex flex-shrink-0 items-center gap-1.5 px-4 py-1.5 text-sm font-medium text-muted hover:text-white border border-border hover:border-white/20 rounded-full transition-all duration-200">Writer View</a>
-        <button id="sign-out-btn" class="flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium text-muted hover:text-white border border-border hover:border-white/20 rounded-full transition-all duration-200">
-          Sign Out
+        <button id="sign-out-btn" class="flex-shrink-0 inline-flex items-center gap-1.5 px-3 sm:px-4 py-1.5 text-sm font-medium text-muted hover:text-white border border-border hover:border-white/20 rounded-full transition-all duration-200">
+          <span class="hidden sm:inline">Sign Out</span>
           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         </button>
       </div>
@@ -296,7 +296,7 @@
           <!-- Book Stats Editor -->
           <div class="mb-6 rounded-xl border border-border bg-surface p-4">
             <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted mb-3">Book Stats</p>
-            <div class="grid grid-cols-2 gap-3 mb-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
               <div>
                 <label class="block text-[10px] text-muted uppercase tracking-wide mb-1">Views</label>
                 <input id="stat-views" type="number" min="0" placeholder="0"
@@ -438,7 +438,7 @@
                 <option value="">No specific book</option>
               </select>
             </div>
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Date</label>
                 <input id="income-date" type="date" class="form-input w-full bg-charcoal border border-border text-white text-sm rounded-lg px-4 py-3" required/>
@@ -852,7 +852,7 @@
         const timeCls   = isSent ? 'text-white/40' : 'text-muted/40';
         return dateSep
           + '<div class="flex ' + (isSent ? 'justify-end' : 'justify-start') + '">'
-          + '<div class="' + bubbleCls + ' px-3.5 py-2.5 max-w-[80%]">'
+          + '<div class="' + bubbleCls + ' px-3.5 py-2.5 max-w-[88%] sm:max-w-[80%]">'
           + '<p class="' + textCls + ' text-[13px] leading-relaxed break-words" style="white-space:pre-wrap">' + escHtml(m.body) + '</p>'
           + '<div class="flex items-center gap-1 mt-1 ' + (isSent ? 'justify-end' : 'justify-start') + '">'
           + '<span class="' + timeCls + ' text-[10px]">' + timeStr + '</span>'
