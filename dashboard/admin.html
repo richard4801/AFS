@@ -154,11 +154,11 @@
   </div>
 
   <!-- ADMIN FLOATING CHAT BUTTON -->
-  <div id="admin-chat-float" style="position:fixed;right:24px;bottom:24px;z-index:90;touch-action:none;">
+  <div id="admin-chat-float" style="position:fixed;right:24px;bottom:24px;z-index:9999;touch-action:none;">
     <button id="admin-chat-float-btn" onclick="toggleAdminChat()"
             class="relative w-14 h-14 rounded-full bg-crimson text-white shadow-xl shadow-black/50 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform duration-200">
       <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      <span id="admin-chat-pulse" class="hidden absolute inset-0 rounded-full bg-crimson/50 animate-ping"></span>
+      <span id="admin-chat-pulse" class="absolute inset-0 rounded-full bg-crimson/50 animate-ping"></span>
       <span id="admin-chat-badge" class="hidden absolute -top-1 -right-1 min-w-[20px] h-5 bg-gold text-obsidian text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none shadow-lg"></span>
     </button>
   </div>
@@ -592,10 +592,8 @@
       if (count > 0) {
         badge.textContent = count > 9 ? '9+' : String(count);
         badge.classList.remove('hidden');
-        pulse.classList.remove('hidden');
       } else {
         badge.classList.add('hidden');
-        pulse.classList.add('hidden');
       }
     }
 
@@ -635,7 +633,7 @@
     }
 
     async function toggleAdminChat() {
-      if (!_adminChatWriterId) return;
+      if (!_adminChatWriterId) { showToast('Select a writer from the sidebar to chat.'); return; }
       _adminChatOpen = !_adminChatOpen;
       $('admin-chat-panel').classList.toggle('hidden', !_adminChatOpen);
       if (_adminChatOpen) {

@@ -409,11 +409,11 @@
   </div>
 
   <!-- FLOATING CHAT BUTTON -->
-  <div id="chat-float" style="position:fixed;right:24px;bottom:24px;z-index:90;touch-action:none;">
+  <div id="chat-float" style="position:fixed;right:24px;bottom:24px;z-index:9999;touch-action:none;">
     <button id="chat-float-btn" onclick="toggleChat()"
             class="relative w-14 h-14 rounded-full bg-gold text-obsidian shadow-xl shadow-black/50 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform duration-200">
       <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      <span id="chat-pulse" class="hidden absolute inset-0 rounded-full bg-gold/50 animate-ping"></span>
+      <span id="chat-pulse" class="absolute inset-0 rounded-full bg-gold/50 animate-ping"></span>
       <span id="chat-badge" class="hidden absolute -top-1 -right-1 min-w-[20px] h-5 bg-crimson text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none shadow-lg"></span>
     </button>
   </div>
@@ -1430,10 +1430,8 @@
       if (_chatUnread > 0) {
         badge.textContent = _chatUnread > 9 ? '9+' : String(_chatUnread);
         badge.classList.remove('hidden');
-        pulse.classList.remove('hidden');
       } else {
         badge.classList.add('hidden');
-        pulse.classList.add('hidden');
       }
     }
 
