@@ -117,7 +117,7 @@
   </div>
 
   <!-- ADMIN CHAT PANEL -->
-  <div id="admin-chat-panel" class="hidden fixed z-[70] flex flex-col rounded-2xl border border-border bg-surface shadow-2xl shadow-black/70 overflow-hidden" style="top:72px;bottom:20px;right:20px;width:340px;">
+  <div id="admin-chat-panel" class="hidden fixed z-[70] flex flex-col rounded-2xl border border-border bg-surface shadow-2xl shadow-black/70 overflow-hidden" style="right:24px;bottom:24px;width:340px;height:520px;transition:all 0.2s ease;">
     <!-- Header -->
     <div class="flex items-center gap-3 px-4 py-3.5 border-b border-border/50 bg-charcoal/40 flex-shrink-0">
       <div class="w-9 h-9 rounded-full bg-crimson/15 border border-crimson/25 flex items-center justify-center flex-shrink-0">
@@ -127,7 +127,13 @@
         <p id="admin-chat-writer-name" class="text-white text-[13px] font-semibold leading-none truncate">Writer</p>
         <p class="text-muted/60 text-[10px] mt-0.5">Direct message</p>
       </div>
-      <button onclick="toggleAdminChat()" class="w-7 h-7 flex items-center justify-center rounded-full text-muted hover:text-white hover:bg-charcoal transition-all text-xl leading-none">×</button>
+      <div class="flex items-center gap-1">
+        <button onclick="toggleAdminChatFullscreen()" title="Fullscreen"
+                class="w-7 h-7 flex items-center justify-center rounded-full text-muted hover:text-white hover:bg-charcoal transition-all">
+          <svg id="admin-chat-fs-icon" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        </button>
+        <button onclick="toggleAdminChat()" class="w-7 h-7 flex items-center justify-center rounded-full text-muted hover:text-white hover:bg-charcoal transition-all text-xl leading-none">×</button>
+      </div>
     </div>
     <!-- Messages -->
     <div id="admin-chat-messages" class="flex-1 overflow-y-auto thin-scroll p-4 flex flex-col gap-2"></div>
@@ -505,7 +511,22 @@
     let _adminChatMessages = [];
     let _adminChatSub      = null;
     let _adminChatUnread   = {};  // writerId → count
-    let _adminChatWriterId = null;
+    let _adminChatWriterId  = null;
+    let _adminChatFullscreen = false;
+    function toggleAdminChatFullscreen() {
+      _adminChatFullscreen = !_adminChatFullscreen;
+      const panel = $('admin-chat-panel');
+      const icon  = $('admin-chat-fs-icon');
+      if (_adminChatFullscreen) {
+        panel.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border-radius:0;z-index:200;display:flex;flex-direction:column;';
+      } else {
+        panel.style.cssText = 'right:24px;bottom:24px;width:340px;height:520px;transition:all 0.2s ease;';
+        panel.classList.remove('hidden');
+      }
+      icon.innerHTML = _adminChatFullscreen
+        ? '<path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>'
+        : '<path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>';
+    }
 
     function _adminFmtTime(isoStr) {
       return new Date(isoStr).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -651,7 +672,7 @@
       const { data, error } = await db.from('messages').insert({
         sender_id: currentUserId, recipient_id: _adminChatWriterId, body,
       }).select().single();
-      if (error) { showToast('Could not send message.'); input.value = body; return; }
+      if (error) { showToast('Send failed: ' + error.message); input.value = body; return; }
       _adminChatMessages.push(data);
       _renderAdminChatMessages();
       // Also insert a notification for the writer
