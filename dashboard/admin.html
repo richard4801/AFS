@@ -738,8 +738,13 @@
 
     // ── Presence (admin side) ─────────────────────────────────────────────────
     let _adminPresenceCh = null;
+    let _adminPresenceUserId = null;
+    let _adminPresenceReconnectTimer = null;
     let _onlineWriters = new Set();
+
     function _initAdminPresence(userId) {
+      _adminPresenceUserId = userId;
+      if (_adminPresenceCh) { try { _adminPresenceCh.unsubscribe(); } catch(e){} _adminPresenceCh = null; }
       _adminPresenceCh = db.channel('presence-afs')
         .on('presence', { event: 'sync' }, () => {
           const all = Object.values(_adminPresenceCh.presenceState()).flat();
@@ -748,9 +753,24 @@
           _updateAdminChatWriterStatus();
         })
         .subscribe(async status => {
-          if (status === 'SUBSCRIBED') await _adminPresenceCh.track({ userId, role: 'admin' });
+          if (status === 'SUBSCRIBED') {
+            await _adminPresenceCh.track({ userId, role: 'admin' });
+          } else if (status === 'CHANNEL_ERROR' || status === 'CLOSED') {
+            clearTimeout(_adminPresenceReconnectTimer);
+            _adminPresenceReconnectTimer = setTimeout(() => _initAdminPresence(_adminPresenceUserId), 3000);
+          }
         });
     }
+
+    function _refreshAdminPresence() {
+      if (!_adminPresenceUserId || document.visibilityState !== 'visible') return;
+      if (!_adminPresenceCh) { _initAdminPresence(_adminPresenceUserId); return; }
+      _adminPresenceCh.track({ userId: _adminPresenceUserId, role: 'admin' })
+        .catch(() => _initAdminPresence(_adminPresenceUserId));
+    }
+
+    document.addEventListener('visibilitychange', _refreshAdminPresence);
+    window.addEventListener('focus', _refreshAdminPresence);
     function _updateAllWriterOnlineDots() {
       document.querySelectorAll('[data-woid]').forEach(el => {
         const online = _onlineWriters.has(el.dataset.woid);
@@ -857,12 +877,15 @@
       if (error) { showToast('Send failed: ' + error.message); input.value = body; return; }
       _adminChatMessages.push(data);
       _renderAdminChatMessages();
-      // Also insert a notification for the writer
-      db.from('notifications').insert({
-        user_id: _adminChatWriterId, type: 'chat_message',
-        title: 'Message from Your Editor',
-        body: 'Open your chat to view.',
-      }).then(() => {});
+      // Only notify the bell if the writer is not currently online —
+      // if they're on the page the chat badge/chime already alerts them.
+      if (!_onlineWriters.has(_adminChatWriterId)) {
+        db.from('notifications').insert({
+          user_id: _adminChatWriterId, type: 'chat_message',
+          title: 'Message from Your Editor',
+          body: 'Open your chat to view.',
+        }).then(() => {});
+      }
     }
 
     let currentUserId   = null;

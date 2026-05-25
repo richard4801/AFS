@@ -1459,22 +1459,43 @@
 
     // ── Presence (writer side) ────────────────────────────────────────────────
     let _presenceCh = null;
+    let _presenceUserId = null;
+    let _presenceReconnectTimer = null;
+
     function _setEditorOnline(online) {
       const dot = $('chat-status-dot'), txt = $('chat-status-text');
       if (dot) dot.className = 'absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-surface '
         + (online ? 'bg-emerald-400' : 'bg-gray-500');
       if (txt) { txt.textContent = online ? 'Online' : 'Offline'; txt.className = online ? 'text-emerald-400/70 text-[10px] mt-0.5' : 'text-muted/60 text-[10px] mt-0.5'; }
     }
+
     function _initWriterPresence(userId) {
+      _presenceUserId = userId;
+      if (_presenceCh) { try { _presenceCh.unsubscribe(); } catch(e){} _presenceCh = null; }
       _presenceCh = db.channel('presence-afs')
         .on('presence', { event: 'sync' }, () => {
           const all = Object.values(_presenceCh.presenceState()).flat();
           _setEditorOnline(!!_chatAdminId && all.some(p => p.userId === _chatAdminId && p.role === 'admin'));
         })
         .subscribe(async status => {
-          if (status === 'SUBSCRIBED') await _presenceCh.track({ userId, role: 'writer' });
+          if (status === 'SUBSCRIBED') {
+            await _presenceCh.track({ userId, role: 'writer' });
+          } else if (status === 'CHANNEL_ERROR' || status === 'CLOSED') {
+            clearTimeout(_presenceReconnectTimer);
+            _presenceReconnectTimer = setTimeout(() => _initWriterPresence(_presenceUserId), 3000);
+          }
         });
     }
+
+    function _refreshWriterPresence() {
+      if (!_presenceUserId || document.visibilityState !== 'visible') return;
+      if (!_presenceCh) { _initWriterPresence(_presenceUserId); return; }
+      _presenceCh.track({ userId: _presenceUserId, role: 'writer' })
+        .catch(() => _initWriterPresence(_presenceUserId));
+    }
+
+    document.addEventListener('visibilitychange', _refreshWriterPresence);
+    window.addEventListener('focus', _refreshWriterPresence);
 
     // ── Typing indicator (writer side) ───────────────────────────────────────
     let _writerTypingCh = null, _writerTypingHideTimer = null, _writerTypingThrottle = null;
