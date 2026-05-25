@@ -417,53 +417,59 @@
       </div><!-- /panel-writers -->
 
       <!-- INCOME PANEL -->
-      <div id="panel-income" class="hidden p-4 md:p-6 md:max-w-lg">
-        <div class="mb-8">
+      <div id="panel-income" class="hidden p-4 md:p-6">
+        <div class="mb-6">
           <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-crimson-light mb-2">Income Management</p>
-          <h2 class="font-serif text-3xl text-white">Record Daily Earnings</h2>
+          <h2 class="font-serif text-2xl sm:text-3xl text-white">Record Daily Earnings</h2>
           <p class="text-muted text-sm mt-1">Insert a royalty row for a writer.</p>
         </div>
-        <div class="relative rounded-2xl border border-border bg-surface p-6 shadow-2xl shadow-black/40">
-          <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-crimson/40 to-transparent"></div>
-          <form id="income-form" class="space-y-5" novalidate>
-            <div>
-              <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Writer</label>
-              <select id="income-writer" class="form-input w-full bg-charcoal border border-border text-white text-sm rounded-lg px-4 py-3" required>
-                <option value="">Select a writer…</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Book <span class="text-muted font-normal">(optional)</span></label>
-              <select id="income-book" class="form-input w-full bg-charcoal border border-border text-white text-sm rounded-lg px-4 py-3">
-                <option value="">No specific book</option>
-              </select>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          <!-- Form card -->
+          <div class="relative rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-2xl shadow-black/40">
+            <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-crimson/40 to-transparent"></div>
+            <form id="income-form" class="space-y-4" novalidate>
               <div>
-                <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Date</label>
-                <input id="income-date" type="date" class="form-input w-full bg-charcoal border border-border text-white text-sm rounded-lg px-4 py-3" required/>
+                <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Writer</label>
+                <select id="income-writer" class="form-input w-full bg-charcoal border border-border text-white text-sm rounded-lg px-4 py-3" required>
+                  <option value="">Select a writer…</option>
+                </select>
               </div>
               <div>
-                <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Amount ($)</label>
-                <input id="income-amount" type="number" step="0.01" min="0" placeholder="0.00" class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3" required/>
+                <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Book <span class="text-muted font-normal">(optional)</span></label>
+                <select id="income-book" class="form-input w-full bg-charcoal border border-border text-white text-sm rounded-lg px-4 py-3">
+                  <option value="">No specific book</option>
+                </select>
               </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Date</label>
+                  <input id="income-date" type="date" class="form-input w-full bg-charcoal border border-border text-white text-sm rounded-lg px-3 py-3" required/>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Amount ($)</label>
+                  <input id="income-amount" type="number" step="0.01" min="0" placeholder="0.00" class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-3 py-3" required/>
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Note <span class="text-muted font-normal">(optional)</span></label>
+                <input id="income-note" type="text" placeholder="e.g. Royalty payout week 3" class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3"/>
+              </div>
+              <div id="income-error"   class="hidden text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-3"></div>
+              <div id="income-success" class="hidden text-xs text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 rounded-lg px-4 py-3"></div>
+              <button type="submit" id="income-submit"
+                      class="w-full flex items-center justify-center gap-2 px-6 py-3 bg-crimson hover:bg-crimson-light text-white text-sm font-semibold rounded-lg transition-colors duration-200">
+                Record Earnings
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+              </button>
+            </form>
+          </div>
+          <!-- Recent entries -->
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted">Recent Entries</p>
             </div>
-            <div>
-              <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Note <span class="text-muted font-normal">(optional)</span></label>
-              <input id="income-note" type="text" placeholder="e.g. Royalty payout week 3" class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3"/>
-            </div>
-            <div id="income-error"   class="hidden text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-3"></div>
-            <div id="income-success" class="hidden text-xs text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 rounded-lg px-4 py-3"></div>
-            <button type="submit" id="income-submit"
-                    class="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-crimson hover:bg-crimson-light text-white text-sm font-semibold rounded-lg transition-colors duration-200">
-              Record Earnings
-              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-            </button>
-          </form>
-        </div>
-        <div class="mt-8">
-          <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted mb-3">Recent Entries</p>
-          <div id="recent-earnings" class="space-y-2 text-sm"></div>
+            <div id="recent-earnings" class="space-y-2"></div>
+          </div>
         </div>
       </div>
 

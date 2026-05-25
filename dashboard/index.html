@@ -1031,32 +1031,32 @@
         const sLabel = b.status === 'approved' || b.status === 'published' ? 'Active' : b.status.charAt(0).toUpperCase() + b.status.slice(1).replace('_',' ');
         _bookReg.set(b.id, b);
         const coverHtml = b.cover_url
-          ? '<img src="' + escHtml(b.cover_url) + '" class="w-20 h-full min-h-28 object-cover rounded-xl border border-border shadow-lg"/>'
-          : '<div class="w-20 h-full min-h-28 bg-charcoal rounded-xl border border-border flex items-center justify-center shadow-lg"><span class="font-serif text-3xl text-muted/30">' + escHtml(b.title[0]||'?') + '</span></div>';
+          ? '<img src="' + escHtml(b.cover_url) + '" class="w-20 sm:w-24 h-full min-h-[7rem] sm:min-h-[8rem] object-cover rounded-xl border border-border shadow-lg"/>'
+          : '<div class="w-20 sm:w-24 h-full min-h-[7rem] sm:min-h-[8rem] bg-charcoal rounded-xl border border-border flex items-center justify-center shadow-lg"><span class="font-serif text-3xl text-muted/30">' + escHtml(b.title[0]||'?') + '</span></div>';
         const signedBadge = b.is_signed ? '<span class="absolute top-1 left-1 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-blue-500 text-white leading-tight">Signed</span>' : '';
-        const lockedChip = b.locked_from_chapter ? '<span class="text-[11px] font-medium px-2.5 py-0.5 rounded-full border border-gold/40 text-gold">Locked: ' + b.locked_from_chapter + '</span>' : '';
-        return '<div class="rounded-2xl border border-border bg-surface overflow-hidden">'
-          + '<div class="flex items-center justify-between px-4 py-2 border-b border-border/40">'
-          + '<span class="text-muted/60 text-[11px]">Last Update: ' + dateStr + '</span>'
-          + '</div>'
-          + '<div class="p-4 flex gap-4 items-stretch cursor-pointer active:bg-white/5 transition-colors" onclick=\'openBook(\"' + b.id + '\")\'>'  
+        const lockedChip = b.locked_from_chapter ? '<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full border border-gold/40 text-gold">Ch.' + b.locked_from_chapter + '+ locked</span>' : '';
+        return '<div class="rounded-2xl border border-border bg-surface hover:border-white/15 overflow-hidden transition-colors duration-200">'
+          + '<div class="flex gap-4 sm:gap-5 p-4 sm:p-5 cursor-pointer active:bg-white/[0.03] transition-colors" onclick=\'openBook(\"' + b.id + '\")\'>'
           + '<div class="relative flex-shrink-0 self-stretch">' + coverHtml + signedBadge + '</div>'
-          + '<div class="flex-1 min-w-0">'
-          + '<h3 class="font-semibold text-white text-base leading-snug mb-2.5 line-clamp-2">' + escHtml(b.title) + '</h3>'
-          + '<div class="flex items-center gap-1.5 mb-3 flex-wrap">'
-          + '<span class="text-[11px] font-medium px-2.5 py-0.5 rounded-full border ' + sCls + '">' + sLabel + '</span>'
+          + '<div class="flex-1 min-w-0 flex flex-col gap-2 py-0.5">'
+          + '<div class="flex items-start justify-between gap-2">'
+          + '<h3 class="font-serif text-lg sm:text-xl text-white leading-snug line-clamp-2 flex-1 min-w-0">' + escHtml(b.title) + '</h3>'
+          + '<button onclick="event.stopPropagation();quickNewChapter(&quot;' + b.id + '&quot;)" class="flex-shrink-0 inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 bg-gold/10 hover:bg-gold/20 border border-gold/25 hover:border-gold/50 text-gold text-[11px] font-semibold rounded-lg transition-all whitespace-nowrap">+ Chapter</button>'
+          + '</div>'
+          + '<div class="flex items-center gap-1.5 flex-wrap">'
+          + '<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full border ' + sCls + '">' + sLabel + '</span>'
           + lockedChip
           + '</div>'
-          + '<div class="grid grid-cols-2 gap-x-6 gap-y-1.5">'
-          + '<span class="flex items-center gap-1.5 text-xs text-muted font-light"><svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"/></svg>' + fmtCount(b.likes||0) + '</span>'
-          + '<span class="flex items-center gap-1.5 text-xs text-muted font-light"><svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>' + fmtCount(b.views||0) + '</span>'
-          + '<span class="flex items-center gap-1.5 text-xs text-muted font-light"><svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"/></svg>' + fmtCount(totalWords) + '</span>'
-          + '<span class="flex items-center gap-1.5 text-xs text-muted font-light"><svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.966 8.966 0 0 0-6 2.292m0-14.25v14.25"/></svg>' + fmtCount(b.library_count||0) + '</span>'
+          + '<div class="flex items-end justify-between gap-2 mt-auto pt-1">'
+          + '<div class="flex items-center gap-3 sm:gap-4 flex-wrap">'
+          + '<span class="flex items-center gap-1 text-[11px] text-muted/80"><svg class="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"/></svg>' + fmtCount(b.likes||0) + '</span>'
+          + '<span class="flex items-center gap-1 text-[11px] text-muted/80"><svg class="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>' + fmtCount(b.views||0) + '</span>'
+          + '<span class="flex items-center gap-1 text-[11px] text-muted/80"><svg class="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"/></svg>' + fmtCount(totalWords) + '</span>'
+          + '<span class="flex items-center gap-1 text-[11px] text-muted/80"><svg class="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.966 8.966 0 0 0-6 2.292m0-14.25v14.25"/></svg>' + fmtCount(b.library_count||0) + '</span>'
+          + '</div>'
+          + '<span class="text-muted/40 text-[10px] tabular-nums flex-shrink-0 hidden sm:block">' + dateStr + '</span>'
           + '</div>'
           + '</div>'
-          + '</div>'
-          + '<div class="px-4 pb-4">'
-          + '<button onclick="event.stopPropagation();quickNewChapter(&quot;' + b.id + '&quot;)" class="w-full py-2.5 rounded-xl text-sm font-medium bg-crimson/90 hover:bg-crimson text-white transition-colors">+ Add new chapter</button>'
           + '</div>'
           + '</div>';
       }).join('');
