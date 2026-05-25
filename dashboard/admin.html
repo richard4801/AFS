@@ -686,17 +686,21 @@
           : '';
         lastDate = dateLabel;
         const tick = isSent
-          ? (m.read_at ? '<span class="text-gold/80 text-[10px] leading-none">✓✓</span>' : '<span class="text-muted/50 text-[10px] leading-none">✓</span>')
+          ? (m.read_at
+              ? '<span class="text-white/60 text-[10px] leading-none">✓✓</span>'
+              : '<span class="text-white/35 text-[10px] leading-none">✓</span>')
           : '';
         const bubbleCls = isSent
-          ? 'bg-crimson/12 border border-crimson/20 rounded-2xl rounded-br-none ml-8'
-          : 'bg-charcoal border border-border/60 rounded-2xl rounded-bl-none mr-8';
+          ? 'bg-crimson rounded-2xl rounded-br-sm ml-10'
+          : 'bg-[#252525] border border-border/40 rounded-2xl rounded-bl-sm mr-10';
+        const textCls   = 'text-white';
+        const timeCls   = isSent ? 'text-white/40' : 'text-muted/40';
         return dateSep
           + '<div class="flex ' + (isSent ? 'justify-end' : 'justify-start') + '">'
-          + '<div class="' + bubbleCls + ' px-3.5 py-2.5 max-w-full">'
-          + '<p class="text-white text-[13px] leading-relaxed break-words" style="white-space:pre-wrap">' + escHtml(m.body) + '</p>'
+          + '<div class="' + bubbleCls + ' px-3.5 py-2.5 max-w-[80%]">'
+          + '<p class="' + textCls + ' text-[13px] leading-relaxed break-words" style="white-space:pre-wrap">' + escHtml(m.body) + '</p>'
           + '<div class="flex items-center gap-1 mt-1 ' + (isSent ? 'justify-end' : 'justify-start') + '">'
-          + '<span class="text-muted/40 text-[10px]">' + timeStr + '</span>'
+          + '<span class="' + timeCls + ' text-[10px]">' + timeStr + '</span>'
           + (isSent ? tick : '')
           + '</div>'
           + '</div>'
