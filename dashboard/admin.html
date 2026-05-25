@@ -577,6 +577,7 @@
           filter: 'recipient_id=eq.' + currentUserId,
         }, payload => {
           if (payload.new.sender_id !== writerId) return;
+          if (_adminChatMessages.some(m => m.id === payload.new.id)) return;
           _adminChatMessages.push(payload.new);
           if (_adminChatOpen) {
             _renderAdminChatMessages();
@@ -679,7 +680,7 @@
       db.from('notifications').insert({
         user_id: _adminChatWriterId, type: 'chat_message',
         title: 'Message from Your Editor',
-        body: body.slice(0, 200) + (body.length > 200 ? '…' : ''),
+        body: 'Open your chat to view.',
       }).then(() => {});
     }
 
