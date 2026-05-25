@@ -100,6 +100,12 @@
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
           <span id="notif-badge" class="hidden absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-gold text-obsidian text-[9px] font-bold rounded-full flex items-center justify-center px-0.5"></span>
         </button>
+        <button id="chat-btn" onclick="toggleChat()"
+                class="relative flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-white hover:bg-surface border border-border hover:border-white/20 transition-all duration-200">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span id="chat-pulse" class="hidden absolute inset-0 rounded-full border-2 border-gold animate-ping opacity-60"></span>
+          <span id="chat-badge" class="hidden absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-crimson text-white text-[9px] font-bold rounded-full flex items-center justify-center px-0.5 leading-none"></span>
+        </button>
         <button id="sign-out-btn"
                 class="flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium text-muted hover:text-white border border-border hover:border-white/20 rounded-full transition-all duration-200">
           Sign Out
@@ -365,6 +371,40 @@
       </div>
     </div>
     <div id="notif-list" class="max-h-[420px] overflow-y-auto thin-scroll divide-y divide-border/20"></div>
+  </div>
+
+  <!-- CHAT PANEL -->
+  <div id="chat-panel" class="hidden fixed z-[80] right-4 flex flex-col rounded-2xl border border-border bg-surface shadow-2xl shadow-black/70 overflow-hidden" style="top:72px;bottom:20px;width:340px;">
+    <!-- Header -->
+    <div class="flex items-center gap-3 px-4 py-3.5 border-b border-border/50 bg-charcoal/40 flex-shrink-0">
+      <div class="relative flex-shrink-0">
+        <div class="w-9 h-9 rounded-full bg-crimson/15 border border-crimson/25 flex items-center justify-center">
+          <span id="chat-editor-initial" class="text-[13px] font-bold text-crimson-light">E</span>
+        </div>
+        <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-surface"></span>
+      </div>
+      <div class="flex-1 min-w-0">
+        <p class="text-white text-[13px] font-semibold leading-none">Your Editor</p>
+        <p class="text-emerald-400/70 text-[10px] mt-0.5">Online</p>
+      </div>
+      <button onclick="toggleChat()" class="w-7 h-7 flex items-center justify-center rounded-full text-muted hover:text-white hover:bg-charcoal transition-all text-xl leading-none">×</button>
+    </div>
+    <!-- Messages -->
+    <div id="chat-messages" class="flex-1 overflow-y-auto thin-scroll p-4 flex flex-col gap-2"></div>
+    <!-- Input -->
+    <div class="flex-shrink-0 border-t border-border/50 bg-charcoal/30 p-3">
+      <div class="flex items-end gap-2">
+        <textarea id="chat-input" rows="1" placeholder="Type a message…"
+                  class="flex-1 bg-charcoal border border-border focus:border-gold/40 text-white placeholder-muted text-sm rounded-2xl px-4 py-2.5 resize-none transition-all duration-200 outline-none"
+                  style="max-height:112px;overflow-y:auto"
+                  onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMessage()}"
+                  oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,112)+'px'"></textarea>
+        <button onclick="sendChatMessage()"
+                class="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-full bg-gold hover:bg-gold/80 text-obsidian transition-all duration-200">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m3 3 3.5 9-3.5 9 19-9Z"/><path d="m6.5 12H22" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- PROFILE MODAL -->
@@ -1270,6 +1310,161 @@
       return paras.join('\n\n');
     }
 
+    // ── CHAT ──────────────────────────────────────────────────────────
+    let _chatOpen     = false;
+    let _chatAdminId  = null;
+    let _chatMessages = [];
+    let _chatSub      = null;
+    let _chatUnread   = 0;
+
+    async function initChat(userId) {
+      const { data: admin } = await db.from('profiles').select('id, name').eq('is_admin', true).maybeSingle();
+      if (!admin) return;
+      _chatAdminId = admin.id;
+      const initial = (admin.name || 'E')[0].toUpperCase();
+      const el = $('chat-editor-initial');
+      if (el) el.textContent = initial;
+
+      // Count unread messages from admin to writer
+      const { count } = await db.from('messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('sender_id', _chatAdminId).eq('recipient_id', userId).is('read_at', null);
+      _chatUnread = count || 0;
+      _updateChatBadge();
+
+      // Subscribe to new incoming messages
+      _chatSub = db.channel('writer-chat-' + userId)
+        .on('postgres_changes', {
+          event: 'INSERT', schema: 'public', table: 'messages',
+          filter: 'recipient_id=eq.' + userId,
+        }, payload => {
+          if (payload.new.sender_id !== _chatAdminId) return;
+          _chatMessages.push(payload.new);
+          if (_chatOpen) {
+            _renderChatMessages();
+            _markChatRead();
+          } else {
+            _chatUnread++;
+            _updateChatBadge();
+          }
+        })
+        .subscribe();
+    }
+
+    function _updateChatBadge() {
+      const badge = $('chat-badge');
+      const pulse = $('chat-pulse');
+      if (!badge || !pulse) return;
+      if (_chatUnread > 0) {
+        badge.textContent = _chatUnread > 9 ? '9+' : String(_chatUnread);
+        badge.classList.remove('hidden');
+        pulse.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+        pulse.classList.add('hidden');
+      }
+    }
+
+    async function toggleChat() {
+      _chatOpen = !_chatOpen;
+      $('chat-panel').classList.toggle('hidden', !_chatOpen);
+      if (_chatOpen) {
+        await _loadChatMessages();
+        _markChatRead();
+        const inp = $('chat-input');
+        if (inp) setTimeout(() => inp.focus(), 50);
+      }
+    }
+
+    async function _loadChatMessages() {
+      if (!_chatAdminId || !currentUserId) return;
+      const { data } = await db.from('messages')
+        .select('*')
+        .or('and(sender_id.eq.' + currentUserId + ',recipient_id.eq.' + _chatAdminId + '),and(sender_id.eq.' + _chatAdminId + ',recipient_id.eq.' + currentUserId + ')')
+        .order('created_at', { ascending: true })
+        .limit(200);
+      _chatMessages = data ?? [];
+      _renderChatMessages();
+    }
+
+    async function _markChatRead() {
+      if (!_chatAdminId) return;
+      await db.from('messages')
+        .update({ read_at: new Date().toISOString() })
+        .eq('sender_id', _chatAdminId).eq('recipient_id', currentUserId).is('read_at', null);
+      _chatUnread = 0;
+      _updateChatBadge();
+    }
+
+    function _fmtTime(isoStr) {
+      return new Date(isoStr).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    }
+    function _fmtDate(isoStr) {
+      const d = new Date(isoStr), today = new Date();
+      if (d.toDateString() === today.toDateString()) return 'Today';
+      const yest = new Date(today); yest.setDate(today.getDate() - 1);
+      if (d.toDateString() === yest.toDateString()) return 'Yesterday';
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    function _renderChatMessages() {
+      const container = $('chat-messages');
+      if (!container) return;
+      if (!_chatMessages.length) {
+        container.innerHTML = '<div class="flex-1 flex flex-col items-center justify-center gap-2 py-10">'
+          + '<div class="w-12 h-12 rounded-full bg-charcoal border border-border flex items-center justify-center mb-1">'
+          + '<svg class="w-5 h-5 text-muted/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z"/></svg>'
+          + '</div>'
+          + '<p class="text-muted/50 text-xs text-center">No messages yet.<br>Say hello to your editor!</p>'
+          + '</div>';
+        return;
+      }
+      let lastDate = '';
+      const html = _chatMessages.map(m => {
+        const isSent   = m.sender_id === currentUserId;
+        const dateLabel = _fmtDate(m.created_at);
+        const timeStr   = _fmtTime(m.created_at);
+        const dateSep   = dateLabel !== lastDate
+          ? '<div class="flex items-center gap-2 my-2"><div class="flex-1 h-px bg-border/30"></div><span class="text-muted/40 text-[10px] whitespace-nowrap">' + dateLabel + '</span><div class="flex-1 h-px bg-border/30"></div></div>'
+          : '';
+        lastDate = dateLabel;
+        const tick = isSent
+          ? (m.read_at
+              ? '<span class="text-gold/80 leading-none">✓✓</span>'
+              : '<span class="text-muted/50 leading-none">✓</span>')
+          : '';
+        const bubbleCls = isSent
+          ? 'bg-gold/12 border border-gold/20 rounded-2xl rounded-br-none ml-8'
+          : 'bg-charcoal border border-border/60 rounded-2xl rounded-bl-none mr-8';
+        return dateSep
+          + '<div class="flex ' + (isSent ? 'justify-end' : 'justify-start') + '">'
+          + '<div class="' + bubbleCls + ' px-3.5 py-2.5 max-w-full">'
+          + '<p class="text-white text-[13px] leading-relaxed break-words" style="white-space:pre-wrap">' + escHtml(m.body) + '</p>'
+          + '<div class="flex items-center gap-1 mt-1 ' + (isSent ? 'justify-end' : 'justify-start') + '">'
+          + '<span class="text-muted/40 text-[10px]">' + timeStr + '</span>'
+          + (isSent ? '<span class="text-[10px]">' + tick + '</span>' : '')
+          + '</div>'
+          + '</div>'
+          + '</div>';
+      }).join('');
+      container.innerHTML = html;
+      container.scrollTop = container.scrollHeight;
+    }
+
+    async function sendChatMessage() {
+      const input = $('chat-input');
+      const body = input?.value?.trim();
+      if (!body || !_chatAdminId || !currentUserId) return;
+      input.value = '';
+      input.style.height = 'auto';
+      const { data, error } = await db.from('messages').insert({
+        sender_id: currentUserId, recipient_id: _chatAdminId, body,
+      }).select().single();
+      if (error) { showToast('Could not send message.'); input.value = body; return; }
+      _chatMessages.push(data);
+      _renderChatMessages();
+    }
+
     // ── NOTIFICATIONS ──────────────────────────────────────────
     let _notifications     = [];
 
@@ -1561,6 +1756,7 @@
       $('nav-name-btn').textContent     = profile?.name || profile?.email || '';
       $('nav-name-btn').classList.remove('hidden');
       loadNotifications();
+      initChat(currentUserId);
 
       const monthly = earnings30
         .filter(r => r.date.startsWith(new Date().toISOString().slice(0, 7)))
