@@ -37,6 +37,11 @@
       border-color: #A31621;
       box-shadow: 0 0 0 2px rgba(163,22,33,0.18);
     }
+    .digit-box { width:40px; height:48px; text-align:center; font-size:1.25rem; font-weight:700; background:#161616; border:1px solid #2A2A2A; border-radius:8px; color:#fff; transition:border-color .15s, box-shadow .15s; caret-color:#A31621; -moz-appearance:textfield; }
+    .digit-box::-webkit-outer-spin-button, .digit-box::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+    .digit-box:focus { outline:none; border-color:#A31621; box-shadow:0 0 0 2px rgba(163,22,33,0.18); }
+    .digit-box.filled { border-color:rgba(163,22,33,0.35); }
+    #verify-step { display:none; }
 
     /* Subtle scanline texture */
     body::before {
@@ -154,6 +159,44 @@
         </button>
 
       </form>
+
+      <!-- DEVICE VERIFICATION STEP -->
+      <div id="verify-step">
+        <div class="flex justify-center mb-5">
+          <div class="w-10 h-10 rounded-xl bg-crimson/10 border border-crimson/25 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A31621" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+            </svg>
+          </div>
+        </div>
+
+        <h2 class="font-serif text-2xl text-white mb-1 text-center">Verify your device</h2>
+        <p class="text-muted text-sm text-center mb-1">We sent a 6-digit code to</p>
+        <p id="verify-email-display" class="text-white text-sm font-semibold text-center mb-6 truncate px-2"></p>
+
+        <div id="digit-row" class="flex gap-2 justify-center mb-5">
+          <input class="digit-box" type="text" inputmode="numeric" maxlength="1" autocomplete="one-time-code"/>
+          <input class="digit-box" type="text" inputmode="numeric" maxlength="1"/>
+          <input class="digit-box" type="text" inputmode="numeric" maxlength="1"/>
+          <input class="digit-box" type="text" inputmode="numeric" maxlength="1"/>
+          <input class="digit-box" type="text" inputmode="numeric" maxlength="1"/>
+          <input class="digit-box" type="text" inputmode="numeric" maxlength="1"/>
+        </div>
+
+        <div id="verify-error" class="hidden mb-4 text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-3 leading-relaxed"></div>
+
+        <button id="verify-btn" onclick="submitVerification()"
+                class="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-crimson hover:bg-crimson-light text-white text-sm font-semibold rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+          <span id="verify-btn-label">Verify Device</span>
+          <svg id="verify-btn-arrow" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          <svg id="verify-btn-spinner" class="hidden animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
+        </button>
+
+        <div class="mt-4 flex items-center justify-between">
+          <button id="resend-btn" onclick="resendCode()" class="text-xs text-muted hover:text-crimson-light transition-colors">Resend code</button>
+          <button onclick="backToLogin()" class="text-xs text-muted hover:text-white transition-colors">Different account</button>
+        </div>
+      </div>
     </div>
 
     <!-- Back link -->
@@ -176,6 +219,19 @@
       auth: { persistSession: true, storage: window.localStorage },
     });
 
+    const TRUST_PREFIX = 'afs_dev_';
+    const TRUST_MS     = 30 * 24 * 60 * 60 * 1000;
+
+    function getDeviceTrust(userId) {
+      try {
+        const v = JSON.parse(localStorage.getItem(TRUST_PREFIX + userId) || 'null');
+        return v && (Date.now() - v.at < TRUST_MS);
+      } catch { return false; }
+    }
+    function setDeviceTrust(userId) {
+      localStorage.setItem(TRUST_PREFIX + userId, JSON.stringify({ at: Date.now() }));
+    }
+
     const form    = document.getElementById('login-form');
     const errBox  = document.getElementById('error-msg');
     const btn     = document.getElementById('submit-btn');
@@ -183,17 +239,14 @@
     const arrow   = document.getElementById('btn-arrow');
     const spinner = document.getElementById('btn-spinner');
 
+    let _pendingEmail  = '';
+    let _pendingUserId = '';
+
     function setLoading(on) {
       btn.disabled = on;
       label.textContent = on ? 'Verifying…' : 'Access Dashboard';
       arrow.classList.toggle('hidden', on);
       spinner.classList.toggle('hidden', !on);
-    }
-
-    function showError(msg) {
-      errBox.textContent = msg;
-      errBox.classList.remove('hidden');
-      setLoading(false);
     }
 
     form.addEventListener('submit', async (e) => {
@@ -204,29 +257,165 @@
       const email    = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
 
-      const { data: authData, error } = await db.auth.signInWithPassword({ email, password });
+      const { data, error } = await db.auth.signInWithPassword({ email, password });
 
       if (error) {
-        showError(error.message);
+        errBox.textContent = error.message;
+        errBox.classList.remove('hidden');
+        setLoading(false);
         return;
       }
 
-      // Verify the account actually has admin rights
-      const { data: profile } = await db
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', authData.user.id)
-        .single();
+      const userId = data.user?.id;
 
+      // Verify admin status
+      const { data: profile } = await db.from('profiles').select('is_admin').eq('id', userId).single();
       if (!profile?.is_admin) {
-        // Sign them back out — they authenticated but aren't an admin
         await db.auth.signOut();
-        showError('Access denied. This portal is for authorised admins only.');
+        errBox.textContent = 'Access denied. This portal is for admins only.';
+        errBox.classList.remove('hidden');
+        setLoading(false);
         return;
       }
 
-      window.location.replace('admin.html');
+      // Trusted device? Go straight to dashboard
+      if (getDeviceTrust(userId)) {
+        window.location.replace('admin.html');
+        return;
+      }
+
+      // Untrusted device — send OTP
+      _pendingEmail  = email;
+      _pendingUserId = userId;
+
+      await db.auth.signOut();
+
+      const { error: otpErr } = await db.auth.signInWithOtp({
+        email,
+        options: { shouldCreateUser: false },
+      });
+
+      setLoading(false);
+
+      if (otpErr) {
+        errBox.textContent = 'Could not send verification code: ' + otpErr.message;
+        errBox.classList.remove('hidden');
+        return;
+      }
+
+      showVerifyStep();
     });
+
+    function showVerifyStep() {
+      document.getElementById('login-form').style.display = 'none';
+      const step = document.getElementById('verify-step');
+      step.style.display = 'block';
+      document.getElementById('verify-email-display').textContent = _pendingEmail;
+      document.getElementById('verify-error').classList.add('hidden');
+      const boxes = document.querySelectorAll('.digit-box');
+      boxes.forEach(b => { b.value = ''; b.classList.remove('filled'); });
+      setTimeout(() => boxes[0]?.focus(), 80);
+      startResendCooldown();
+    }
+
+    function backToLogin() {
+      document.getElementById('verify-step').style.display = 'none';
+      document.getElementById('login-form').style.display = '';
+      document.getElementById('error-msg').classList.add('hidden');
+      _pendingEmail = _pendingUserId = '';
+    }
+
+    document.getElementById('digit-row').addEventListener('input', e => {
+      if (!e.target.classList.contains('digit-box')) return;
+      const v = e.target.value.replace(/\D/g, '');
+      e.target.value = v.slice(-1);
+      e.target.classList.toggle('filled', !!e.target.value);
+      if (e.target.value) {
+        const boxes = [...document.querySelectorAll('.digit-box')];
+        const idx = boxes.indexOf(e.target);
+        if (idx < boxes.length - 1) boxes[idx + 1].focus();
+        else submitVerification();
+      }
+    });
+
+    document.getElementById('digit-row').addEventListener('keydown', e => {
+      if (e.key === 'Backspace' && !e.target.value) {
+        const boxes = [...document.querySelectorAll('.digit-box')];
+        const idx = boxes.indexOf(e.target);
+        if (idx > 0) { boxes[idx - 1].value = ''; boxes[idx - 1].classList.remove('filled'); boxes[idx - 1].focus(); }
+      }
+    });
+
+    document.getElementById('digit-row').addEventListener('paste', e => {
+      e.preventDefault();
+      const text = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 6);
+      const boxes = [...document.querySelectorAll('.digit-box')];
+      text.split('').forEach((ch, i) => { if (boxes[i]) { boxes[i].value = ch; boxes[i].classList.add('filled'); } });
+      const next = boxes[text.length] || boxes[boxes.length - 1];
+      next.focus();
+      if (text.length === 6) submitVerification();
+    });
+
+    async function submitVerification() {
+      const token = [...document.querySelectorAll('.digit-box')].map(b => b.value).join('');
+      if (token.length < 6) return;
+
+      const vBtn     = document.getElementById('verify-btn');
+      const vLabel   = document.getElementById('verify-btn-label');
+      const vArrow   = document.getElementById('verify-btn-arrow');
+      const vSpinner = document.getElementById('verify-btn-spinner');
+      const vErr     = document.getElementById('verify-error');
+
+      vBtn.disabled = true;
+      vLabel.textContent = 'Verifying…';
+      vArrow.classList.add('hidden');
+      vSpinner.classList.remove('hidden');
+      vErr.classList.add('hidden');
+
+      const { error } = await db.auth.verifyOtp({ email: _pendingEmail, token, type: 'email' });
+
+      vBtn.disabled = false;
+      vLabel.textContent = 'Verify Device';
+      vArrow.classList.remove('hidden');
+      vSpinner.classList.add('hidden');
+
+      if (error) {
+        vErr.textContent = error.message.includes('expired') || error.message.includes('invalid')
+          ? 'Invalid or expired code. Please try again or resend.'
+          : error.message;
+        vErr.classList.remove('hidden');
+        document.querySelectorAll('.digit-box').forEach(b => { b.value = ''; b.classList.remove('filled'); });
+        document.querySelector('.digit-box')?.focus();
+        return;
+      }
+
+      setDeviceTrust(_pendingUserId);
+      window.location.replace('admin.html');
+    }
+
+    let _resendTimer = null;
+    function startResendCooldown() {
+      const btn = document.getElementById('resend-btn');
+      let s = 60;
+      btn.disabled = true;
+      btn.textContent = 'Resend in ' + s + 's';
+      clearInterval(_resendTimer);
+      _resendTimer = setInterval(() => {
+        s--;
+        if (s <= 0) { clearInterval(_resendTimer); btn.disabled = false; btn.textContent = 'Resend code'; }
+        else btn.textContent = 'Resend in ' + s + 's';
+      }, 1000);
+    }
+
+    async function resendCode() {
+      if (!_pendingEmail) return;
+      document.getElementById('resend-btn').disabled = true;
+      document.getElementById('verify-error').classList.add('hidden');
+      await db.auth.signInWithOtp({ email: _pendingEmail, options: { shouldCreateUser: false } });
+      startResendCooldown();
+      document.querySelectorAll('.digit-box').forEach(b => { b.value = ''; b.classList.remove('filled'); });
+      document.querySelector('.digit-box')?.focus();
+    }
   </script>
 
   <!-- Cursor spotlight: crimson glow + illuminating grid -->

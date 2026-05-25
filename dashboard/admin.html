@@ -252,93 +252,104 @@
         </div>
 
         <!-- Level 2: book chapters -->
-        <div id="view-book-chapters" class="hidden p-4 md:p-6 max-w-3xl">
-          <button onclick="backToWriterBooks()" class="inline-flex items-center gap-1.5 text-muted hover:text-white text-xs transition-colors mb-5">
+        <div id="view-book-chapters" class="hidden p-4 md:p-6">
+          <button onclick="backToWriterBooks()" class="inline-flex items-center gap-1.5 text-muted hover:text-white text-xs transition-colors mb-6">
             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
             Back to Books
           </button>
 
-          <div class="flex gap-5 mb-6 items-start">
-            <div class="relative flex-shrink-0">
-              <img id="book-cover-img" class="hidden w-20 h-28 object-cover rounded-lg border border-border shadow-lg"/>
-              <div id="book-cover-placeholder" class="w-20 h-28 bg-charcoal rounded-lg border border-border flex items-center justify-center">
-                <span id="book-cover-initial" class="font-serif text-2xl text-muted/40">?</span>
+          <div class="flex flex-col lg:flex-row gap-6 items-start">
+
+            <!-- LEFT: Book meta + admin tools (sticky sidebar on desktop) -->
+            <div class="w-full lg:w-72 xl:w-80 flex-shrink-0 space-y-4 lg:sticky lg:top-24">
+
+              <!-- Book identity card -->
+              <div class="rounded-xl border border-border bg-surface p-4">
+                <div class="flex gap-3 items-start mb-4">
+                  <div class="relative flex-shrink-0">
+                    <img id="book-cover-img" class="hidden w-16 h-24 object-cover rounded-lg border border-border shadow-lg"/>
+                    <div id="book-cover-placeholder" class="w-16 h-24 bg-charcoal rounded-lg border border-border flex items-center justify-center">
+                      <span id="book-cover-initial" class="font-serif text-xl text-muted/40">?</span>
+                    </div>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <h2 id="book-title-heading" class="font-serif text-lg text-white leading-tight mb-1"></h2>
+                    <p id="book-author-heading" class="text-muted text-xs mb-2"></p>
+                    <span id="book-status-badge" class="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full"></span>
+                  </div>
+                </div>
+                <button id="toggle-signed-btn" onclick="toggleSigned()"
+                        class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border transition-all duration-200 mb-3">
+                </button>
+                <button onclick="openDeleteBookModal()"
+                        class="w-full px-3 py-1.5 bg-transparent hover:bg-red-500/10 border border-transparent hover:border-red-500/25 text-red-400/40 hover:text-red-400 text-xs rounded-lg transition-all duration-200">
+                  Delete Book
+                </button>
               </div>
+
+              <!-- Admin Notes -->
+              <div class="rounded-xl border border-border bg-surface p-4">
+                <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted mb-2">Admin Notes</p>
+                <textarea id="book-notes-input" rows="3" placeholder="Private notes on this book…"
+                          class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-xs rounded-lg px-3 py-2 resize-none transition-all duration-200"></textarea>
+                <button onclick="saveBookNotes()" class="mt-2 px-3 py-1.5 bg-crimson/10 hover:bg-crimson/20 border border-crimson/30 text-crimson-light text-xs font-semibold rounded-lg transition-all duration-200">
+                  Save Notes
+                </button>
+              </div>
+
+              <!-- Book Stats -->
+              <div class="rounded-xl border border-border bg-surface p-4">
+                <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted mb-3">Book Stats</p>
+                <div class="grid grid-cols-2 gap-2.5 mb-3">
+                  <div>
+                    <label class="block text-[10px] text-muted uppercase tracking-wide mb-1">Views</label>
+                    <input id="stat-views" type="number" min="0" placeholder="0"
+                           class="form-input w-full bg-charcoal border border-border text-white text-xs rounded-lg px-2.5 py-2 transition-all duration-200"/>
+                  </div>
+                  <div>
+                    <label class="block text-[10px] text-muted uppercase tracking-wide mb-1">Likes</label>
+                    <input id="stat-likes" type="number" min="0" placeholder="0"
+                           class="form-input w-full bg-charcoal border border-border text-white text-xs rounded-lg px-2.5 py-2 transition-all duration-200"/>
+                  </div>
+                  <div>
+                    <label class="block text-[10px] text-muted uppercase tracking-wide mb-1">Library</label>
+                    <input id="stat-library" type="number" min="0" placeholder="0"
+                           class="form-input w-full bg-charcoal border border-border text-white text-xs rounded-lg px-2.5 py-2 transition-all duration-200"/>
+                  </div>
+                  <div>
+                    <label class="block text-[10px] text-muted uppercase tracking-wide mb-1">Lock Ch.#</label>
+                    <input id="stat-locked" type="number" min="0" placeholder="0 = off"
+                           class="form-input w-full bg-charcoal border border-border text-white text-xs rounded-lg px-2.5 py-2 transition-all duration-200"/>
+                  </div>
+                </div>
+                <div class="flex items-center justify-between mb-3">
+                  <span class="text-[10px] text-muted uppercase tracking-wide">Word Count</span>
+                  <span id="stat-total-words" class="text-white text-xs font-medium">—</span>
+                </div>
+                <button onclick="saveBookStats()" class="px-3 py-1.5 bg-crimson/10 hover:bg-crimson/20 border border-crimson/30 text-crimson-light text-xs font-semibold rounded-lg transition-all duration-200">
+                  Save Stats
+                </button>
+              </div>
+
             </div>
+
+            <!-- RIGHT: Chapters + Edit Requests -->
             <div class="flex-1 min-w-0">
-              <div class="flex flex-wrap items-center gap-2 mb-1">
-                <h2 id="book-title-heading" class="font-serif text-2xl text-white leading-tight"></h2>
-                <span id="book-status-badge" class="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full"></span>
+              <div class="flex items-center justify-between mb-3">
+                <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted">Chapters</p>
+                <p class="text-[10px] text-muted">Newest first</p>
               </div>
-              <p id="book-author-heading" class="text-muted text-sm mb-3"></p>
-              <button id="toggle-signed-btn" onclick="toggleSigned()"
-                      class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all duration-200">
-              </button>
-            </div>
-          </div>
+              <div id="chapter-list" class="space-y-3"></div>
 
-          <!-- Admin notes -->
-          <div class="mb-6 rounded-xl border border-border bg-surface p-4">
-            <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted mb-2">Admin Notes</p>
-            <textarea id="book-notes-input" rows="2" placeholder="Private notes on this book…"
-                      class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-xs rounded-lg px-3 py-2 resize-none transition-all duration-200"></textarea>
-            <div class="flex items-center gap-2 mt-2">
-              <button onclick="saveBookNotes()" class="px-3 py-1.5 bg-crimson/10 hover:bg-crimson/20 border border-crimson/30 text-crimson-light text-xs font-semibold rounded-lg transition-all duration-200">
-                Save Notes
-              </button>
-              <button onclick="openDeleteBookModal()"
-                      class="px-3 py-1.5 bg-transparent hover:bg-red-500/10 border border-transparent hover:border-red-500/25 text-red-400/40 hover:text-red-400 text-xs rounded-lg transition-all duration-200">
-                Delete Book
-              </button>
-            </div>
-          </div>
-
-          <!-- Book Stats Editor -->
-          <div class="mb-6 rounded-xl border border-border bg-surface p-4">
-            <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted mb-3">Book Stats</p>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-              <div>
-                <label class="block text-[10px] text-muted uppercase tracking-wide mb-1">Views</label>
-                <input id="stat-views" type="number" min="0" placeholder="0"
-                       class="form-input w-full bg-charcoal border border-border text-white text-xs rounded-lg px-3 py-2 transition-all duration-200"/>
-              </div>
-              <div>
-                <label class="block text-[10px] text-muted uppercase tracking-wide mb-1">Likes</label>
-                <input id="stat-likes" type="number" min="0" placeholder="0"
-                       class="form-input w-full bg-charcoal border border-border text-white text-xs rounded-lg px-3 py-2 transition-all duration-200"/>
-              </div>
-              <div>
-                <label class="block text-[10px] text-muted uppercase tracking-wide mb-1">Library Count</label>
-                <input id="stat-library" type="number" min="0" placeholder="0"
-                       class="form-input w-full bg-charcoal border border-border text-white text-xs rounded-lg px-3 py-2 transition-all duration-200"/>
-              </div>
-              <div>
-                <label class="block text-[10px] text-muted uppercase tracking-wide mb-1">Lock From Chapter #</label>
-                <input id="stat-locked" type="number" min="0" placeholder="0 = no lock"
-                       class="form-input w-full bg-charcoal border border-border text-white text-xs rounded-lg px-3 py-2 transition-all duration-200"/>
+              <div id="edit-requests-section" class="hidden mt-8">
+                <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-crimson-light mb-3 flex items-center gap-2">
+                  Edit Requests
+                  <span id="edit-requests-count" class="text-[10px] font-semibold text-crimson-light bg-crimson/15 border border-crimson/30 rounded-full px-1.5 py-0.5"></span>
+                </p>
+                <div id="edit-requests-list" class="space-y-4"></div>
               </div>
             </div>
-            <div class="flex items-center justify-between mb-3">
-              <span class="text-[10px] text-muted uppercase tracking-wide">Total Word Count</span>
-              <span id="stat-total-words" class="text-white text-xs font-medium">—</span>
-            </div>
-            <button onclick="saveBookStats()" class="px-3 py-1.5 bg-crimson/10 hover:bg-crimson/20 border border-crimson/30 text-crimson-light text-xs font-semibold rounded-lg transition-all duration-200">
-              Save Stats
-            </button>
-          </div>
 
-          <div class="flex items-center justify-between mb-3">
-            <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted">Chapters</p>
-            <p class="text-[10px] text-muted">Newest first</p>
-          </div>
-          <div id="chapter-list" class="space-y-3"></div>
-
-          <div id="edit-requests-section" class="hidden mt-8">
-            <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-crimson-light mb-3 flex items-center gap-2">
-              Edit Requests
-              <span id="edit-requests-count" class="text-[10px] font-semibold text-crimson-light bg-crimson/15 border border-crimson/30 rounded-full px-1.5 py-0.5"></span>
-            </p>
-            <div id="edit-requests-list" class="space-y-4"></div>
           </div>
         </div>
 
