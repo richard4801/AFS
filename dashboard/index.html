@@ -409,11 +409,11 @@
   </div>
 
   <!-- FLOATING CHAT BUTTON -->
-  <div id="chat-float" style="position:fixed;right:24px;bottom:24px;z-index:90;touch-action:none;">
+  <div id="chat-float" style="position:fixed;right:24px;bottom:24px;z-index:9999;touch-action:none;">
     <button id="chat-float-btn" onclick="toggleChat()"
             class="relative w-14 h-14 rounded-full bg-gold text-obsidian shadow-xl shadow-black/50 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform duration-200">
       <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      <span id="chat-pulse" class="hidden absolute inset-0 rounded-full bg-gold/50 animate-ping"></span>
+      <span id="chat-pulse" class="absolute inset-0 rounded-full bg-gold/50 animate-ping"></span>
       <span id="chat-badge" class="hidden absolute -top-1 -right-1 min-w-[20px] h-5 bg-crimson text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none shadow-lg"></span>
     </button>
   </div>
@@ -1430,10 +1430,8 @@
       if (_chatUnread > 0) {
         badge.textContent = _chatUnread > 9 ? '9+' : String(_chatUnread);
         badge.classList.remove('hidden');
-        pulse.classList.remove('hidden');
       } else {
         badge.classList.add('hidden');
-        pulse.classList.add('hidden');
       }
     }
 
@@ -1502,19 +1500,21 @@
         lastDate = dateLabel;
         const tick = isSent
           ? (m.read_at
-              ? '<span class="text-gold/80 leading-none">✓✓</span>'
-              : '<span class="text-muted/50 leading-none">✓</span>')
+              ? '<span class="text-obsidian/60 text-[10px] leading-none">✓✓</span>'
+              : '<span class="text-obsidian/40 text-[10px] leading-none">✓</span>')
           : '';
         const bubbleCls = isSent
-          ? 'bg-gold/12 border border-gold/20 rounded-2xl rounded-br-none ml-8'
-          : 'bg-charcoal border border-border/60 rounded-2xl rounded-bl-none mr-8';
+          ? 'bg-gold rounded-2xl rounded-br-sm ml-10'
+          : 'bg-[#252525] border border-border/40 rounded-2xl rounded-bl-sm mr-10';
+        const textCls   = isSent ? 'text-obsidian' : 'text-white';
+        const timeCls   = isSent ? 'text-obsidian/50' : 'text-muted/40';
         return dateSep
           + '<div class="flex ' + (isSent ? 'justify-end' : 'justify-start') + '">'
-          + '<div class="' + bubbleCls + ' px-3.5 py-2.5 max-w-full">'
-          + '<p class="text-white text-[13px] leading-relaxed break-words" style="white-space:pre-wrap">' + escHtml(m.body) + '</p>'
+          + '<div class="' + bubbleCls + ' px-3.5 py-2.5 max-w-[80%]">'
+          + '<p class="' + textCls + ' text-[13px] leading-relaxed break-words" style="white-space:pre-wrap">' + escHtml(m.body) + '</p>'
           + '<div class="flex items-center gap-1 mt-1 ' + (isSent ? 'justify-end' : 'justify-start') + '">'
-          + '<span class="text-muted/40 text-[10px]">' + timeStr + '</span>'
-          + (isSent ? '<span class="text-[10px]">' + tick + '</span>' : '')
+          + '<span class="' + timeCls + ' text-[10px]">' + timeStr + '</span>'
+          + (isSent ? tick : '')
           + '</div>'
           + '</div>'
           + '</div>';
