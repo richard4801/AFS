@@ -678,7 +678,7 @@
       }
       let lastDate = '';
       const html = _adminChatMessages.map(m => {
-        const isSent    = m.sender_id === currentUserId;
+        const isSent    = m.sent_as ? (m.sent_as === 'admin') : (m.sender_id === currentUserId);
         const dateLabel = _adminFmtDate(m.created_at);
         const timeStr   = _adminFmtTime(m.created_at);
         const dateSep   = dateLabel !== lastDate
@@ -717,7 +717,7 @@
       input.value = '';
       input.style.height = 'auto';
       const { data, error } = await db.from('messages').insert({
-        sender_id: currentUserId, recipient_id: _adminChatWriterId, body,
+        sender_id: currentUserId, recipient_id: _adminChatWriterId, body, sent_as: 'admin',
       }).select().single();
       if (error) { showToast('Send failed: ' + error.message); input.value = body; return; }
       _adminChatMessages.push(data);
