@@ -857,12 +857,15 @@
       if (error) { showToast('Send failed: ' + error.message); input.value = body; return; }
       _adminChatMessages.push(data);
       _renderAdminChatMessages();
-      // Also insert a notification for the writer
-      db.from('notifications').insert({
-        user_id: _adminChatWriterId, type: 'chat_message',
-        title: 'Message from Your Editor',
-        body: 'Open your chat to view.',
-      }).then(() => {});
+      // Only notify the bell if the writer is not currently online —
+      // if they're on the page the chat badge/chime already alerts them.
+      if (!_onlineWriters.has(_adminChatWriterId)) {
+        db.from('notifications').insert({
+          user_id: _adminChatWriterId, type: 'chat_message',
+          title: 'Message from Your Editor',
+          body: 'Open your chat to view.',
+        }).then(() => {});
+      }
     }
 
     let currentUserId   = null;
