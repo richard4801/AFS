@@ -567,7 +567,7 @@
         <!-- Top accent -->
         <div class="absolute top-0 left-10 right-10 h-px bg-gradient-to-r from-transparent via-gold to-transparent opacity-50 rounded-full"></div>
 
-        <form action="#" method="POST" class="space-y-6">
+        <form id="apply-form" class="space-y-6">
 
           <!-- Row: Name + Email -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -640,11 +640,14 @@
           <!-- Submit -->
           <div class="pt-2">
             <button
+              id="apply-btn"
               type="submit"
-              class="btn-primary w-full flex items-center justify-center gap-3 px-8 py-4 bg-gold hover:bg-gold-light text-obsidian text-sm font-semibold tracking-wide rounded-lg transition-colors duration-200 shadow-lg shadow-gold/20">
-              Submit My Application
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+              class="btn-primary w-full flex items-center justify-center gap-3 px-8 py-4 bg-gold hover:bg-gold-light text-obsidian text-sm font-semibold tracking-wide rounded-lg transition-colors duration-200 shadow-lg shadow-gold/20 disabled:opacity-60 disabled:cursor-not-allowed">
+              <span id="apply-btn-label">Submit My Application</span>
+              <svg id="apply-btn-arrow" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+              <svg id="apply-btn-spinner" class="hidden animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
             </button>
+          <div id="apply-error" class="hidden text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-3 leading-relaxed text-center"></div>
           </div>
 
         </form>
@@ -659,6 +662,21 @@
         </div>
 
       </div>
+
+      <!-- Thank-you state (shown after successful submission) -->
+      <div id="apply-success" class="hidden relative rounded-2xl border border-gold/30 bg-surface p-8 sm:p-10 text-center shadow-2xl shadow-black/50">
+        <div class="absolute top-0 left-10 right-10 h-px bg-gradient-to-r from-transparent via-gold to-transparent opacity-50 rounded-full"></div>
+        <div class="w-14 h-14 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center mx-auto mb-6">
+          <svg class="w-6 h-6 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+        </div>
+        <h3 class="font-serif text-2xl sm:text-3xl text-white mb-3">Application Received</h3>
+        <p class="text-muted text-sm sm:text-base leading-relaxed max-w-sm mx-auto mb-6">
+          We read every submission personally. If your writing has what we're looking for,
+          you'll hear from us within <span class="text-white font-medium">72 hours</span>.
+        </p>
+        <p class="text-muted text-xs">Keep writing in the meantime.</p>
+      </div>
+
     </div>
   </section>
 
@@ -684,6 +702,60 @@
   </footer>
 
   </div><!-- /relative z-10 wrapper -->
+
+  <!-- Supabase + Application form handler -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    (function () {
+      const SUPABASE_URL      = 'https://qbqsbdswcqmrxoizgfrw.supabase.co';
+      const SUPABASE_ANON_KEY = 'sb_publishable_v0fbhx8NkRNxYYVw8VGz_g_7Eqja11K';
+      const { createClient } = supabase;
+      const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+      const form    = document.getElementById('apply-form');
+      const btn     = document.getElementById('apply-btn');
+      const btnLbl  = document.getElementById('apply-btn-label');
+      const btnArr  = document.getElementById('apply-btn-arrow');
+      const spinner = document.getElementById('apply-btn-spinner');
+      const errBox  = document.getElementById('apply-error');
+      const success = document.getElementById('apply-success');
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        errBox.classList.add('hidden');
+        btn.disabled = true;
+        btnLbl.textContent = 'Submitting…';
+        btnArr.classList.add('hidden');
+        spinner.classList.remove('hidden');
+
+        const payload = {
+          name:       form.fullName.value.trim(),
+          email:      form.email.value.trim().toLowerCase(),
+          experience: form.experience.value.trim() || null,
+          logline:    form.logline.value.trim(),
+          test_scene: form.testScene.value.trim(),
+        };
+
+        const { error } = await db.from('applications').insert(payload);
+
+        btn.disabled = false;
+        btnLbl.textContent = 'Submit My Application';
+        btnArr.classList.remove('hidden');
+        spinner.classList.add('hidden');
+
+        if (error) {
+          errBox.textContent = 'Something went wrong. Please try again.';
+          errBox.classList.remove('hidden');
+          return;
+        }
+
+        // Show thank-you state
+        form.closest('.relative.rounded-2xl').classList.add('hidden');
+        success.classList.remove('hidden');
+        success.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    })();
+  </script>
 
   <!-- Cursor spotlight: gold glow + illuminating grid -->
   <script>

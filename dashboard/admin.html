@@ -199,12 +199,17 @@
     <aside class="flex flex-col border-b md:border-b-0 md:w-64 md:flex-shrink-0 md:border-r border-border bg-charcoal/40 backdrop-blur-sm md:overflow-hidden">
       <div class="flex border-b border-border flex-shrink-0">
         <button id="tab-writers" onclick="switchSection('writers')"
-                class="flex-1 px-3 py-3.5 text-[10px] font-semibold tracking-[0.16em] uppercase transition-colors duration-200 text-crimson-light border-b-2 border-crimson">
+                class="flex-1 px-2 py-3.5 text-[10px] font-semibold tracking-[0.16em] uppercase transition-colors duration-200 text-crimson-light border-b-2 border-crimson">
           Writers
         </button>
         <button id="tab-income" onclick="switchSection('income')"
-                class="flex-1 px-3 py-3.5 text-[10px] font-semibold tracking-[0.16em] uppercase transition-colors duration-200 text-muted border-b-2 border-transparent hover:text-white">
+                class="flex-1 px-2 py-3.5 text-[10px] font-semibold tracking-[0.16em] uppercase transition-colors duration-200 text-muted border-b-2 border-transparent hover:text-white">
           Income
+        </button>
+        <button id="tab-applications" onclick="switchSection('applications')"
+                class="flex-1 px-2 py-3.5 text-[10px] font-semibold tracking-[0.16em] uppercase transition-colors duration-200 text-muted border-b-2 border-transparent hover:text-white relative">
+          Apply
+          <span id="tab-applications-badge" class="hidden absolute top-2 right-2 min-w-[16px] h-4 px-1 rounded-full bg-crimson text-white text-[9px] font-bold flex items-center justify-center"></span>
         </button>
       </div>
 
@@ -219,6 +224,24 @@
       <div id="sidebar-income" class="hidden flex-col flex-1 overflow-hidden">
         <p class="px-4 pt-4 pb-2 text-[10px] font-semibold tracking-[0.18em] uppercase text-muted flex-shrink-0">Writers</p>
         <div id="writer-list" class="overflow-y-auto thin-scroll px-2 pb-4 space-y-1 max-h-44 md:max-h-none md:flex-1"></div>
+      </div>
+
+      <div id="sidebar-applications" class="hidden flex-col flex-1 overflow-hidden">
+        <p class="px-4 pt-4 pb-2 text-[10px] font-semibold tracking-[0.18em] uppercase text-muted flex-shrink-0">Overview</p>
+        <div class="px-3 pb-4 space-y-2">
+          <div class="rounded-xl bg-charcoal border border-border p-3 text-center">
+            <p id="pending-count" class="text-2xl font-bold text-yellow-400 font-serif">—</p>
+            <p class="text-[10px] text-muted tracking-wide uppercase mt-0.5">Pending</p>
+          </div>
+          <div class="rounded-xl bg-charcoal border border-border p-3 text-center">
+            <p id="approved-count" class="text-2xl font-bold text-green-400 font-serif">—</p>
+            <p class="text-[10px] text-muted tracking-wide uppercase mt-0.5">Approved</p>
+          </div>
+          <div class="rounded-xl bg-charcoal border border-border p-3 text-center">
+            <p id="rejected-count" class="text-2xl font-bold text-muted font-serif">—</p>
+            <p class="text-[10px] text-muted tracking-wide uppercase mt-0.5">Rejected</p>
+          </div>
+        </div>
       </div>
     </aside>
 
@@ -482,6 +505,36 @@
             <div id="recent-earnings" class="space-y-2"></div>
           </div>
         </div>
+      </div>
+
+      <!-- APPLICATIONS PANEL -->
+      <div id="panel-applications" class="hidden p-4 md:p-6">
+        <div class="mb-5 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-crimson-light mb-2">Applications</p>
+            <h2 class="font-serif text-2xl sm:text-3xl text-white">Writer Applications</h2>
+            <p class="text-muted text-sm mt-1">Review, approve, or reject incoming applications.</p>
+          </div>
+          <div class="flex gap-1 flex-shrink-0">
+            <button id="filter-pending"  onclick="filterApplications('pending')"
+                    class="px-3 py-1.5 rounded-lg text-[10px] font-semibold tracking-wide uppercase border transition-colors bg-crimson/15 text-crimson-light border-crimson/30">
+              Pending
+            </button>
+            <button id="filter-approved" onclick="filterApplications('approved')"
+                    class="px-3 py-1.5 rounded-lg text-[10px] font-semibold tracking-wide uppercase border transition-colors text-muted border-transparent hover:text-white">
+              Approved
+            </button>
+            <button id="filter-rejected" onclick="filterApplications('rejected')"
+                    class="px-3 py-1.5 rounded-lg text-[10px] font-semibold tracking-wide uppercase border transition-colors text-muted border-transparent hover:text-white">
+              Rejected
+            </button>
+            <button id="filter-all"      onclick="filterApplications('all')"
+                    class="px-3 py-1.5 rounded-lg text-[10px] font-semibold tracking-wide uppercase border transition-colors text-muted border-transparent hover:text-white">
+              All
+            </button>
+          </div>
+        </div>
+        <div id="applications-list" class="space-y-3"></div>
       </div>
 
     </main>
@@ -931,16 +984,18 @@
 
     // ── SECTION SWITCHING ───────────────────────────────────────────
     function switchSection(section) {
-      ['writers','income'].forEach(s => {
+      ['writers','income','applications'].forEach(s => {
         $(`tab-${s}`).classList.toggle('text-crimson-light', s === section);
         $(`tab-${s}`).classList.toggle('border-crimson',     s === section);
         $(`tab-${s}`).classList.toggle('text-muted',         s !== section);
         $(`tab-${s}`).classList.toggle('border-transparent', s !== section);
-        $(`sidebar-${s}`).classList.toggle('hidden', s !== section);
-        $(`sidebar-${s}`).classList.toggle('flex',   s === section);
+        const sb = $(`sidebar-${s}`);
+        if (sb) { sb.classList.toggle('hidden', s !== section); sb.classList.toggle('flex', s === section); }
       });
-      $('panel-writers').classList.toggle('hidden', section !== 'writers');
-      $('panel-income').classList.toggle('hidden',  section !== 'income');
+      $('panel-writers').classList.toggle('hidden',       section !== 'writers');
+      $('panel-income').classList.toggle('hidden',        section !== 'income');
+      $('panel-applications').classList.toggle('hidden',  section !== 'applications');
+      if (section === 'applications' && !_appsLoaded) loadApplications();
     }
 
     // ── VIEW ROUTER ─────────────────────────────────────────────────
@@ -1925,6 +1980,182 @@
     });
 
     // ── TOAST / SIGNOUT / BOOT ──────────────────────────────────────
+    async function _loadPendingBadge() {
+      const { count } = await db.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'pending');
+      if (count) {
+        const badge = $('tab-applications-badge');
+        badge.textContent = count;
+        badge.classList.remove('hidden');
+      }
+    }
+
+    // ── APPLICATIONS ────────────────────────────────────────────────
+    let _allApplications = [];
+    let _appFilter       = 'pending';
+    let _appsLoaded      = false;
+
+    async function loadApplications() {
+      _appsLoaded = true;
+      const list = $('applications-list');
+      list.innerHTML = '<div class="space-y-3"><div class="skeleton h-20 w-full rounded-xl"></div><div class="skeleton h-20 w-full rounded-xl"></div></div>';
+
+      const { data, error } = await db.from('applications').select('*').order('created_at', { ascending: false });
+      if (error) { list.innerHTML = '<p class="text-muted text-sm py-8 text-center">Failed to load applications.</p>'; return; }
+
+      _allApplications = data || [];
+      _updateAppCounts();
+      renderApplications();
+    }
+
+    function _updateAppCounts() {
+      const pending  = _allApplications.filter(a => a.status === 'pending').length;
+      const approved = _allApplications.filter(a => a.status === 'approved').length;
+      const rejected = _allApplications.filter(a => a.status === 'rejected').length;
+      if ($('pending-count'))  $('pending-count').textContent  = pending;
+      if ($('approved-count')) $('approved-count').textContent = approved;
+      if ($('rejected-count')) $('rejected-count').textContent = rejected;
+      const badge = $('tab-applications-badge');
+      badge.textContent = pending || '';
+      badge.classList.toggle('hidden', !pending);
+    }
+
+    function filterApplications(f) {
+      _appFilter = f;
+      ['pending','approved','rejected','all'].forEach(k => {
+        const b = $('filter-' + k);
+        if (!b) return;
+        const on = k === f;
+        b.classList.toggle('bg-crimson/15',      on);
+        b.classList.toggle('text-crimson-light', on);
+        b.classList.toggle('border-crimson/30',  on);
+        b.classList.toggle('text-muted',        !on);
+        b.classList.toggle('border-transparent',!on);
+      });
+      renderApplications();
+    }
+
+    function renderApplications() {
+      const filtered = _appFilter === 'all'
+        ? _allApplications
+        : _allApplications.filter(a => a.status === _appFilter);
+      const list = $('applications-list');
+      if (!filtered.length) {
+        const label = _appFilter === 'all' ? '' : _appFilter + ' ';
+        list.innerHTML = `<div class="text-center py-16"><p class="text-muted text-sm">No ${label}applications.</p></div>`;
+        return;
+      }
+      list.innerHTML = filtered.map(_renderAppCard).join('');
+    }
+
+    function _renderAppCard(app) {
+      const date = new Date(app.created_at).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+      const statusBadge = {
+        pending:  '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-yellow-500/15 text-yellow-400 border border-yellow-500/25">Pending</span>',
+        approved: '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-500/15 text-green-400 border border-green-500/25">Approved</span>',
+        rejected: '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-500/15 text-red-400 border border-red-500/25">Rejected</span>',
+      }[app.status] || '';
+
+      const actionBtns = app.status === 'pending' ? `
+        <div class="flex gap-2 pt-3 border-t border-border/50">
+          <button onclick="approveApplication('${escHtml(app.id)}')"
+                  class="flex-1 px-4 py-2.5 bg-green-600/15 hover:bg-green-600/25 text-green-400 border border-green-500/25 text-xs font-semibold rounded-lg transition-colors">
+            Approve &amp; Send Invite
+          </button>
+          <button onclick="rejectApplication('${escHtml(app.id)}')"
+                  class="px-4 py-2.5 bg-red-600/10 hover:bg-red-600/20 text-red-400 border border-red-500/20 text-xs font-semibold rounded-lg transition-colors">
+            Reject
+          </button>
+        </div>` : '';
+
+      const initial = escHtml((app.name || '?').charAt(0).toUpperCase());
+      return `
+      <div id="app-card-${escHtml(app.id)}" class="rounded-2xl border border-border bg-surface overflow-hidden">
+        <div class="flex items-start gap-3 p-4 sm:p-5 cursor-pointer select-none" onclick="toggleApp('${escHtml(app.id)}')">
+          <div class="w-9 h-9 rounded-full bg-charcoal border border-border flex items-center justify-center flex-shrink-0 mt-0.5">
+            <span class="font-serif text-crimson-light text-sm font-bold">${initial}</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 mb-0.5 flex-wrap">
+              <h3 class="text-white font-medium text-sm">${escHtml(app.name)}</h3>
+              ${statusBadge}
+            </div>
+            <p class="text-gold/80 text-xs italic truncate mb-0.5">"${escHtml(app.logline)}"</p>
+            <p class="text-muted text-[11px]">${escHtml(app.email)} · ${date}</p>
+          </div>
+          <svg id="chevron-${escHtml(app.id)}" class="w-4 h-4 text-muted flex-shrink-0 mt-1 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
+        </div>
+        <div id="app-body-${escHtml(app.id)}" class="hidden border-t border-border px-4 sm:px-5 py-4 space-y-4">
+          ${app.experience ? `<div>
+            <p class="text-[10px] font-semibold tracking-[0.16em] uppercase text-muted mb-2">Writing Experience</p>
+            <p class="text-white/80 text-sm leading-relaxed">${escHtml(app.experience)}</p>
+          </div>` : ''}
+          <div>
+            <p class="text-[10px] font-semibold tracking-[0.16em] uppercase text-muted mb-2">500-Word Test Scene</p>
+            <div class="rounded-xl bg-charcoal border border-border p-4 text-white/80 text-sm leading-relaxed max-h-72 overflow-y-auto thin-scroll whitespace-pre-wrap">${escHtml(app.test_scene)}</div>
+          </div>
+          ${actionBtns}
+        </div>
+      </div>`;
+    }
+
+    function toggleApp(id) {
+      const body    = $('app-body-'  + id);
+      const chevron = $('chevron-'   + id);
+      const opening = body.classList.contains('hidden');
+      body.classList.toggle('hidden', !opening);
+      chevron.style.transform = opening ? 'rotate(180deg)' : '';
+    }
+
+    async function approveApplication(id) {
+      const card    = $('app-card-' + id);
+      const appBtn  = card.querySelector('button[onclick^="approveApplication"]');
+      const origTxt = appBtn.textContent.trim();
+      appBtn.disabled = true;
+      appBtn.textContent = 'Sending invite…';
+
+      const { data: { session } } = await db.auth.getSession();
+      let result;
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/approve-application`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + session.access_token,
+          },
+          body: JSON.stringify({ applicationId: id }),
+        });
+        result = await res.json();
+        if (!res.ok) throw new Error(result.error || 'Unknown error');
+      } catch (err) {
+        appBtn.disabled = false;
+        appBtn.textContent = origTxt;
+        showToast('Error: ' + err.message);
+        return;
+      }
+
+      const app = _allApplications.find(a => a.id === id);
+      if (app) app.status = 'approved';
+      _updateAppCounts();
+      renderApplications();
+      showToast('Invite sent to ' + (app?.email || 'writer'));
+    }
+
+    async function rejectApplication(id) {
+      if (!confirm('Reject this application? This cannot be undone.')) return;
+
+      const { error } = await db.from('applications')
+        .update({ status: 'rejected', reviewed_at: new Date().toISOString() })
+        .eq('id', id);
+
+      if (error) { showToast('Failed: ' + error.message); return; }
+
+      const app = _allApplications.find(a => a.id === id);
+      if (app) app.status = 'rejected';
+      _updateAppCounts();
+      renderApplications();
+      showToast('Application rejected.');
+    }
+
     function showToast(msg) {
       const t = document.createElement('div');
       t.className = 'fixed bottom-6 right-6 z-[70] px-4 py-3 bg-surface border border-border rounded-xl text-sm text-white shadow-xl shadow-black/50 transition-opacity duration-300';
@@ -1943,7 +2174,7 @@
       $('nav-name').textContent = profile.name;
       _initAdminReceiptSub();
       _initAdminPresence(currentUserId);
-      await Promise.all([ loadWritersList(), loadWriters(), loadRecentEarnings() ]);
+      await Promise.all([ loadWritersList(), loadWriters(), loadRecentEarnings(), _loadPendingBadge() ]);
     })();
   </script>
 
