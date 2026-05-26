@@ -1800,6 +1800,16 @@
           chapter_id: chapterId,
         });
       }
+      // Email notification to writer on chapter approval
+      const writerProfile = allProfiles.find(p => p.id === writerId);
+      if (writerProfile?.email) {
+        const { data: { session } } = await db.auth.getSession();
+        fetch(`${SUPABASE_URL}/functions/v1/send-notification`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session?.access_token },
+          body: JSON.stringify({ type: 'chapter_approved', writerId, writerEmail: writerProfile.email, writerName: writerProfile.name, data: { chapterNumber: selectedChapter?.chapter_number ?? '', title: selectedChapter?.title ?? '', wordCount: selectedChapter?.word_count ?? '' } }),
+        }).catch(() => {});
+      }
       showToast('Chapter approved ✓');
       if (selectedChapter?.id === chapterId) {
         selectedChapter.status = 'approved';
@@ -1914,8 +1924,11 @@
     $('delete-book-modal').addEventListener('click', e => { if (e.target === $('delete-book-modal')) cancelDeleteBook(); });
 
     // ── INCOME ──────────────────────────────────────────────────────
+    let allProfiles = [];
+
     async function loadWriters() {
       const { data } = await db.from('profiles').select('id, name, email').order('name');
+      allProfiles = data || [];
       const select = $('income-writer'), container = $('writer-list');
       if (!data?.length) { container.innerHTML = `<p class="text-muted text-xs px-2 pt-2">No writers found.</p>`; return; }
       container.innerHTML = data.map(w => `
@@ -1976,7 +1989,27 @@
       btn.disabled = false;
       btn.innerHTML = 'Record Earnings <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>';
       if (error) { $('income-error').textContent = error.message; $('income-error').classList.remove('hidden'); }
-      else { $('income-success').textContent = `${fmt(amount)} recorded for ${date}.`; $('income-success').classList.remove('hidden'); $('income-amount').value = ''; $('income-note').value = ''; loadRecentEarnings(); }
+      else {
+        $('income-success').textContent = `${fmt(amount)} recorded for ${date}.`;
+        $('income-success').classList.remove('hidden');
+        $('income-amount').value = ''; $('income-note').value = '';
+        loadRecentEarnings();
+        // In-app notification to writer
+        await db.from('notifications').insert({
+          user_id: writerId, type: 'income_posted', title: 'Earnings Updated',
+          body: `${fmt(amount)} has been recorded for ${date}.`,
+        }).catch(() => {});
+        // Email notification (requires send-notification Edge Function + RESEND_API_KEY)
+        const writerProfile = allProfiles?.find(p => p.id === writerId);
+        if (writerProfile?.email) {
+          const { data: { session } } = await db.auth.getSession();
+          fetch(`${SUPABASE_URL}/functions/v1/send-notification`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session?.access_token },
+            body: JSON.stringify({ type: 'income_posted', writerId, writerEmail: writerProfile.email, writerName: writerProfile.name, data: { amount, date } }),
+          }).catch(() => {});
+        }
+      }
     });
 
     // ── TOAST / SIGNOUT / BOOT ──────────────────────────────────────

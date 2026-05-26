@@ -173,6 +173,75 @@
       </div>
     </div>
 
+    <!-- UPDATE SCHEDULE CALENDAR -->
+    <div class="rounded-2xl border border-border bg-surface p-5 sm:p-6 mb-8 relative overflow-hidden">
+      <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent"></div>
+
+      <!-- Header -->
+      <div class="flex items-start justify-between gap-4 mb-5">
+        <div>
+          <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-1">Update Schedule</p>
+          <h2 id="cal-month-label" class="font-serif text-xl text-white">Loading…</h2>
+        </div>
+        <div class="flex items-center gap-3">
+          <!-- Stats -->
+          <div class="text-right">
+            <p class="font-serif text-2xl sm:text-3xl text-gold leading-none"><span id="cal-days-hit">—</span><span class="text-muted text-base font-sans font-normal">/25</span></p>
+            <p class="text-[10px] text-muted tracking-wide uppercase mt-0.5">Days this month</p>
+          </div>
+          <!-- Month nav -->
+          <div class="flex gap-1">
+            <button id="cal-prev" onclick="calNav(-1)" class="w-7 h-7 rounded-lg border border-border hover:border-white/20 flex items-center justify-center text-muted hover:text-white transition-colors">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <button id="cal-next" onclick="calNav(1)"  class="w-7 h-7 rounded-lg border border-border hover:border-white/20 flex items-center justify-center text-muted hover:text-white transition-colors">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Status bar -->
+      <div id="cal-status" class="hidden text-xs rounded-lg px-4 py-2.5 mb-4 leading-relaxed"></div>
+
+      <!-- Progress bar -->
+      <div class="mb-5">
+        <div class="h-1.5 bg-charcoal rounded-full overflow-hidden">
+          <div id="cal-progress-bar" class="h-full rounded-full transition-all duration-700 bg-gold" style="width:0%"></div>
+        </div>
+      </div>
+
+      <!-- Day-of-week headers -->
+      <div class="grid grid-cols-7 gap-1 mb-1.5">
+        <div class="text-[9px] text-muted text-center font-medium tracking-wide uppercase py-0.5">Sun</div>
+        <div class="text-[9px] text-muted text-center font-medium tracking-wide uppercase py-0.5">Mon</div>
+        <div class="text-[9px] text-muted text-center font-medium tracking-wide uppercase py-0.5">Tue</div>
+        <div class="text-[9px] text-muted text-center font-medium tracking-wide uppercase py-0.5">Wed</div>
+        <div class="text-[9px] text-muted text-center font-medium tracking-wide uppercase py-0.5">Thu</div>
+        <div class="text-[9px] text-muted text-center font-medium tracking-wide uppercase py-0.5">Fri</div>
+        <div class="text-[9px] text-muted text-center font-medium tracking-wide uppercase py-0.5">Sat</div>
+      </div>
+
+      <!-- Calendar grid -->
+      <div id="cal-grid" class="grid grid-cols-7 gap-1"></div>
+
+      <!-- Legend -->
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-4 pt-4 border-t border-border/50">
+        <span class="flex items-center gap-1.5 text-[11px] text-muted">
+          <span class="w-3 h-3 rounded flex-shrink-0 bg-green-500/25 border border-green-500/40"></span>3+ chapters
+        </span>
+        <span class="flex items-center gap-1.5 text-[11px] text-muted">
+          <span class="w-3 h-3 rounded flex-shrink-0 bg-yellow-500/20 border border-yellow-500/35"></span>1–2 chapters
+        </span>
+        <span class="flex items-center gap-1.5 text-[11px] text-muted">
+          <span class="w-3 h-3 rounded flex-shrink-0 bg-red-500/15 border border-red-400/25"></span>Missed
+        </span>
+        <span class="flex items-center gap-1.5 text-[11px] text-muted">
+          <span class="w-3 h-3 rounded flex-shrink-0 border-2 border-gold/50"></span>Today
+        </span>
+      </div>
+    </div>
+
     <!-- MY BOOKS SECTION -->
     <div id="books-section">
 
@@ -643,6 +712,122 @@
     async function fetchTotalWordCount(userId) {
       const { data } = await db.from('chapters').select('word_count').eq('author_id', userId);
       return (data ?? []).reduce((s, c) => s + (c.word_count || 0), 0);
+    }
+
+    // ── COMPLIANCE CALENDAR ────────────────────────────────────
+    let _calYear  = null;
+    let _calMonth = null; // 0-indexed
+
+    function calNav(dir) {
+      _calMonth += dir;
+      if (_calMonth > 11) { _calMonth = 0;  _calYear++; }
+      if (_calMonth <  0) { _calMonth = 11; _calYear--; }
+      loadCalendar();
+    }
+
+    async function loadCalendar() {
+      const now   = new Date();
+      if (_calYear === null)  { _calYear = now.getFullYear(); _calMonth = now.getMonth(); }
+      const isCurrentMonth = _calYear === now.getFullYear() && _calMonth === now.getMonth();
+      const todayDay = isCurrentMonth ? now.getDate() : -1;
+
+      const firstDay  = new Date(_calYear, _calMonth, 1);
+      const lastDay   = new Date(_calYear, _calMonth + 1, 0);
+      const totalDays = lastDay.getDate();
+      const startDow  = firstDay.getDay(); // 0=Sun
+
+      const startISO = firstDay.toISOString().slice(0, 10);
+      const endISO   = lastDay.toISOString().slice(0, 10) + 'T23:59:59.999Z';
+
+      const { data } = await db.from('chapters')
+        .select('created_at')
+        .eq('author_id', currentUserId)
+        .in('status', ['submitted', 'approved'])
+        .gte('created_at', startISO)
+        .lte('created_at', endISO);
+
+      // Group counts by local date string YYYY-MM-DD
+      const dateMap = {};
+      (data || []).forEach(ch => {
+        const d = new Date(ch.created_at);
+        const key = d.getFullYear() + '-'
+          + String(d.getMonth() + 1).padStart(2, '0') + '-'
+          + String(d.getDate()).padStart(2, '0');
+        dateMap[key] = (dateMap[key] || 0) + 1;
+      });
+
+      let daysHit = 0;
+      let cells   = '';
+
+      // Blank leading cells
+      for (let i = 0; i < startDow; i++) cells += '<div></div>';
+
+      for (let d = 1; d <= totalDays; d++) {
+        const key   = _calYear + '-' + String(_calMonth + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+        const count = dateMap[key] || 0;
+        const isPast   = d < todayDay || !isCurrentMonth;
+        const isToday  = d === todayDay;
+        const isFuture = isCurrentMonth && d > todayDay;
+
+        let bg = '', numCol = 'text-muted';
+        if (count >= 3) {
+          bg = 'bg-green-500/20 border-green-500/30';
+          numCol = 'text-green-300';
+          if (isPast || isToday) daysHit++;
+        } else if (count >= 1) {
+          bg = 'bg-yellow-500/15 border-yellow-500/25';
+          numCol = 'text-yellow-300';
+        } else if (isPast) {
+          bg = 'bg-red-500/10 border-red-400/20';
+          numCol = 'text-red-400/50';
+        } else {
+          bg = 'border-border/30';
+        }
+
+        const ring  = isToday ? ' ring-2 ring-gold/60 ring-offset-1 ring-offset-surface' : '';
+        const badge = !isFuture && count > 0
+          ? `<span class="absolute bottom-0.5 right-1 text-[8px] leading-none opacity-60">${count}</span>`
+          : '';
+
+        cells += `<div class="relative aspect-square rounded-lg border flex items-center justify-center ${bg}${ring}">
+          <span class="text-[11px] sm:text-xs font-medium ${numCol}">${d}</span>
+          ${badge}
+        </div>`;
+      }
+
+      $('cal-grid').innerHTML = cells;
+      $('cal-month-label').textContent = firstDay.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      $('cal-days-hit').textContent = daysHit;
+
+      // Progress bar
+      const pct = Math.min(100, Math.round((daysHit / 25) * 100));
+      $('cal-progress-bar').style.width = pct + '%';
+      $('cal-progress-bar').className = 'h-full rounded-full transition-all duration-700 '
+        + (pct >= 100 ? 'bg-green-500' : pct >= 60 ? 'bg-gold' : 'bg-red-500');
+
+      // Status message (only for current month)
+      const statusEl = $('cal-status');
+      if (isCurrentMonth) {
+        const daysLeft   = totalDays - todayDay + 1;
+        const daysNeeded = Math.max(0, 25 - daysHit);
+        statusEl.classList.remove('hidden');
+        if (daysHit >= 25) {
+          statusEl.textContent = '✓ Minimum reached — 25 update days hit. Full visibility secured for this month.';
+          statusEl.className = 'hidden text-xs rounded-lg px-4 py-2.5 mb-4 leading-relaxed text-green-400 bg-green-400/8 border border-green-400/20';
+          statusEl.classList.remove('hidden');
+        } else if (daysNeeded > daysLeft) {
+          statusEl.textContent = `⚠ ${daysNeeded} more update days needed but only ${daysLeft} day${daysLeft === 1 ? '' : 's'} remain. This month's visibility will be reduced.`;
+          statusEl.className = 'text-xs rounded-lg px-4 py-2.5 mb-4 leading-relaxed text-red-400 bg-red-400/10 border border-red-400/20';
+        } else {
+          statusEl.textContent = `${daysNeeded} more update day${daysNeeded === 1 ? '' : 's'} needed to secure full visibility for ${firstDay.toLocaleDateString('en-US', { month: 'long' })}.`;
+          statusEl.className = 'text-xs rounded-lg px-4 py-2.5 mb-4 leading-relaxed text-yellow-400 bg-yellow-400/10 border border-yellow-400/20';
+        }
+      } else {
+        statusEl.classList.add('hidden');
+      }
+
+      // Hide next-month arrow if we're already on current month
+      $('cal-next').classList.toggle('opacity-30 pointer-events-none', isCurrentMonth);
     }
 
     // ── STATS RENDER ───────────────────────────────────────────
@@ -1936,6 +2121,7 @@
       }
       fsClose();
       showToast(statusToSave === 'submitted' ? (editingChapter ? 'Changes submitted ✓' : 'Chapter submitted for review ✓') : 'Draft saved ✓');
+      if (statusToSave === 'submitted') loadCalendar();
       showChaptersView();
     }
 
@@ -1990,6 +2176,7 @@
 
       renderStats({ monthly, allTime, totalWords });
       renderChart(earnings30);
+      loadCalendar();
       await loadBooks();
     })();
   </script>
