@@ -124,7 +124,65 @@
           </svg>
         </button>
 
+        <div class="text-right mt-2">
+          <button type="button" onclick="showForgotStep()"
+                  class="text-xs text-muted hover:text-gold transition-colors duration-150">
+            Forgot your password?
+          </button>
+        </div>
       </form>
+
+      <!-- FORGOT PASSWORD STEP -->
+      <div id="forgot-step" style="display:none;">
+        <div class="flex justify-center mb-5">
+          <div class="w-10 h-10 rounded-xl bg-gold/10 border border-gold/25 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+            </svg>
+          </div>
+        </div>
+        <h2 class="font-serif text-2xl text-white mb-1 text-center">Reset Password</h2>
+        <p class="text-muted text-sm text-center mb-6">Enter your email and we'll send a reset link.</p>
+        <div class="space-y-4">
+          <input id="forgot-email" type="email" autocomplete="email" placeholder="you@email.com"
+                 class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 transition-all duration-200"/>
+          <div id="forgot-error" class="hidden text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-3"></div>
+          <div id="forgot-success" class="hidden text-xs text-green-400 bg-green-400/10 border border-green-400/20 rounded-lg px-4 py-3 leading-relaxed"></div>
+          <button id="forgot-btn" onclick="sendResetEmail()"
+                  class="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-gold hover:bg-gold-light text-obsidian text-sm font-semibold rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+            <span id="forgot-btn-label">Send Reset Link</span>
+            <svg id="forgot-btn-spinner" class="hidden animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
+          </button>
+          <div class="text-center">
+            <button onclick="backToLogin()" class="text-xs text-muted hover:text-white transition-colors">Back to sign in</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SET NEW PASSWORD STEP (arrives from invite or reset email) -->
+      <div id="set-password-step" style="display:none;">
+        <div class="flex justify-center mb-5">
+          <div class="w-10 h-10 rounded-xl bg-gold/10 border border-gold/25 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+        </div>
+        <h2 class="font-serif text-2xl text-white mb-1 text-center">Set Your Password</h2>
+        <p class="text-muted text-sm text-center mb-6">Choose a strong password to secure your account.</p>
+        <div class="space-y-4">
+          <input id="new-password" type="password" autocomplete="new-password" placeholder="New password"
+                 class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 transition-all duration-200"/>
+          <input id="confirm-password" type="password" autocomplete="new-password" placeholder="Confirm password"
+                 class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 transition-all duration-200"/>
+          <div id="set-pw-error" class="hidden text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-3"></div>
+          <button id="set-pw-btn" onclick="submitNewPassword()"
+                  class="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-gold hover:bg-gold-light text-obsidian text-sm font-semibold rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+            <span id="set-pw-label">Set Password &amp; Sign In</span>
+            <svg id="set-pw-spinner" class="hidden animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
+          </button>
+        </div>
+      </div>
 
       <!-- DEVICE VERIFICATION STEP -->
       <div id="verify-step">
@@ -275,12 +333,107 @@
       startResendCooldown();
     }
 
+    function _hideAllSteps() {
+      ['login-form','verify-step','forgot-step','set-password-step'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+      });
+    }
+
     function backToLogin() {
-      document.getElementById('verify-step').style.display = 'none';
+      _hideAllSteps();
       document.getElementById('login-form').style.display = '';
       document.getElementById('error-msg').classList.add('hidden');
       _pendingEmail = _pendingUserId = '';
     }
+
+    function showForgotStep() {
+      _hideAllSteps();
+      document.getElementById('forgot-step').style.display = 'block';
+      document.getElementById('forgot-error').classList.add('hidden');
+      document.getElementById('forgot-success').classList.add('hidden');
+      setTimeout(() => document.getElementById('forgot-email')?.focus(), 80);
+    }
+
+    async function sendResetEmail() {
+      const email  = document.getElementById('forgot-email').value.trim();
+      const errBox = document.getElementById('forgot-error');
+      const okBox  = document.getElementById('forgot-success');
+      const btn    = document.getElementById('forgot-btn');
+      const lbl    = document.getElementById('forgot-btn-label');
+      const spin   = document.getElementById('forgot-btn-spinner');
+
+      errBox.classList.add('hidden');
+      okBox.classList.add('hidden');
+      if (!email) { errBox.textContent = 'Please enter your email.'; errBox.classList.remove('hidden'); return; }
+
+      btn.disabled = true;
+      lbl.textContent = 'Sending…';
+      spin.classList.remove('hidden');
+
+      const { error } = await db.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.href,
+      });
+
+      btn.disabled = false;
+      lbl.textContent = 'Send Reset Link';
+      spin.classList.add('hidden');
+
+      if (error) {
+        errBox.textContent = error.message;
+        errBox.classList.remove('hidden');
+      } else {
+        okBox.textContent = 'Check your inbox — a reset link is on its way.';
+        okBox.classList.remove('hidden');
+      }
+    }
+
+    function showSetPasswordStep() {
+      _hideAllSteps();
+      document.getElementById('set-password-step').style.display = 'block';
+      setTimeout(() => document.getElementById('new-password')?.focus(), 80);
+    }
+
+    async function submitNewPassword() {
+      const pw1    = document.getElementById('new-password').value;
+      const pw2    = document.getElementById('confirm-password').value;
+      const errBox = document.getElementById('set-pw-error');
+      const btn    = document.getElementById('set-pw-btn');
+      const lbl    = document.getElementById('set-pw-label');
+      const spin   = document.getElementById('set-pw-spinner');
+
+      errBox.classList.add('hidden');
+      if (pw1.length < 8) { errBox.textContent = 'Password must be at least 8 characters.'; errBox.classList.remove('hidden'); return; }
+      if (pw1 !== pw2)    { errBox.textContent = 'Passwords do not match.'; errBox.classList.remove('hidden'); return; }
+
+      btn.disabled = true;
+      lbl.textContent = 'Saving…';
+      spin.classList.remove('hidden');
+
+      const { error } = await db.auth.updateUser({ password: pw1 });
+
+      btn.disabled = false;
+      lbl.textContent = 'Set Password & Sign In';
+      spin.classList.add('hidden');
+
+      if (error) {
+        errBox.textContent = error.message;
+        errBox.classList.remove('hidden');
+      } else {
+        window.location.replace('index.html');
+      }
+    }
+
+    // Handle arriving from a password-reset or invite email
+    db.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
+        db.auth.getSession().then(({ data: { session } }) => {
+          if (session && (event === 'PASSWORD_RECOVERY')) {
+            showSetPasswordStep();
+          }
+        });
+      }
+    });
 
     // Digit-box auto-advance + backspace
     document.getElementById('digit-row').addEventListener('input', e => {
