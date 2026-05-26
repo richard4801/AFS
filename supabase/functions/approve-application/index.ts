@@ -47,11 +47,14 @@ Deno.serve(async (req) => {
     if (appErr || !app) throw new Error('Application not found')
     if (app.status !== 'pending') throw new Error('Application already processed')
 
-    // Invite the writer — creates their account and sends an invite email
-    // with a magic link for them to set their password
+    // Invite the writer — creates their account and sends an invite email.
+    // redirectTo must be in the Supabase allowed redirect URLs list.
     const { error: inviteErr } = await adminClient.auth.admin.inviteUserByEmail(
       app.email,
-      { data: { full_name: app.name } },
+      {
+        data: { full_name: app.name },
+        redirectTo: 'https://apexfictionstudio.com/dashboard/login.html',
+      },
     )
     if (inviteErr) throw inviteErr
 
