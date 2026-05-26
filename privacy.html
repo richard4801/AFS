@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — Apex Fiction Studio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            obsidian:  '#121212',
+            charcoal:  '#1C1C1C',
+            surface:   '#242424',
+            border:    '#2E2E2E',
+            gold:      '#C9A84C',
+            'gold-light': '#E2C97E',
+            muted:     '#7A7A7A',
+          },
+          fontFamily: {
+            sans:  ['Inter', 'system-ui', 'sans-serif'],
+            serif: ['"DM Serif Display"', 'Georgia', 'serif'],
+          },
+          letterSpacing: { widest2: '0.25em' },
+        },
+      },
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    html { background-color: #121212; }
+    .divider-gold { height:1px; background:linear-gradient(90deg,transparent 0%,#C9A84C 30%,#C9A84C 70%,transparent 100%); opacity:.25; }
+    .prose-afs h2 { font-family:"DM Serif Display",Georgia,serif; font-size:1.5rem; color:#fff; margin-top:2.5rem; margin-bottom:0.75rem; }
+    .prose-afs h3 { font-size:0.875rem; font-weight:600; color:rgba(255,255,255,0.9); text-transform:uppercase; letter-spacing:0.1em; margin-top:1.75rem; margin-bottom:0.5rem; }
+    .prose-afs p  { color:#7A7A7A; font-size:0.9375rem; line-height:1.8; margin-bottom:1rem; }
+    .prose-afs ul { list-style:none; padding:0; margin-bottom:1rem; }
+    .prose-afs ul li { color:#7A7A7A; font-size:0.9375rem; line-height:1.8; padding-left:1.25rem; position:relative; margin-bottom:0.35rem; }
+    .prose-afs ul li::before { content:"—"; position:absolute; left:0; color:#C9A84C; }
+    .prose-afs a { color:#C9A84C; text-decoration:underline; text-underline-offset:3px; }
+    .prose-afs strong { color:rgba(255,255,255,0.85); font-weight:500; }
+  </style>
+</head>
+
+<body class="bg-obsidian text-white font-sans antialiased">
+
+  <!-- NAV -->
+  <header class="fixed top-4 sm:top-5 inset-x-0 z-50 flex justify-center px-3 sm:px-5 pointer-events-none">
+    <nav class="pointer-events-auto flex items-center justify-between gap-3 sm:gap-6 w-full max-w-xl rounded-full bg-obsidian/70 backdrop-blur-md border border-white/10 shadow-xl shadow-black/60 px-3 sm:px-4 py-2.5">
+      <a href="index.html" class="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
+        <span class="w-6 h-6 rounded-sm bg-gold flex items-center justify-center text-obsidian font-serif font-bold text-xs flex-shrink-0">A</span>
+        <span class="font-serif text-sm sm:text-base tracking-wide text-white whitespace-nowrap">Apex Fiction Studio</span>
+      </a>
+      <a href="index.html#apply"
+         class="flex-shrink-0 inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 bg-gold/10 hover:bg-gold/20 border border-gold/30 hover:border-gold/60 text-gold text-xs sm:text-sm font-medium rounded-full transition-all duration-200">
+        Apply Now
+      </a>
+    </nav>
+  </header>
+
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 pt-32 pb-24">
+
+    <!-- Header -->
+    <div class="mb-12">
+      <p class="text-[11px] font-medium tracking-widest2 uppercase text-gold mb-4">Legal</p>
+      <h1 class="font-serif text-4xl sm:text-5xl text-white leading-tight mb-4">Privacy Policy</h1>
+      <p class="text-muted text-sm">Last updated: <strong>May 2026</strong></p>
+    </div>
+
+    <div class="divider-gold mb-12"></div>
+
+    <div class="prose-afs">
+
+      <p>
+        Apex Fiction Studio ("AFS", "we", "us", or "our") is committed to protecting your personal information.
+        This Privacy Policy explains what data we collect, why we collect it, how we use it, and your rights in
+        relation to it. By submitting an application or using our writer dashboard, you agree to the practices
+        described here.
+      </p>
+
+      <h2>1. Who We Are</h2>
+      <p>
+        Apex Fiction Studio is a co-publishing platform that partners with fiction writers on a revenue-share basis.
+        We operate the website at <strong>apexfictionstudio.com</strong> (the "Site") and the private writer
+        dashboard accessible at <strong>apexfictionstudio.com/dashboard</strong>.
+      </p>
+      <p>
+        For purposes of applicable data protection law, AFS is the data controller of your personal information.
+      </p>
+
+      <h2>2. Information We Collect</h2>
+
+      <h3>Application Data</h3>
+      <p>When you submit a writer application, we collect:</p>
+      <ul>
+        <li>Your full name and email address</li>
+        <li>Your writing experience and platform history</li>
+        <li>Your book logline and 500-word test scene submission</li>
+        <li>The date and time of your submission</li>
+      </ul>
+
+      <h3>Account Data</h3>
+      <p>If your application is approved and we create your writer account, we additionally hold:</p>
+      <ul>
+        <li>Your email address and encrypted password (managed via Supabase Auth)</li>
+        <li>Your pen name and profile information</li>
+        <li>Device trust tokens stored in your browser's local storage (to avoid repeated verification prompts)</li>
+      </ul>
+
+      <h3>Earnings and Performance Data</h3>
+      <p>As part of our transparency commitment, your private dashboard displays:</p>
+      <ul>
+        <li>Daily and cumulative royalty figures attributed to your books</li>
+        <li>Reader engagement data (read counts, review excerpts) sourced from the publishing platform</li>
+        <li>Chapter submission history and editorial notes</li>
+      </ul>
+
+      <h3>Communication Data</h3>
+      <p>
+        Messages exchanged via the in-dashboard chat between you and AFS staff are stored to maintain
+        an accurate record of your editorial relationship.
+      </p>
+
+      <h3>Technical Data</h3>
+      <p>
+        We use Supabase's managed infrastructure. Standard server logs (IP addresses, browser type, timestamps)
+        may be retained by our infrastructure provider for security purposes.
+      </p>
+
+      <h2>3. How We Use Your Information</h2>
+      <ul>
+        <li><strong>To evaluate your application</strong> — we read every submission to assess commercial fit.</li>
+        <li><strong>To manage your contract</strong> — earnings records, chapter reviews, and communication are necessary to administer the partnership.</li>
+        <li><strong>To send you account-related emails</strong> — device verification codes, password resets, income notifications, and editorial updates.</li>
+        <li><strong>To protect account security</strong> — device trust verification is performed when you sign in from a new device or after 30 days of inactivity.</li>
+        <li><strong>To improve our platform</strong> — aggregated, anonymised usage patterns help us improve the dashboard experience.</li>
+      </ul>
+
+      <h2>4. Legal Basis for Processing</h2>
+      <p>
+        Where GDPR or equivalent legislation applies, we process your data under the following legal bases:
+      </p>
+      <ul>
+        <li><strong>Contractual necessity</strong> — processing required to fulfil the partnership agreement (earnings records, editorial workflow).</li>
+        <li><strong>Legitimate interests</strong> — application review and platform security, where these interests are not overridden by your rights.</li>
+        <li><strong>Consent</strong> — where you have explicitly submitted an application or signed up for communications.</li>
+      </ul>
+
+      <h2>5. Data Sharing</h2>
+      <p>
+        We do not sell, rent, or trade your personal information. We share data only with:
+      </p>
+      <ul>
+        <li><strong>Supabase Inc.</strong> — our database and authentication provider. Your data is stored on Supabase servers. Supabase processes data in accordance with their own Privacy Policy.</li>
+        <li><strong>Email delivery providers</strong> — used solely to send transactional emails (verification codes, invite links, notifications).</li>
+        <li><strong>Publishing platforms</strong> — book titles and pen names are shared with the distribution platforms where your books are listed. No contact details or financial information are shared.</li>
+        <li><strong>Legal authorities</strong> — if required by law, court order, or to protect our legal rights.</li>
+      </ul>
+
+      <h2>6. Data Retention</h2>
+      <ul>
+        <li><strong>Applications</strong> — retained for 24 months from submission, regardless of outcome, to support future correspondence.</li>
+        <li><strong>Active writer accounts</strong> — retained for the duration of the contract and for 7 years after termination for financial record-keeping compliance.</li>
+        <li><strong>Chat messages</strong> — retained for the duration of the active contract.</li>
+        <li><strong>Device trust tokens</strong> — stored in your browser's local storage and automatically expire after 30 days.</li>
+      </ul>
+
+      <h2>7. Your Rights</h2>
+      <p>Depending on your jurisdiction, you may have the right to:</p>
+      <ul>
+        <li><strong>Access</strong> — request a copy of the personal data we hold about you.</li>
+        <li><strong>Correction</strong> — ask us to correct inaccurate or incomplete data.</li>
+        <li><strong>Erasure</strong> — request deletion of your data where we no longer have a legal basis to retain it.</li>
+        <li><strong>Portability</strong> — receive your data in a machine-readable format.</li>
+        <li><strong>Restriction</strong> — ask us to restrict processing in certain circumstances.</li>
+        <li><strong>Objection</strong> — object to processing based on legitimate interests.</li>
+      </ul>
+      <p>
+        To exercise any of these rights, contact us at <a href="mailto:privacy@apexfictionstudio.com">privacy@apexfictionstudio.com</a>.
+        We will respond within 30 days.
+      </p>
+
+      <h2>8. Cookies and Local Storage</h2>
+      <p>
+        The Site itself sets no advertising or analytics cookies. The writer dashboard uses browser
+        <strong>local storage</strong> to persist your authentication session and device trust status.
+        This is strictly functional and not used for tracking or advertising.
+      </p>
+
+      <h2>9. Security</h2>
+      <p>
+        All data is transmitted over HTTPS. Passwords are never stored in plain text — authentication
+        is managed entirely by Supabase's secure Auth service. We apply row-level security policies
+        to ensure each writer can only access their own data.
+      </p>
+
+      <h2>10. Changes to This Policy</h2>
+      <p>
+        We may update this policy as our platform evolves. When we make material changes, we will
+        update the "Last updated" date above and, where appropriate, notify active writers by email.
+        Continued use of the dashboard after changes constitutes acceptance.
+      </p>
+
+      <h2>11. Contact</h2>
+      <p>
+        For privacy questions, data requests, or complaints, contact:<br/>
+        <strong>Apex Fiction Studio</strong><br/>
+        <a href="mailto:privacy@apexfictionstudio.com">privacy@apexfictionstudio.com</a>
+      </p>
+
+    </div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-border py-10 px-4 sm:px-6">
+    <div class="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
+      <a href="index.html" class="flex items-center gap-3">
+        <span class="w-6 h-6 rounded-sm bg-gold flex items-center justify-center text-obsidian font-serif font-bold text-xs">A</span>
+        <span class="font-serif text-base tracking-wide text-white">Apex Fiction Studio</span>
+      </a>
+      <p class="text-muted text-xs tracking-wide text-center">© 2026 Apex Fiction Studio. All rights reserved.</p>
+      <div class="flex items-center gap-5 text-muted text-xs">
+        <a href="privacy.html" class="text-gold font-medium">Privacy</a>
+        <a href="terms.html" class="hover:text-white transition-colors duration-150">Terms</a>
+        <a href="index.html#apply" class="hover:text-white transition-colors duration-150">Apply</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
