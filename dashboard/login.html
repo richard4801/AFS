@@ -239,7 +239,7 @@
 
     const { createClient } = supabase;
     const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { persistSession: true, storage: window.localStorage },
+      auth: { persistSession: true, storage: window.localStorage, flowType: 'implicit' },
     });
 
     const TRUST_PREFIX = 'afs_dev_';
@@ -424,14 +424,15 @@
       }
     }
 
-    // Handle arriving from a password-reset or invite email
-    db.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
-        db.auth.getSession().then(({ data: { session } }) => {
-          if (session && (event === 'PASSWORD_RECOVERY')) {
-            showSetPasswordStep();
-          }
-        });
+    // Detect if arriving via invite or password-reset link
+    const _hashParams = new URLSearchParams(window.location.hash.slice(1));
+    const _linkType   = _hashParams.get('type'); // 'invite' | 'recovery' | null
+
+    db.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        showSetPasswordStep();
+      } else if (event === 'SIGNED_IN' && _linkType === 'invite' && session) {
+        showSetPasswordStep();
       }
     });
 
