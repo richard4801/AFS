@@ -677,15 +677,11 @@
     let pendingCoverFile = null;
 
     // ── AUTH ───────────────────────────────────────────────────
-    function guardAuth() {
-      return new Promise((resolve, reject) => {
-        const { data: { subscription } } = db.auth.onAuthStateChange((event, session) => {
-          if (event !== 'INITIAL_SESSION') return;
-          subscription.unsubscribe();
-          if (session) { resolve(session); }
-          else { window.location.replace('login.html'); reject(new Error('unauthenticated')); }
-        });
-      });
+    async function guardAuth() {
+      const { data: { session } } = await db.auth.getSession();
+      if (session) return session;
+      window.location.replace('login.html');
+      throw new Error('unauthenticated');
     }
 
     // ── STATS DATA ─────────────────────────────────────────────
