@@ -239,7 +239,7 @@
 
     const { createClient } = supabase;
     const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { persistSession: true, storage: window.localStorage },
+      auth: { persistSession: true, storage: window.localStorage, flowType: 'implicit' },
     });
 
     const TRUST_PREFIX = 'afs_dev_';
