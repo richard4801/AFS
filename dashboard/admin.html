@@ -2183,13 +2183,35 @@
       await renderPaymentsForWriter(writerId, writer);
     }
 
+    function _fmtPaymentInfo(raw) {
+      if (!raw) return null;
+      let p;
+      try { p = JSON.parse(raw); } catch { return `<p class="text-white/70 text-sm">${escHtml(raw)}</p>`; }
+      const rows = [
+        p.paypal   && ['PayPal / Wise', p.paypal],
+        p.bank     && ['Bank',          p.bank],
+        p.holder   && ['Account Holder',p.holder],
+        p.account  && ['Account #',     p.account],
+        p.routing  && ['Sort / Routing',p.routing],
+        p.country  && ['Country',       p.country],
+      ].filter(Boolean);
+      if (!rows.length) return null;
+      return rows.map(([label, val]) =>
+        `<div class="flex justify-between gap-3 py-1.5 border-b border-border/30 last:border-0">
+           <span class="text-muted text-xs flex-shrink-0">${label}</span>
+           <span class="text-white text-xs font-medium text-right">${escHtml(val)}</span>
+         </div>`).join('');
+    }
+
     async function renderPaymentsForWriter(writerId, writer) {
       const content = $('payments-content');
       content.innerHTML = '<div class="skeleton h-32 rounded-2xl mb-4"></div><div class="skeleton h-48 rounded-2xl"></div>';
-      const [{ data: earnings }, { data: payouts }] = await Promise.all([
+      const [{ data: earnings }, { data: payouts }, { data: profile }] = await Promise.all([
         db.from('earnings').select('amount_earned').eq('author_id', writerId),
         db.from('payouts').select('*').eq('writer_id', writerId).order('paid_at', { ascending: false }),
+        db.from('profiles').select('payment_info').eq('id', writerId).single(),
       ]);
+      const paymentInfoHtml = _fmtPaymentInfo(profile?.payment_info);
       const totalEarned = (earnings || []).reduce((s, e) => s + Number(e.amount_earned), 0);
       const totalPaid   = (payouts  || []).reduce((s, p) => s + Number(p.amount), 0);
       const balance     = totalEarned - totalPaid;
@@ -2220,6 +2242,14 @@
             <p class="text-[10px] text-muted uppercase tracking-wide mt-1">Pending</p>
           </div>
         </div>
+        ${paymentInfoHtml ? `
+        <div class="rounded-xl bg-surface border border-border p-4 mb-6">
+          <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-gold mb-3">Payment Details</p>
+          ${paymentInfoHtml}
+        </div>` : `
+        <div class="rounded-xl border border-border/40 border-dashed p-4 mb-6 text-center">
+          <p class="text-muted/50 text-xs">No payment details on file — writer hasn't filled them in yet.</p>
+        </div>`}
         <div>
           <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted mb-3">Payout History</p>
           ${!payouts?.length

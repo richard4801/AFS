@@ -567,22 +567,57 @@
   <!-- PROFILE MODAL -->
   <div id="profile-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center px-4"
        style="background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);">
-    <div class="relative w-full max-w-sm rounded-2xl border border-border bg-surface p-6 shadow-2xl shadow-black/60">
+    <div class="relative w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-2xl shadow-black/60 max-h-[90vh] overflow-y-auto thin-scroll">
       <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent"></div>
       <h3 class="font-serif text-xl text-white mb-1">Your Profile</h3>
-      <p class="text-muted text-xs mb-5">Update your display name.</p>
+      <p class="text-muted text-xs mb-5">Update your display name and payment details.</p>
       <div class="mb-5">
         <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Display Name</label>
         <input id="profile-name-input" type="text"
                class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 transition-all duration-200"/>
       </div>
+      <!-- Payment details section -->
+      <div class="border-t border-border/50 pt-5 mb-5">
+        <p class="text-[10px] font-semibold tracking-[0.16em] uppercase text-gold mb-1">Payment Details</p>
+        <p class="text-muted text-[11px] mb-4">Used by AFS to send your monthly payout. Fill in whichever applies.</p>
+        <div class="space-y-3">
           <div>
-            <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Payment Details</label>
-            <textarea id="profile-payment-input" rows="3" placeholder="e.g. PayPal: you@email.com  — or —  Bank: IBAN / routing details"
-                      class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 transition-all duration-200 resize-none"></textarea>
-            <p class="text-muted text-[11px] mt-1.5">Used by AFS to send your monthly payout. Keep this updated.</p>
+            <label class="block text-[11px] font-medium text-white/60 tracking-wide mb-1.5">PayPal / Wise Email</label>
+            <input id="pay-paypal" type="email" placeholder="your@paypal.com"
+                   class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-3 py-2.5 transition-all duration-200"/>
           </div>
-      <div class="flex gap-3 mt-5">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] font-medium text-white/60 tracking-wide mb-1.5">Bank Name</label>
+              <input id="pay-bank" type="text" placeholder="e.g. Chase, Barclays"
+                     class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-3 py-2.5 transition-all duration-200"/>
+            </div>
+            <div>
+              <label class="block text-[11px] font-medium text-white/60 tracking-wide mb-1.5">Account Holder</label>
+              <input id="pay-holder" type="text" placeholder="Full legal name"
+                     class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-3 py-2.5 transition-all duration-200"/>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] font-medium text-white/60 tracking-wide mb-1.5">Account Number</label>
+              <input id="pay-account" type="text" placeholder="Account / IBAN"
+                     class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-3 py-2.5 transition-all duration-200"/>
+            </div>
+            <div>
+              <label class="block text-[11px] font-medium text-white/60 tracking-wide mb-1.5">Sort / Routing #</label>
+              <input id="pay-routing" type="text" placeholder="Sort code or routing"
+                     class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-3 py-2.5 transition-all duration-200"/>
+            </div>
+          </div>
+          <div>
+            <label class="block text-[11px] font-medium text-white/60 tracking-wide mb-1.5">Country</label>
+            <input id="pay-country" type="text" placeholder="e.g. United States, United Kingdom"
+                   class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-3 py-2.5 transition-all duration-200"/>
+          </div>
+        </div>
+      </div>
+      <div class="flex gap-3">
         <button onclick="saveProfile()"
                 class="flex-1 px-4 py-2.5 bg-gold hover:bg-gold-light text-obsidian text-sm font-semibold rounded-lg transition-colors">
           Save
@@ -2082,9 +2117,20 @@
     });
 
     // ── WRITER PROFILE ─────────────────────────────────────────
+    function _parsePaymentInfo(raw) {
+      if (!raw) return {};
+      try { return JSON.parse(raw); } catch { return {}; }
+    }
+
     function openProfileModal() {
-      $('profile-name-input').value    = $('nav-name-btn').textContent.trim();
-      $('profile-payment-input').value = _currentPaymentInfo || '';
+      $('profile-name-input').value = $('nav-name-btn').textContent.trim();
+      const p = _parsePaymentInfo(_currentPaymentInfo);
+      $('pay-paypal').value   = p.paypal   || '';
+      $('pay-bank').value     = p.bank     || '';
+      $('pay-holder').value   = p.holder   || '';
+      $('pay-account').value  = p.account  || '';
+      $('pay-routing').value  = p.routing  || '';
+      $('pay-country').value  = p.country  || '';
       $('profile-modal').classList.remove('hidden');
       setTimeout(() => $('profile-name-input').focus(), 50);
     }
@@ -2092,13 +2138,24 @@
     $('profile-modal').addEventListener('click', e => { if (e.target === $('profile-modal')) closeProfileModal(); });
 
     async function saveProfile() {
-      const name        = $('profile-name-input').value.trim();
-      const paymentInfo = $('profile-payment-input').value.trim();
+      const name = $('profile-name-input').value.trim();
       if (!name) return;
-      const { error } = await db.from('profiles').update({ name, payment_info: paymentInfo || null }).eq('id', currentUserId);
+      const payObj = {
+        paypal:   $('pay-paypal').value.trim()   || undefined,
+        bank:     $('pay-bank').value.trim()     || undefined,
+        holder:   $('pay-holder').value.trim()   || undefined,
+        account:  $('pay-account').value.trim()  || undefined,
+        routing:  $('pay-routing').value.trim()  || undefined,
+        country:  $('pay-country').value.trim()  || undefined,
+      };
+      // Remove undefined keys so we don't store empty strings
+      Object.keys(payObj).forEach(k => payObj[k] === undefined && delete payObj[k]);
+      const paymentInfo = Object.keys(payObj).length ? JSON.stringify(payObj) : null;
+      const { error } = await db.from('profiles').update({ name, payment_info: paymentInfo }).eq('id', currentUserId);
       if (error) { showToast('Error: ' + error.message); return; }
-      $('nav-name-btn').textContent    = name;
-      $('greeting-name').textContent   = name.split(' ')[0];
+      _currentPaymentInfo = paymentInfo;
+      $('nav-name-btn').textContent  = name;
+      $('greeting-name').textContent = name.split(' ')[0];
       closeProfileModal();
       showToast('Profile updated!');
     }
