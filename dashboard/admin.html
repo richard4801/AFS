@@ -2538,6 +2538,15 @@
 
     $('sign-out-btn').addEventListener('click', async () => { await db.auth.signOut(); window.location.replace('admin-login.html'); });
 
+    // Re-verify admin status whenever the tab regains focus
+    document.addEventListener('visibilitychange', async () => {
+      if (document.visibilityState !== 'visible') return;
+      const { data: { session } } = await db.auth.getSession();
+      if (!session) { window.location.replace('admin-login.html'); return; }
+      const { data: prof } = await db.from('profiles').select('is_admin').eq('id', session.user.id).single();
+      if (!prof?.is_admin) window.location.replace('admin-login.html');
+    });
+
     (async () => {
       $('income-date').value = new Date().toISOString().slice(0, 10);
       const { session, profile } = await guardAdmin();

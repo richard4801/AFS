@@ -1028,6 +1028,12 @@
             <p class="text-muted text-[11px] mt-1.5">Any scene from your proposed book. We prioritize emotional hooks, pacing, and character desire.</p>
           </div>
 
+          <!-- Honeypot — must stay empty for valid submissions -->
+          <div style="position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;" aria-hidden="true" tabindex="-1">
+            <label for="hp_website">Website</label>
+            <input type="text" id="hp_website" name="website" autocomplete="off" tabindex="-1" value=""/>
+          </div>
+
           <!-- Submit -->
           <div class="pt-2">
             <button
@@ -1111,21 +1117,63 @@
       const errBox  = document.getElementById('apply-error');
       const success = document.getElementById('apply-success');
 
+      // Record page-load timestamp for time-on-page check
+      window._appPageLoad = Date.now();
+
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         errBox.classList.add('hidden');
+
+        // ── Browser cooldown check ────────────────────────────────────────
+        const lastSent = localStorage.getItem('afs_app_sent');
+        if (lastSent && (Date.now() - Number(lastSent)) < 3600000) {
+          errBox.textContent = "You've already submitted an application recently. Please wait before trying again.";
+          errBox.classList.remove('hidden');
+          return;
+        }
+
+        // ── Time-on-page check ────────────────────────────────────────────
+        if ((Date.now() - window._appPageLoad) < 4000) {
+          errBox.textContent = 'Please take a moment to complete the form.';
+          errBox.classList.remove('hidden');
+          return;
+        }
+
+        // ── Honeypot check ────────────────────────────────────────────────
+        const honeypot = form.website ? form.website.value : '';
+        if (honeypot !== '') {
+          // Silently show success state without inserting to DB
+          form.closest('.relative.rounded-2xl').classList.add('hidden');
+          success.classList.remove('hidden');
+          success.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          return;
+        }
+
+        const name       = form.fullName.value.trim();
+        const email      = form.email.value.trim().toLowerCase();
+        const experience = form.experience.value.trim() || null;
+        const logline    = form.logline.value.trim();
+        const test_scene = form.testScene.value.trim();
+
+        // ── Field length caps ─────────────────────────────────────────────
+        if (
+          name.length > 120 ||
+          email.length > 200 ||
+          logline.length > 300 ||
+          (experience && experience.length > 2000) ||
+          test_scene.length > 8000
+        ) {
+          errBox.textContent = 'Your submission exceeds allowed length limits.';
+          errBox.classList.remove('hidden');
+          return;
+        }
+
         btn.disabled = true;
         btnLbl.textContent = 'Submitting…';
         btnArr.classList.add('hidden');
         spinner.classList.remove('hidden');
 
-        const payload = {
-          name:       form.fullName.value.trim(),
-          email:      form.email.value.trim().toLowerCase(),
-          experience: form.experience.value.trim() || null,
-          logline:    form.logline.value.trim(),
-          test_scene: form.testScene.value.trim(),
-        };
+        const payload = { name, email, experience, logline, test_scene };
 
         const { error } = await db.from('applications').insert(payload);
 
@@ -1139,6 +1187,9 @@
           errBox.classList.remove('hidden');
           return;
         }
+
+        // ── Store cooldown timestamp ──────────────────────────────────────
+        localStorage.setItem('afs_app_sent', Date.now());
 
         // Show thank-you state
         form.closest('.relative.rounded-2xl').classList.add('hidden');

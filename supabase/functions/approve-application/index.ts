@@ -82,10 +82,12 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
+    const raw = err instanceof Error ? err.message : 'Unknown error'
+    const SAFE = ['Unauthorized', 'Forbidden', 'Application not found', 'Application already processed', 'RESEND_API_KEY not configured']
+    const message = SAFE.some(s => raw.includes(s)) ? raw : 'Internal server error'
     return new Response(JSON.stringify({ error: message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
+      status: raw.includes('Unauthorized') || raw.includes('Forbidden') ? 403 : 400,
     })
   }
 })

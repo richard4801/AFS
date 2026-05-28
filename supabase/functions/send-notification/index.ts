@@ -3,6 +3,15 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 // Requires RESEND_API_KEY set as a Supabase Edge Function secret.
 // Set it in: Supabase Dashboard → Edge Functions → Manage Secrets
 
+function escHtml(s: unknown): string {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -27,12 +36,12 @@ const templates: Record<EventType, (p: Payload) => { subject: string; html: stri
         <div style="height:1px;background:linear-gradient(90deg,transparent,#C9A84C,transparent);opacity:.4;margin-bottom:32px;"></div>
         <h1 style="font-family:Georgia,serif;font-size:28px;color:#fff;margin:0 0 16px;">Earnings Updated</h1>
         <p style="color:#7A7A7A;font-size:15px;line-height:1.7;margin:0 0 24px;">
-          Hi ${writerName}, a new earnings entry has been recorded for you.
+          Hi ${escHtml(writerName)}, a new earnings entry has been recorded for you.
         </p>
         <div style="background:#1C1C1C;border:1px solid #2E2E2E;border-radius:12px;padding:20px 24px;margin-bottom:28px;">
           <p style="margin:0 0 8px;color:#7A7A7A;font-size:11px;letter-spacing:.18em;text-transform:uppercase;">Amount</p>
           <p style="margin:0;color:#C9A84C;font-family:Georgia,serif;font-size:32px;font-weight:bold;">$${Number(data.amount).toFixed(2)}</p>
-          <p style="margin:8px 0 0;color:#7A7A7A;font-size:13px;">for ${data.date}</p>
+          <p style="margin:8px 0 0;color:#7A7A7A;font-size:13px;">for ${escHtml(data.date)}</p>
         </div>
         <a href="https://apexfictionstudio.com/dashboard/index.html"
            style="display:inline-block;background:#C9A84C;color:#121212;font-size:13px;font-weight:700;padding:12px 24px;border-radius:8px;text-decoration:none;">
@@ -50,12 +59,12 @@ const templates: Record<EventType, (p: Payload) => { subject: string; html: stri
         <div style="height:1px;background:linear-gradient(90deg,transparent,#C9A84C,transparent);opacity:.4;margin-bottom:32px;"></div>
         <h1 style="font-family:Georgia,serif;font-size:28px;color:#fff;margin:0 0 16px;">Revision Requested</h1>
         <p style="color:#7A7A7A;font-size:15px;line-height:1.7;margin:0 0 24px;">
-          Hi ${writerName}, your editor has reviewed Chapter ${data.chapterNumber} and requested a revision.
+          Hi ${escHtml(writerName)}, your editor has reviewed Chapter ${escHtml(data.chapterNumber)} and requested a revision.
         </p>
         <div style="background:#1C1C1C;border:1px solid #2E2E2E;border-radius:12px;padding:20px 24px;margin-bottom:${data.reason ? '16px' : '28px'};">
-          <p style="margin:0 0 4px;color:#fff;font-family:Georgia,serif;font-size:18px;">Chapter ${data.chapterNumber}${data.title ? `: "${data.title}"` : ''}</p>
+          <p style="margin:0 0 4px;color:#fff;font-family:Georgia,serif;font-size:18px;">Chapter ${escHtml(data.chapterNumber)}${data.title ? `: &quot;${escHtml(data.title)}&quot;` : ''}</p>
         </div>
-        ${data.reason ? `<div style="background:#1a0f0f;border:1px solid #4a1a1a;border-radius:12px;padding:16px 20px;margin-bottom:28px;"><p style="margin:0 0 6px;color:#9a4a4a;font-size:11px;letter-spacing:.12em;text-transform:uppercase;">Editor's Note</p><p style="margin:0;color:#d4a0a0;font-size:14px;line-height:1.7;">${data.reason}</p></div>` : ''}
+        ${data.reason ? `<div style="background:#1a0f0f;border:1px solid #4a1a1a;border-radius:12px;padding:16px 20px;margin-bottom:28px;"><p style="margin:0 0 6px;color:#9a4a4a;font-size:11px;letter-spacing:.12em;text-transform:uppercase;">Editor&#x27;s Note</p><p style="margin:0;color:#d4a0a0;font-size:14px;line-height:1.7;">${escHtml(data.reason)}</p></div>` : ''}
         <a href="https://apexfictionstudio.com/dashboard/index.html"
            style="display:inline-block;background:#C9A84C;color:#121212;font-size:13px;font-weight:700;padding:12px 24px;border-radius:8px;text-decoration:none;">
           View Your Dashboard →
@@ -72,10 +81,10 @@ const templates: Record<EventType, (p: Payload) => { subject: string; html: stri
         <div style="height:1px;background:linear-gradient(90deg,transparent,#C9A84C,transparent);opacity:.4;margin-bottom:32px;"></div>
         <h1 style="font-family:Georgia,serif;font-size:28px;color:#fff;margin:0 0 16px;">Chapter Approved</h1>
         <p style="color:#7A7A7A;font-size:15px;line-height:1.7;margin:0 0 24px;">
-          Hi ${writerName}, your chapter has been reviewed and approved.
+          Hi ${escHtml(writerName)}, your chapter has been reviewed and approved.
         </p>
         <div style="background:#1C1C1C;border:1px solid #2E2E2E;border-radius:12px;padding:20px 24px;margin-bottom:28px;">
-          <p style="margin:0 0 4px;color:#fff;font-family:Georgia,serif;font-size:18px;">Chapter ${data.chapterNumber}${data.title ? `: "${data.title}"` : ''}</p>
+          <p style="margin:0 0 4px;color:#fff;font-family:Georgia,serif;font-size:18px;">Chapter ${escHtml(data.chapterNumber)}${data.title ? `: &quot;${escHtml(data.title)}&quot;` : ''}</p>
           <p style="margin:0;color:#7A7A7A;font-size:13px;">${data.wordCount ? Number(data.wordCount).toLocaleString() + ' words' : ''}</p>
         </div>
         <a href="https://apexfictionstudio.com/dashboard/index.html"
@@ -136,10 +145,12 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
+    const raw = err instanceof Error ? err.message : 'Unknown error'
+    const SAFE = ['Unauthorized', 'Forbidden', 'Application not found', 'Application already processed', 'RESEND_API_KEY not configured']
+    const message = SAFE.some(s => raw.includes(s)) ? raw : 'Internal server error'
     return new Response(JSON.stringify({ error: message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
+      status: raw.includes('Unauthorized') || raw.includes('Forbidden') ? 403 : 400,
     })
   }
 })
