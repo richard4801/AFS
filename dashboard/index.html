@@ -126,6 +126,42 @@
       <p class="text-muted text-sm mt-1" id="today-date"></p>
     </div>
 
+    <!-- ONBOARDING WELCOME CARD (hidden by default, shown for new writers) -->
+    <div id="onboarding-card" class="hidden relative rounded-2xl border border-gold/30 bg-surface p-6 sm:p-8 mb-8 overflow-hidden">
+      <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/60 to-transparent"></div>
+      <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse at top left,rgba(201,168,76,0.06) 0%,transparent 60%)"></div>
+      <div class="relative">
+        <div class="flex items-start justify-between gap-4 mb-5">
+          <div>
+            <p class="text-[10px] font-semibold tracking-widest uppercase text-gold mb-1">Welcome</p>
+            <h2 class="font-serif text-2xl sm:text-3xl text-white">Welcome to the Collective, <span id="onboard-name">Writer</span>.</h2>
+          </div>
+          <button onclick="dismissOnboarding()" class="flex-shrink-0 w-7 h-7 rounded-full border border-border hover:border-white/20 flex items-center justify-center text-muted hover:text-white transition-colors mt-1">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <p class="text-muted text-sm leading-relaxed mb-6">Here's what happens next — your editor will guide you through each step.</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="flex items-start gap-3 rounded-xl bg-charcoal border border-border p-4">
+            <span class="w-6 h-6 rounded-full bg-gold/15 border border-gold/30 flex items-center justify-center flex-shrink-0 mt-0.5"><span class="font-serif text-gold text-xs font-bold">1</span></span>
+            <div><p class="text-white text-sm font-medium mb-0.5">Check the chat</p><p class="text-muted text-xs">Your Executive Editor will brief you within 24 hours via the chat widget.</p></div>
+          </div>
+          <div class="flex items-start gap-3 rounded-xl bg-charcoal border border-border p-4">
+            <span class="w-6 h-6 rounded-full bg-gold/15 border border-gold/30 flex items-center justify-center flex-shrink-0 mt-0.5"><span class="font-serif text-gold text-xs font-bold">2</span></span>
+            <div><p class="text-white text-sm font-medium mb-0.5">Read your brief</p><p class="text-muted text-xs">Once assigned, your project brief appears below — genre, plot, characters.</p></div>
+          </div>
+          <div class="flex items-start gap-3 rounded-xl bg-charcoal border border-border p-4">
+            <span class="w-6 h-6 rounded-full bg-gold/15 border border-gold/30 flex items-center justify-center flex-shrink-0 mt-0.5"><span class="font-serif text-gold text-xs font-bold">3</span></span>
+            <div><p class="text-white text-sm font-medium mb-0.5">Start writing</p><p class="text-muted text-xs">Create your first book below and submit chapters. Aim for 3 per day.</p></div>
+          </div>
+          <div class="flex items-start gap-3 rounded-xl bg-charcoal border border-border p-4">
+            <span class="w-6 h-6 rounded-full bg-gold/15 border border-gold/30 flex items-center justify-center flex-shrink-0 mt-0.5"><span class="font-serif text-gold text-xs font-bold">4</span></span>
+            <div><p class="text-white text-sm font-medium mb-0.5">Track your calendar</p><p class="text-muted text-xs">Hit 25 active days/month to keep your book's visibility at maximum.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- STATS -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
       <div class="rounded-2xl border border-border bg-surface p-4 sm:p-5 relative overflow-hidden">
@@ -155,6 +191,18 @@
         </div>
         <p id="stat-milestone-sub" class="text-muted text-xs mt-1">toward 30k words</p>
       </div>
+    </div>
+
+    <!-- PAYOUT HISTORY (only shown when payouts exist) -->
+    <div id="payout-card" class="hidden rounded-2xl border border-border bg-surface p-5 sm:p-6 mb-8 relative overflow-hidden">
+      <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent"></div>
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-1">Payment History</p>
+          <h2 class="font-serif text-xl text-white">Payouts Received</h2>
+        </div>
+      </div>
+      <div id="payout-list" class="space-y-2"></div>
     </div>
 
     <!-- CHART -->
@@ -240,6 +288,24 @@
           <span class="w-3 h-3 rounded flex-shrink-0 border-2 border-gold/50"></span>Today
         </span>
       </div>
+    </div>
+
+    <!-- PROJECT BRIEF -->
+    <div id="brief-card" class="hidden rounded-2xl border border-border bg-surface p-5 sm:p-6 mb-8 relative overflow-hidden">
+      <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent"></div>
+      <div class="flex items-center justify-between mb-5">
+        <div>
+          <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-1">Project Brief</p>
+          <h2 id="brief-title" class="font-serif text-xl text-white">Loading…</h2>
+        </div>
+        <span id="brief-genre" class="text-[10px] font-medium tracking-widest uppercase text-gold border border-gold/20 bg-gold/5 rounded-full px-3 py-1"></span>
+      </div>
+      <div id="brief-body" class="space-y-4"></div>
+    </div>
+    <!-- BRIEF PLACEHOLDER (shown when no brief assigned) -->
+    <div id="brief-placeholder" class="hidden rounded-2xl border border-dashed border-border bg-charcoal/30 p-6 mb-8 text-center">
+      <p class="text-muted text-sm">Your project brief hasn't been assigned yet.</p>
+      <p class="text-muted text-xs mt-1">Your Executive Editor will assign it soon — check the chat.</p>
     </div>
 
     <!-- MY BOOKS SECTION -->
@@ -510,7 +576,13 @@
         <input id="profile-name-input" type="text"
                class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 transition-all duration-200"/>
       </div>
-      <div class="flex gap-3">
+          <div>
+            <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Payment Details</label>
+            <textarea id="profile-payment-input" rows="3" placeholder="e.g. PayPal: you@email.com  — or —  Bank: IBAN / routing details"
+                      class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 transition-all duration-200 resize-none"></textarea>
+            <p class="text-muted text-[11px] mt-1.5">Used by AFS to send your monthly payout. Keep this updated.</p>
+          </div>
+      <div class="flex gap-3 mt-5">
         <button onclick="saveProfile()"
                 class="flex-1 px-4 py-2.5 bg-gold hover:bg-gold-light text-obsidian text-sm font-semibold rounded-lg transition-colors">
           Save
@@ -669,6 +741,7 @@
 
     // ── STATE ──────────────────────────────────────────────────
     let currentUserId  = null;
+    let _currentPaymentInfo = '';
     let selectedBook   = null;
     let editingChapter = null;
     const _bookReg  = new Map(); // id → book (avoids JSON-in-onclick; safe with apostrophes)
@@ -686,7 +759,7 @@
 
     // ── STATS DATA ─────────────────────────────────────────────
     async function fetchProfile(userId) {
-      const { data } = await db.from('profiles').select('name, email').eq('id', userId).single();
+      const { data } = await db.from('profiles').select('name, email, onboarded, payment_info').eq('id', userId).single();
       return data;
     }
 
@@ -2010,7 +2083,8 @@
 
     // ── WRITER PROFILE ─────────────────────────────────────────
     function openProfileModal() {
-      $('profile-name-input').value = $('nav-name-btn').textContent.trim();
+      $('profile-name-input').value    = $('nav-name-btn').textContent.trim();
+      $('profile-payment-input').value = _currentPaymentInfo || '';
       $('profile-modal').classList.remove('hidden');
       setTimeout(() => $('profile-name-input').focus(), 50);
     }
@@ -2018,9 +2092,10 @@
     $('profile-modal').addEventListener('click', e => { if (e.target === $('profile-modal')) closeProfileModal(); });
 
     async function saveProfile() {
-      const name = $('profile-name-input').value.trim();
+      const name        = $('profile-name-input').value.trim();
+      const paymentInfo = $('profile-payment-input').value.trim();
       if (!name) return;
-      const { error } = await db.from('profiles').update({ name }).eq('id', currentUserId);
+      const { error } = await db.from('profiles').update({ name, payment_info: paymentInfo || null }).eq('id', currentUserId);
       if (error) { showToast('Error: ' + error.message); return; }
       $('nav-name-btn').textContent    = name;
       $('greeting-name').textContent   = name.split(' ')[0];
@@ -2136,6 +2211,63 @@
       window.location.replace('login.html');
     });
 
+    // ── ONBOARDING ─────────────────────────────────────────────
+    function showOnboardingCard(name) {
+      $('onboard-name').textContent = name;
+      $('onboarding-card').classList.remove('hidden');
+    }
+    async function dismissOnboarding() {
+      $('onboarding-card').classList.add('hidden');
+      await db.from('profiles').update({ onboarded: true }).eq('id', currentUserId);
+    }
+
+    // ── PROJECT BRIEF ──────────────────────────────────────────
+    async function loadBrief() {
+      const { data } = await db.from('briefs')
+        .select('*').eq('writer_id', currentUserId).eq('status', 'active').maybeSingle();
+      if (!data) {
+        $('brief-placeholder').classList.remove('hidden');
+        return;
+      }
+      $('brief-card').classList.remove('hidden');
+      $('brief-title').textContent = data.title;
+      $('brief-genre').textContent = data.genre;
+      const sections = [
+        { key: 'synopsis',        label: 'Synopsis' },
+        { key: 'character_notes', label: 'Characters' },
+        { key: 'plot_outline',    label: 'Plot Outline' },
+      ];
+      $('brief-body').innerHTML = sections
+        .filter(s => data[s.key]?.trim())
+        .map(s => `
+          <div>
+            <p class="text-[10px] font-semibold tracking-widest uppercase text-muted mb-2">${s.label}</p>
+            <p class="text-white/80 text-sm leading-relaxed whitespace-pre-line">${escHtml(data[s.key])}</p>
+          </div>`).join('<div class="border-t border-border/40 my-1"></div>');
+    }
+
+    // ── PAYOUT HISTORY ─────────────────────────────────────────
+    async function loadPayouts() {
+      const { data } = await db.from('payouts')
+        .select('amount, period, paid_at, notes')
+        .eq('writer_id', currentUserId)
+        .order('paid_at', { ascending: false })
+        .limit(24);
+      if (!data?.length) return;
+      $('payout-card').classList.remove('hidden');
+      $('payout-list').innerHTML = data.map(p => `
+        <div class="flex items-center justify-between rounded-lg bg-charcoal border border-border px-4 py-3 gap-4">
+          <div class="min-w-0">
+            <p class="text-white text-sm font-medium">${p.period}</p>
+            ${p.notes ? `<p class="text-muted text-xs truncate">${escHtml(p.notes)}</p>` : ''}
+          </div>
+          <div class="text-right flex-shrink-0">
+            <p class="font-serif text-gold text-lg">$${Number(p.amount).toFixed(2)}</p>
+            <p class="text-muted text-[10px]">${new Date(p.paid_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</p>
+          </div>
+        </div>`).join('');
+    }
+
     // ── BOOT ───────────────────────────────────────────────────
     function buildChartSkeleton() {
       $('chart-skeleton').innerHTML = Array.from({ length: 30 }, () => {
@@ -2163,6 +2295,8 @@
       $('greeting-name').textContent    = firstName;
       $('nav-name-btn').textContent     = profile?.name || profile?.email || '';
       $('nav-name-btn').classList.remove('hidden');
+      _currentPaymentInfo = profile?.payment_info || '';
+      if (!profile?.onboarded) showOnboardingCard(firstName);
       loadNotifications();
       initChat(currentUserId);
 
@@ -2173,6 +2307,8 @@
       renderStats({ monthly, allTime, totalWords });
       renderChart(earnings30);
       loadCalendar();
+      loadBrief();
+      loadPayouts();
       await loadBooks();
     })();
   </script>

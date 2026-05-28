@@ -119,6 +119,102 @@
     </div>
   </div>
 
+  <!-- RECORD PAYOUT MODAL -->
+  <div id="payout-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center px-4" style="background:rgba(0,0,0,0.82);backdrop-filter:blur(4px);">
+    <div class="relative w-full max-w-md rounded-2xl border border-gold/25 bg-surface p-6 shadow-2xl shadow-black/60">
+      <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent"></div>
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="font-serif text-xl text-white">Record Payout</h3>
+        <button onclick="closePayoutModal()" class="text-muted hover:text-white text-2xl leading-none w-7 h-7 flex items-center justify-center">×</button>
+      </div>
+      <p id="payout-modal-writer" class="text-gold text-xs font-medium mb-4"></p>
+      <div class="space-y-4">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Amount ($)</label>
+            <input id="payout-amount" type="number" step="0.01" min="0.01" placeholder="0.00"
+                   class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-3 py-2.5"/>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Period</label>
+            <input id="payout-period" type="text" placeholder="e.g. May 2026"
+                   class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-3 py-2.5"/>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Notes <span class="text-muted font-normal">(optional)</span></label>
+          <input id="payout-notes" type="text" placeholder="e.g. Bank transfer, ref #1234"
+                 class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-3 py-2.5"/>
+        </div>
+        <div id="payout-error" class="hidden text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2"></div>
+        <div class="flex gap-3 pt-1">
+          <button onclick="recordPayout()"
+                  class="flex-1 px-4 py-2.5 bg-gold/15 hover:bg-gold/25 border border-gold/35 hover:border-gold/55 text-gold text-sm font-semibold rounded-lg transition-all duration-200">
+            Record Payout
+          </button>
+          <button onclick="closePayoutModal()"
+                  class="px-4 py-2.5 border border-border text-muted hover:text-white text-sm rounded-lg transition-all duration-200">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ASSIGN BRIEF MODAL -->
+  <div id="brief-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center px-4" style="background:rgba(0,0,0,0.82);backdrop-filter:blur(4px);">
+    <div class="relative w-full max-w-lg rounded-2xl border border-border bg-surface p-6 shadow-2xl shadow-black/60 max-h-[90vh] overflow-y-auto thin-scroll">
+      <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-crimson/40 to-transparent"></div>
+      <div class="flex items-center justify-between mb-5">
+        <div>
+          <h3 class="font-serif text-xl text-white">Project Brief</h3>
+          <p id="brief-modal-writer" class="text-muted text-xs mt-0.5"></p>
+        </div>
+        <button onclick="closeBriefModal()" class="text-muted hover:text-white text-2xl leading-none w-7 h-7 flex items-center justify-center">×</button>
+      </div>
+      <div class="space-y-4">
+        <div class="grid grid-cols-2 gap-3">
+          <div class="col-span-2 sm:col-span-1">
+            <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Title <span class="text-crimson-light">*</span></label>
+            <input id="brief-title" type="text" placeholder="Project title"
+                   class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-3 py-2.5"/>
+          </div>
+          <div class="col-span-2 sm:col-span-1">
+            <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Genre</label>
+            <input id="brief-genre" type="text" placeholder="Werewolf Romance"
+                   class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-3 py-2.5"/>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Synopsis</label>
+          <textarea id="brief-synopsis" rows="3" placeholder="Brief plot overview…"
+                    class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-3 py-2.5 resize-none"></textarea>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Character Notes</label>
+          <textarea id="brief-characters" rows="3" placeholder="Main characters, arcs, relationships…"
+                    class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-3 py-2.5 resize-none"></textarea>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Plot Outline</label>
+          <textarea id="brief-plot" rows="4" placeholder="Chapter-by-chapter outline or key plot beats…"
+                    class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-3 py-2.5 resize-none"></textarea>
+        </div>
+        <div id="brief-error" class="hidden text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2"></div>
+        <div class="flex gap-3 pt-1">
+          <button onclick="saveBrief()"
+                  class="flex-1 px-4 py-2.5 bg-crimson/15 hover:bg-crimson/25 border border-crimson/35 hover:border-crimson/55 text-crimson-light text-sm font-semibold rounded-lg transition-all duration-200">
+            Save Brief
+          </button>
+          <button onclick="closeBriefModal()"
+                  class="px-4 py-2.5 border border-border text-muted hover:text-white text-sm rounded-lg transition-all duration-200">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ADMIN CHAT PANEL -->
   <div id="admin-chat-panel" class="hidden fixed z-[70] flex flex-col rounded-2xl border border-border bg-surface shadow-2xl shadow-black/70 overflow-hidden" style="right:24px;bottom:96px;width:340px;height:520px;transition:all 0.2s ease;">
     <!-- Header -->
@@ -211,6 +307,10 @@
           Apply
           <span id="tab-applications-badge" class="hidden absolute top-2 right-2 min-w-[16px] h-4 px-1 rounded-full bg-crimson text-white text-[9px] font-bold flex items-center justify-center"></span>
         </button>
+        <button id="tab-payments" onclick="switchSection('payments')"
+                class="flex-1 px-2 py-3.5 text-[10px] font-semibold tracking-[0.16em] uppercase transition-colors duration-200 text-muted border-b-2 border-transparent hover:text-white">
+          Pay
+        </button>
       </div>
 
       <div id="sidebar-writers" class="flex flex-col flex-1 overflow-hidden">
@@ -243,6 +343,11 @@
           </div>
         </div>
       </div>
+
+      <div id="sidebar-payments" class="hidden flex-col flex-1 overflow-hidden">
+        <p class="px-4 pt-4 pb-2 text-[10px] font-semibold tracking-[0.18em] uppercase text-muted flex-shrink-0">Writers</p>
+        <div id="payout-writer-list" class="overflow-y-auto thin-scroll px-2 pb-4 space-y-1 max-h-44 md:max-h-none md:flex-1"></div>
+      </div>
     </aside>
 
     <!-- MAIN -->
@@ -269,6 +374,18 @@
               <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-crimson-light mb-1">Writer</p>
               <h2 id="writer-name-heading" class="font-serif text-3xl text-white"></h2>
               <p id="writer-email-heading" class="text-muted text-sm mt-0.5"></p>
+            </div>
+            <div class="flex gap-2 flex-shrink-0 flex-wrap justify-end">
+              <button onclick="openBriefModal()"
+                      class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface hover:bg-charcoal border border-border hover:border-white/20 text-white text-xs font-medium rounded-lg transition-all duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                Brief
+              </button>
+              <button onclick="openPayoutModal(selectedWriter?.id)"
+                      class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gold/10 hover:bg-gold/20 border border-gold/30 hover:border-gold/60 text-gold text-xs font-medium rounded-lg transition-all duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                Payout
+              </button>
             </div>
           </div>
           <div id="writer-books-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
@@ -504,6 +621,18 @@
             </div>
             <div id="recent-earnings" class="space-y-2"></div>
           </div>
+        </div>
+      </div>
+
+      <!-- PAYMENTS PANEL -->
+      <div id="panel-payments" class="hidden p-4 md:p-6">
+        <div class="mb-6">
+          <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-crimson-light mb-2">Payment Management</p>
+          <h2 class="font-serif text-2xl sm:text-3xl text-white">Writer Payouts</h2>
+          <p class="text-muted text-sm mt-1">Track payments sent to each writer and record new payouts.</p>
+        </div>
+        <div id="payments-content">
+          <p class="text-muted/50 text-sm text-center py-20">Select a writer from the sidebar to view their payout history.</p>
         </div>
       </div>
 
@@ -984,18 +1113,22 @@
 
     // ── SECTION SWITCHING ───────────────────────────────────────────
     function switchSection(section) {
-      ['writers','income','applications'].forEach(s => {
-        $(`tab-${s}`).classList.toggle('text-crimson-light', s === section);
-        $(`tab-${s}`).classList.toggle('border-crimson',     s === section);
-        $(`tab-${s}`).classList.toggle('text-muted',         s !== section);
-        $(`tab-${s}`).classList.toggle('border-transparent', s !== section);
+      ['writers','income','applications','payments'].forEach(s => {
+        const tab = $(`tab-${s}`);
+        if (!tab) return;
+        tab.classList.toggle('text-crimson-light', s === section);
+        tab.classList.toggle('border-crimson',     s === section);
+        tab.classList.toggle('text-muted',         s !== section);
+        tab.classList.toggle('border-transparent', s !== section);
         const sb = $(`sidebar-${s}`);
         if (sb) { sb.classList.toggle('hidden', s !== section); sb.classList.toggle('flex', s === section); }
       });
       $('panel-writers').classList.toggle('hidden',       section !== 'writers');
       $('panel-income').classList.toggle('hidden',        section !== 'income');
       $('panel-applications').classList.toggle('hidden',  section !== 'applications');
+      $('panel-payments').classList.toggle('hidden',      section !== 'payments');
       if (section === 'applications' && !_appsLoaded) loadApplications();
+      if (section === 'payments' && !_payoutWritersLoaded) loadPayoutWriterList();
     }
 
     // ── VIEW ROUTER ─────────────────────────────────────────────────
@@ -1873,6 +2006,16 @@
           user_id: writerId, type: 'chapter_rejected', title: 'Revision Requested',
           body: notifBody, chapter_id: id,
         });
+        // Email notification for chapter rejection
+        const writerProfile = allProfiles.find(p => p.id === writerId);
+        if (writerProfile?.email) {
+          const { data: { session } } = await db.auth.getSession();
+          fetch(`${SUPABASE_URL}/functions/v1/send-notification`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session?.access_token },
+            body: JSON.stringify({ type: 'chapter_rejected', writerId, writerEmail: writerProfile.email, writerName: writerProfile.name, data: { chapterNumber: chNum, title: chTitle } }),
+          }).catch(() => {});
+        }
       }
 
       showToast('Revision requested.');
@@ -2011,6 +2154,172 @@
         }
       }
     });
+
+    // ── PAYMENTS ────────────────────────────────────────────────────
+    let _selectedPayoutWriterId = null;
+    let _payoutWritersLoaded    = false;
+
+    async function loadPayoutWriterList() {
+      _payoutWritersLoaded = true;
+      const container = $('payout-writer-list');
+      const writers = allProfiles.length ? allProfiles : (await db.from('profiles').select('id, name, email').order('name')).data || [];
+      if (!writers.length) { container.innerHTML = `<p class="text-muted text-xs px-2 pt-2">No writers yet.</p>`; return; }
+      container.innerHTML = writers.map(w => `
+        <button onclick="selectPayoutWriter('${w.id}')" data-pwid="${w.id}"
+                class="payout-writer-btn w-full text-left px-3 py-2.5 rounded-xl text-sm text-white/80 hover:text-white hover:bg-surface border border-transparent hover:border-border transition-all duration-150">
+          <p class="font-semibold truncate text-[13px]">${escHtml(w.name)}</p>
+          <p class="text-muted text-[11px] truncate">${escHtml(w.email)}</p>
+        </button>`).join('');
+    }
+
+    async function selectPayoutWriter(writerId) {
+      _selectedPayoutWriterId = writerId;
+      document.querySelectorAll('.payout-writer-btn').forEach(b => {
+        const on = b.dataset.pwid === writerId;
+        b.classList.toggle('bg-surface', on);
+        b.classList.toggle('border-border', on);
+      });
+      const writer = allProfiles.find(p => p.id === writerId) || { name: '—', email: '' };
+      await renderPaymentsForWriter(writerId, writer);
+    }
+
+    async function renderPaymentsForWriter(writerId, writer) {
+      const content = $('payments-content');
+      content.innerHTML = '<div class="skeleton h-32 rounded-2xl mb-4"></div><div class="skeleton h-48 rounded-2xl"></div>';
+      const [{ data: earnings }, { data: payouts }] = await Promise.all([
+        db.from('earnings').select('amount_earned').eq('author_id', writerId),
+        db.from('payouts').select('*').eq('writer_id', writerId).order('paid_at', { ascending: false }),
+      ]);
+      const totalEarned = (earnings || []).reduce((s, e) => s + Number(e.amount_earned), 0);
+      const totalPaid   = (payouts  || []).reduce((s, p) => s + Number(p.amount), 0);
+      const balance     = totalEarned - totalPaid;
+      const balanceColor = balance > 0 ? 'text-gold' : 'text-emerald-400';
+
+      content.innerHTML = `
+        <div class="flex items-center justify-between mb-5">
+          <div>
+            <p class="text-white font-semibold text-lg">${escHtml(writer.name)}</p>
+            <p class="text-muted text-xs">${escHtml(writer.email)}</p>
+          </div>
+          <button onclick="openPayoutModal('${writerId}')"
+                  class="inline-flex items-center gap-1.5 px-4 py-2 bg-gold/10 hover:bg-gold/20 border border-gold/30 hover:border-gold/60 text-gold text-xs font-semibold rounded-lg transition-all duration-200">
+            + Record Payout
+          </button>
+        </div>
+        <div class="grid grid-cols-3 gap-3 mb-6">
+          <div class="rounded-xl bg-surface border border-border p-4 text-center">
+            <p class="text-gold font-serif text-xl font-bold">${fmt(totalEarned)}</p>
+            <p class="text-[10px] text-muted uppercase tracking-wide mt-1">Total Earned</p>
+          </div>
+          <div class="rounded-xl bg-surface border border-border p-4 text-center">
+            <p class="text-emerald-400 font-serif text-xl font-bold">${fmt(totalPaid)}</p>
+            <p class="text-[10px] text-muted uppercase tracking-wide mt-1">Total Paid</p>
+          </div>
+          <div class="rounded-xl bg-surface border border-border p-4 text-center">
+            <p class="${balanceColor} font-serif text-xl font-bold">${fmt(balance)}</p>
+            <p class="text-[10px] text-muted uppercase tracking-wide mt-1">Pending</p>
+          </div>
+        </div>
+        <div>
+          <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted mb-3">Payout History</p>
+          ${!payouts?.length
+            ? `<p class="text-muted/50 text-sm py-6 text-center">No payouts recorded yet.</p>`
+            : payouts.map(p => `
+              <div class="flex items-center justify-between rounded-lg border border-border bg-surface px-4 py-3 mb-2">
+                <div class="min-w-0">
+                  <p class="text-white text-sm font-medium">${escHtml(p.period)}</p>
+                  <p class="text-muted text-xs mt-0.5">${new Date(p.paid_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}${p.notes ? ' · ' + escHtml(p.notes) : ''}</p>
+                </div>
+                <span class="text-emerald-400 font-semibold text-sm flex-shrink-0 ml-3">${fmt(p.amount)}</span>
+              </div>`).join('')
+          }
+        </div>`;
+    }
+
+    function openPayoutModal(writerId) {
+      const wid = writerId || _selectedPayoutWriterId || selectedWriter?.id;
+      if (!wid) return;
+      _selectedPayoutWriterId = wid;
+      const writer = allProfiles.find(p => p.id === wid);
+      $('payout-modal-writer').textContent = writer ? `For: ${writer.name}` : '';
+      $('payout-amount').value = '';
+      $('payout-period').value = '';
+      $('payout-notes').value  = '';
+      $('payout-error').classList.add('hidden');
+      $('payout-modal').classList.remove('hidden');
+    }
+
+    function closePayoutModal() { $('payout-modal').classList.add('hidden'); }
+
+    async function recordPayout() {
+      const amount = parseFloat($('payout-amount').value);
+      const period = $('payout-period').value.trim();
+      const notes  = $('payout-notes').value.trim() || null;
+      $('payout-error').classList.add('hidden');
+      if (!amount || amount <= 0 || !period) {
+        $('payout-error').textContent = 'Amount and period are required.';
+        $('payout-error').classList.remove('hidden'); return;
+      }
+      const { data: { session } } = await db.auth.getSession();
+      const { error } = await db.from('payouts').insert({
+        writer_id: _selectedPayoutWriterId, amount, period, notes, paid_by: session.user.id,
+      });
+      if (error) { $('payout-error').textContent = error.message; $('payout-error').classList.remove('hidden'); return; }
+      closePayoutModal();
+      showToast('Payout recorded ✓');
+      const writer = allProfiles.find(p => p.id === _selectedPayoutWriterId);
+      await renderPaymentsForWriter(_selectedPayoutWriterId, writer || { name: '—', email: '' });
+    }
+
+    $('payout-modal').addEventListener('click', e => { if (e.target === $('payout-modal')) closePayoutModal(); });
+
+    // ── BRIEFS ───────────────────────────────────────────────────────
+    let _editingBriefId = null;
+
+    async function openBriefModal() {
+      const writerId = selectedWriter?.id;
+      if (!writerId) return;
+      $('brief-modal-writer').textContent = `Writer: ${selectedWriter.name}`;
+      $('brief-error').classList.add('hidden');
+      const { data } = await db.from('briefs').select('*').eq('writer_id', writerId).eq('status', 'active').maybeSingle();
+      _editingBriefId = data?.id || null;
+      $('brief-title').value      = data?.title           || '';
+      $('brief-genre').value      = data?.genre           || 'Werewolf Romance';
+      $('brief-synopsis').value   = data?.synopsis        || '';
+      $('brief-characters').value = data?.character_notes || '';
+      $('brief-plot').value       = data?.plot_outline    || '';
+      $('brief-modal').classList.remove('hidden');
+    }
+
+    function closeBriefModal() { $('brief-modal').classList.add('hidden'); }
+
+    async function saveBrief() {
+      const writerId = selectedWriter?.id;
+      if (!writerId) return;
+      const title = $('brief-title').value.trim();
+      $('brief-error').classList.add('hidden');
+      if (!title) { $('brief-error').textContent = 'Title is required.'; $('brief-error').classList.remove('hidden'); return; }
+      const { data: { session } } = await db.auth.getSession();
+      const payload = {
+        writer_id: writerId, created_by: session.user.id, title,
+        genre:           $('brief-genre').value.trim()      || 'Werewolf Romance',
+        synopsis:        $('brief-synopsis').value.trim()   || null,
+        character_notes: $('brief-characters').value.trim() || null,
+        plot_outline:    $('brief-plot').value.trim()       || null,
+        updated_at:      new Date().toISOString(),
+      };
+      let error;
+      if (_editingBriefId) {
+        ({ error } = await db.from('briefs').update(payload).eq('id', _editingBriefId));
+      } else {
+        ({ error } = await db.from('briefs').insert(payload));
+      }
+      if (error) { $('brief-error').textContent = error.message; $('brief-error').classList.remove('hidden'); return; }
+      closeBriefModal();
+      showToast(_editingBriefId ? 'Brief updated ✓' : 'Brief assigned ✓');
+    }
+
+    $('brief-modal').addEventListener('click', e => { if (e.target === $('brief-modal')) closeBriefModal(); });
 
     // ── TOAST / SIGNOUT / BOOT ──────────────────────────────────────
     async function _loadPendingBadge() {
