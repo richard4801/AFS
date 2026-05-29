@@ -245,14 +245,31 @@
     const TRUST_PREFIX = 'afs_dev_';
     const TRUST_MS     = 30 * 24 * 60 * 60 * 1000; // 30 days
 
-    function getDeviceTrust(userId) {
+    async function getDeviceTrust(userId) {
       try {
-        const v = JSON.parse(localStorage.getItem(TRUST_PREFIX + userId) || 'null');
-        return v && (Date.now() - v.at < TRUST_MS);
+        const stored = JSON.parse(localStorage.getItem(TRUST_PREFIX + userId) || 'null');
+        if (!stored?.token) return false;
+        const { data } = await db.from('device_tokens')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('token', stored.token)
+          .gte('expires_at', new Date().toISOString())
+          .maybeSingle();
+        return !!data;
       } catch { return false; }
     }
-    function setDeviceTrust(userId) {
-      localStorage.setItem(TRUST_PREFIX + userId, JSON.stringify({ at: Date.now() }));
+
+    async function setDeviceTrust(userId) {
+      try {
+        const arr   = crypto.getRandomValues(new Uint8Array(32));
+        const token = Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
+        const expiresAt = new Date(Date.now() + TRUST_MS).toISOString();
+        // Clean expired tokens for this user, then insert new one
+        await db.from('device_tokens').delete()
+          .eq('user_id', userId).lt('expires_at', new Date().toISOString());
+        await db.from('device_tokens').insert({ user_id: userId, token, expires_at: expiresAt });
+        localStorage.setItem(TRUST_PREFIX + userId, JSON.stringify({ token }));
+      } catch { /* non-fatal — user still authenticated via OTP */ }
     }
 
     // ── Login form ────────────────────────────────────────────────
@@ -293,7 +310,7 @@
       const userId = data.user?.id;
 
       // Trusted device? Go straight to dashboard
-      if (getDeviceTrust(userId)) {
+      if (await getDeviceTrust(userId)) {
         window.location.replace('index.html');
         return;
       }
@@ -502,7 +519,7 @@
         return;
       }
 
-      setDeviceTrust(_pendingUserId);
+      await setDeviceTrust(_pendingUserId);
       window.location.replace('index.html');
     }
 

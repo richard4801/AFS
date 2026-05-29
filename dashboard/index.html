@@ -1491,6 +1491,8 @@
       }).join('');
     }
 
+    const MAX_CHAPTER_CHARS = 200000; // ~40,000 words
+
     async function saveChapter(statusToSave) {
       const title   = $('editor-chapter-title').value.trim() || null;
       const content = $('editor-content').value.trim();
@@ -1499,6 +1501,11 @@
 
       if (!content) {
         errBox.textContent = 'Chapter content cannot be empty.';
+        errBox.classList.remove('hidden');
+        return;
+      }
+      if (content.length > MAX_CHAPTER_CHARS) {
+        errBox.textContent = `Chapter is too long (${content.length.toLocaleString()} characters). Maximum is ${MAX_CHAPTER_CHARS.toLocaleString()}.`;
         errBox.classList.remove('hidden');
         return;
       }
@@ -2230,6 +2237,9 @@
       errBar.classList.add('hidden');
       if (!($('fs-content').innerText || '').trim()) {
         errBar.textContent = 'Chapter content cannot be empty.'; errBar.classList.remove('hidden'); return;
+      }
+      if (html.length > MAX_CHAPTER_CHARS) {
+        errBar.textContent = `Chapter is too long. Maximum is ${MAX_CHAPTER_CHARS.toLocaleString()} characters.`; errBar.classList.remove('hidden'); return;
       }
       if (editingChapter) {
         const upd = { title, content: html, word_count: words, status: statusToSave, updated_at: new Date().toISOString() };

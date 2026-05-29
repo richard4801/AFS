@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
 
     // Invite the writer — creates their account and sends an invite email.
     // redirectTo must be in the Supabase allowed redirect URLs list.
-    const { error: inviteErr } = await adminClient.auth.admin.inviteUserByEmail(
+    const { data: inviteData, error: inviteErr } = await adminClient.auth.admin.inviteUserByEmail(
       app.email,
       {
         data: { full_name: app.name },
@@ -57,6 +57,16 @@ Deno.serve(async (req) => {
       },
     )
     if (inviteErr) throw inviteErr
+
+    // Ensure a profiles row exists for this writer (the DB trigger handles this
+    // automatically, but we upsert here as a safety net).
+    if (inviteData?.user?.id) {
+      await adminClient.from('profiles').upsert({
+        id:    inviteData.user.id,
+        name:  app.name,
+        email: app.email,
+      }, { onConflict: 'id', ignoreDuplicates: true })
+    }
 
     // Mark as approved
     await adminClient
@@ -72,10 +82,12 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
+    const raw = err instanceof Error ? err.message : 'Unknown error'
+    const SAFE = ['Unauthorized', 'Forbidden', 'Application not found', 'Application already processed', 'RESEND_API_KEY not configured']
+    const message = SAFE.some(s => raw.includes(s)) ? raw : 'Internal server error'
     return new Response(JSON.stringify({ error: message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
+      status: raw.includes('Unauthorized') || raw.includes('Forbidden') ? 403 : 400,
     })
   }
 })
