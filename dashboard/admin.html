@@ -733,7 +733,21 @@
       $('admin-chat-float').classList.add('hidden');
       if (_isAdminMobile()) {
         _adminChatFullscreen = true;
-        panel.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border-radius:0;z-index:10000;display:flex;flex-direction:column;';
+        const vvh = window.visualViewport?.height || window.innerHeight;
+        const vvTop = window.visualViewport?.offsetTop || 0;
+        panel.style.cssText = `position:fixed;left:0;right:0;top:${vvTop}px;height:${vvh}px;width:100%;border-radius:0;z-index:10000;display:flex;flex-direction:column;`;
+        if (window.visualViewport && !panel._vvHandler) {
+          panel._vvHandler = () => {
+            if (!_adminChatOpen) return;
+            const h = Math.round(window.visualViewport.height);
+            const t = Math.round(window.visualViewport.offsetTop);
+            panel.style.height = h + 'px';
+            panel.style.top = t + 'px';
+            const msgs = $('admin-chat-messages');
+            if (msgs) setTimeout(() => { msgs.scrollTop = msgs.scrollHeight; }, 60);
+          };
+          window.visualViewport.addEventListener('resize', panel._vvHandler);
+        }
       } else {
         panel.style.cssText = 'position:fixed;right:24px;bottom:96px;width:340px;height:520px;border-radius:16px;display:flex;flex-direction:column;z-index:9998;';
       }
@@ -857,7 +871,7 @@
           if (_adminChatMessages.some(m => m.id === payload.new.id)) return;
           _adminChatMessages.push(payload.new);
           if (_adminChatOpen) { _renderAdminChatMessages(); _markAdminChatRead(); _playChime(true); }
-          else { _adminChatUnread[writerId] = (_adminChatUnread[writerId] || 0) + 1; _updateAdminChatBadge(); _playChime(false); }
+          else { _adminChatUnread[writerId] = (_adminChatUnread[writerId] || 0) + 1; _updateAdminChatBadge(); _updateWriterSidebarBadge(writerId); _playChime(false); }
         })
         .subscribe();
 
@@ -877,6 +891,7 @@
       _openAdminChatPanel();
       _adminChatUnread[_adminChatWriterId] = 0;
       _updateAdminChatBadge();
+      _updateWriterSidebarBadge(_adminChatWriterId);
       _markAdminChatRead(); // fire immediately
       await _loadAdminChatMessages();
       setTimeout(() => $('admin-chat-input')?.focus(), 80);
@@ -1016,6 +1031,41 @@
           if (idx !== -1) { _adminChatMessages[idx].read_at = payload.new.read_at; if (_adminChatOpen) _renderAdminChatMessages(); }
         })
         .subscribe();
+
+      // Global INSERT sub — catches messages from ALL writers so the
+      // sidebar badge updates even when that writer is not selected.
+      db.channel('admin-global-msgs-' + currentUserId)
+        .on('postgres_changes', {
+          event: 'INSERT', schema: 'public', table: 'messages',
+          filter: 'recipient_id=eq.' + currentUserId,
+        }, payload => {
+          const senderId = payload.new.sender_id;
+          // Per-writer subscription handles the currently selected writer
+          if (senderId === _adminChatWriterId) return;
+          _adminChatUnread[senderId] = (_adminChatUnread[senderId] || 0) + 1;
+          _updateWriterSidebarBadge(senderId);
+          _playChime(false);
+        })
+        .subscribe();
+    }
+
+    function _updateWriterSidebarBadge(writerId) {
+      const count = _adminChatUnread[writerId] || 0;
+      let badge = document.querySelector(`[data-wchat="${writerId}"]`);
+      if (count > 0) {
+        if (!badge) {
+          const btn = document.querySelector(`[data-wid="${writerId}"]`);
+          if (!btn) return;
+          badge = document.createElement('span');
+          badge.dataset.wchat = writerId;
+          badge.className = 'flex-shrink-0 min-w-[16px] h-4 px-1 rounded-full bg-gold text-obsidian text-[9px] font-bold flex items-center justify-center';
+          const flex = btn.querySelector('.flex.items-center');
+          if (flex) flex.insertBefore(badge, flex.lastElementChild);
+        }
+        badge.textContent = count > 9 ? '9+' : String(count);
+      } else if (badge) {
+        badge.remove();
+      }
     }
 
     function _renderAdminChatMessages() {
@@ -1140,10 +1190,15 @@
 
     // ── WRITERS SIDEBAR ─────────────────────────────────────────────
     async function loadWritersList() {
-      const [{ data: writers }, { data: submittedChapters }] = await Promise.all([
+      const [{ data: writers }, { data: submittedChapters }, { data: unreadMsgs }] = await Promise.all([
         db.from('profiles').select('id, name, email').order('name'),
         db.from('chapters').select('books!inner(author_id)').eq('status', 'submitted'),
+        db.from('messages').select('sender_id').eq('recipient_id', currentUserId).is('read_at', null),
       ]);
+      // Pre-populate unread map for all writers
+      (unreadMsgs || []).forEach(m => {
+        _adminChatUnread[m.sender_id] = (_adminChatUnread[m.sender_id] || 0) + 1;
+      });
       const container = $('writers-list');
       if (!writers?.length) { container.innerHTML = `<p class="text-muted text-xs px-2 pt-2">No writers yet.</p>`; return; }
       const pendingSet = new Set((submittedChapters ?? []).map(c => c.books?.author_id).filter(Boolean));
@@ -1165,6 +1220,8 @@
           </div>
         </button>`;
       }).join('');
+      // Show unread chat badges after rendering
+      writers.forEach(w => _updateWriterSidebarBadge(w.id));
     }
 
     async function selectWriter(idOrObj) {
