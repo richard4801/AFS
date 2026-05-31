@@ -220,18 +220,23 @@
     <!-- CHART -->
     <div class="rounded-2xl border border-border bg-surface p-4 sm:p-6 mb-6 sm:mb-8 relative overflow-hidden">
       <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent"></div>
-      <div class="flex items-center justify-between mb-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-5 sm:mb-6">
         <div>
           <div class="flex items-center gap-2 mb-0.5">
             <h2 class="font-serif text-xl text-white">Daily Earnings</h2>
-            <select id="earnings-book-select" onchange="filterEarningsByBook(this.value)"
-                    class="bg-charcoal border border-border/60 text-white/80 text-[10px] rounded-md px-1.5 py-0.5 focus:border-gold/40 outline-none cursor-pointer">
-              <option value="">All books</option>
-            </select>
+            <!-- Custom book picker -->
+            <div class="relative" id="edd-wrap">
+              <button onclick="_toggleDD('edd')"
+                      class="flex items-center gap-1 text-[10px] text-white/60 bg-charcoal border border-border/60 rounded-md px-1.5 py-0.5 hover:border-gold/40 hover:text-white/80 transition-colors">
+                <span id="edd-label">All books</span>
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+              <div id="edd-menu" class="hidden absolute top-full left-0 mt-1 z-[200] min-w-[150px] max-w-[220px] rounded-xl border border-border bg-charcoal shadow-xl shadow-black/70 py-1 overflow-hidden"></div>
+            </div>
           </div>
           <p class="text-muted text-xs">Last 30 days — updated every morning</p>
         </div>
-        <span id="chart-total-badge" class="hidden text-xs font-medium text-gold border border-gold/20 bg-gold/5 rounded-full px-3 py-1"></span>
+        <span id="chart-total-badge" class="hidden self-start sm:self-auto text-xs font-medium text-gold border border-gold/20 bg-gold/5 rounded-full px-3 py-1 whitespace-nowrap"></span>
       </div>
       <div class="relative h-48 sm:h-64">
         <div id="chart-skeleton" class="absolute inset-0 flex items-end gap-1.5 pb-6 px-1"></div>
@@ -248,10 +253,15 @@
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 mb-1">
             <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted">Update Schedule</p>
-            <select id="cal-book-select" onchange="calSelBook(this.value)"
-                    class="bg-charcoal border border-border/60 text-white/80 text-[10px] rounded-md px-1.5 py-0.5 focus:border-gold/40 outline-none cursor-pointer">
-              <option value="">All books</option>
-            </select>
+            <!-- Custom book picker -->
+            <div class="relative" id="cdd-wrap">
+              <button onclick="_toggleDD('cdd')"
+                      class="flex items-center gap-1 text-[10px] text-white/60 bg-charcoal border border-border/60 rounded-md px-1.5 py-0.5 hover:border-gold/40 hover:text-white/80 transition-colors">
+                <span id="cdd-label">All books</span>
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+              <div id="cdd-menu" class="hidden absolute top-full left-0 mt-1 z-[200] min-w-[150px] max-w-[220px] rounded-xl border border-border bg-charcoal shadow-xl shadow-black/70 py-1 overflow-hidden"></div>
+            </div>
           </div>
           <h2 id="cal-month-label" class="font-serif text-xl text-white">Loading…</h2>
         </div>
@@ -854,8 +864,50 @@
     let _calYear   = null;
     let _calMonth  = null; // 0-indexed
     let _calBookId = '';   // '' = all books
+    let _ddBooks   = [];   // shared book list for custom dropdowns
+    let _openDD    = null; // 'edd' | 'cdd' | null
 
     function calSelBook(id) { _calBookId = id; loadCalendar(); }
+
+    function _toggleDD(id) {
+      if (_openDD === id) { _closeAllDD(); return; }
+      _closeAllDD();
+      $(id + '-menu').classList.remove('hidden');
+      _openDD = id;
+    }
+    function _closeAllDD() {
+      if (_openDD) { $(_openDD + '-menu')?.classList.add('hidden'); _openDD = null; }
+    }
+    document.addEventListener('click', e => {
+      if (_openDD && !e.target.closest('#edd-wrap') && !e.target.closest('#cdd-wrap')) _closeAllDD();
+    });
+
+    function _ddOptionClass(active) {
+      return 'w-full text-left px-3 py-2 text-[11px] transition-colors hover:bg-surface ' +
+             (active ? 'text-gold font-medium' : 'text-white/70');
+    }
+    function _renderDD(menuId, books, curId, pickFn) {
+      const menu = $(menuId);
+      if (!menu) return;
+      menu.innerHTML =
+        `<button onclick="${pickFn}('')" class="${_ddOptionClass(!curId)}">All books</button>` +
+        books.map(b =>
+          `<button onclick="${pickFn}('${b.id}')" class="${_ddOptionClass(b.id === curId)} truncate">${escHtml(b.title)}</button>`
+        ).join('');
+    }
+
+    function _pickEDD(val) {
+      _closeAllDD();
+      filterEarningsByBook(val);
+      const found = _ddBooks.find(b => b.id === val);
+      const lbl = $('edd-label'); if (lbl) lbl.textContent = found ? found.title : 'All books';
+    }
+    function _pickCDD(val) {
+      _closeAllDD();
+      calSelBook(val);
+      const found = _ddBooks.find(b => b.id === val);
+      const lbl = $('cdd-label'); if (lbl) lbl.textContent = found ? found.title : 'All books';
+    }
 
     function calNav(dir) {
       _calMonth += dir;
@@ -999,11 +1051,8 @@
     }
 
     function _syncEarningsBookSelect(books) {
-      const sel = $('earnings-book-select');
-      if (!sel) return;
-      const cur = sel.value;
-      sel.innerHTML = '<option value="">All books</option>'
-        + books.map(b => `<option value="${b.id}"${b.id === cur ? ' selected' : ''}>${escHtml(b.title)}</option>`).join('');
+      _ddBooks = books;
+      _renderDD('edd-menu', books, _earningsBookId, '_pickEDD');
     }
 
     function renderChart(rawRows) {
@@ -1348,12 +1397,8 @@
     }
 
     function _syncCalBookSelect(books) {
-      const sel = $('cal-book-select');
-      if (sel) {
-        const cur = sel.value;
-        sel.innerHTML = '<option value="">All books</option>'
-          + books.map(b => `<option value="${b.id}"${b.id === cur ? ' selected' : ''}>${escHtml(b.title)}</option>`).join('');
-      }
+      _ddBooks = books;
+      _renderDD('cdd-menu', books, _calBookId, '_pickCDD');
       _syncEarningsBookSelect(books);
     }
 
