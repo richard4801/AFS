@@ -6,24 +6,16 @@
 
   <g stroke="#EEECE9" stroke-width="7" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
 
-    <!-- ─── A ─────────────────────────────────────────────
-         Apex  (81, 14)
-         Feet  (57, 84)  (105, 84)
-         Crossbar at y=53 → intersect left leg ≈ x 65, right leg ≈ x 97  -->
+    <!-- ─── A ─────────────────────────────────────
+         Apex (81,14)  Feet (57,84) (105,84) -->
     <polyline points="57,84 81,14 105,84"/>
-    <line x1="65" y1="53" x2="97" y2="53"/>
 
-    <!-- ─── F ─────────────────────────────────────────────
-         Stem x=123, cap-height 14→84
-         Top bar  full width  → 159
-         Mid bar  75 % width  → 150, at y=49                 -->
+    <!-- ─── F ─────────────────────────────────────
+         Stem + top bar; slash is the mid-bar -->
     <line x1="123" y1="14" x2="123" y2="84"/>
     <line x1="123" y1="14" x2="159" y2="14"/>
-    <line x1="123" y1="49" x2="150" y2="49"/>
 
-    <!-- ─── S ─────────────────────────────────────────────
-         Bounding box x 177–223, y 13–85
-         Open cubic-bezier path; round terminals for clean finish -->
+    <!-- ─── S ───────────────────────────────────── -->
     <path stroke-linecap="round"
           d="M 219,21
              C 222,13 215,13 202,13
@@ -32,13 +24,14 @@
              C 214,51 223,57 223,67
              C 223,77 215,85 201,85
              C 186,85 177,76 177,67"/>
+
+    <!-- ─── Unified slash ───────────────────────── -->
+    <line x1="57" y1="49" x2="223" y2="49"/>
   </g>
 
-  <!-- Rule: spans the full AFS group width -->
-  <line x1="57" y1="97" x2="223" y2="97"
-        stroke="#EEECE9" stroke-width="0.8"/>
+  <!-- Rule -->
+  <line x1="57" y1="97" x2="223" y2="97" stroke="#EEECE9" stroke-width="0.8"/>
 
-  <!-- "PUBLISHING" – small, ultra-tracked, force-fit to AFS width -->
   <text x="140" y="115"
         text-anchor="middle"
         font-family="'Futura', 'Century Gothic', 'Trebuchet MS', Arial, sans-serif"

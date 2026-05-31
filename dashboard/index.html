@@ -90,9 +90,8 @@
   <!-- NAV -->
   <header class="fixed top-5 inset-x-0 z-50 flex justify-center px-5 pointer-events-none">
     <nav class="pointer-events-auto flex items-center justify-between gap-3 sm:gap-6 w-full max-w-4xl rounded-full bg-obsidian/70 backdrop-blur-md border border-white/10 shadow-xl shadow-black/60 px-4 py-2.5">
-      <div class="flex items-center gap-2.5 flex-shrink-0">
-        <span class="w-6 h-6 rounded-sm bg-gold flex items-center justify-center text-obsidian font-serif font-bold text-xs">A</span>
-        <span class="hidden sm:inline font-serif text-base tracking-wide text-white whitespace-nowrap">Apex Fiction Studio</span>
+      <div class="flex items-center flex-shrink-0">
+        <img src="../assets/afs-mark.svg" alt="AFS" class="h-8 w-auto" draggable="false">
       </div>
       <div class="flex items-center gap-3">
         <button id="nav-name-btn" onclick="openProfileModal()"
@@ -2596,9 +2595,10 @@
     },
   ];
 
-  let _tourStep        = 0;
-  let _tourActive      = false;
-  let _tourScrollTimer = null;
+  let _tourStep           = 0;
+  let _tourActive         = false;
+  let _tourCurrentTarget  = null;
+  let _tourScrollUpdateRaf = null;
 
   function startTour() {
     _tourStep   = 0;
@@ -2619,7 +2619,8 @@
   }
 
   function _endTour() {
-    _tourActive = false;
+    _tourActive        = false;
+    _tourCurrentTarget = null;
     document.getElementById('tour-overlay').classList.add('hidden');
     document.getElementById('tour-spotlight').style.cssText = '';
     if (typeof currentUserId !== 'undefined' && currentUserId) {
@@ -2660,18 +2661,17 @@
   }
 
   function _positionTour(targetEl) {
-    const PAD    = 10; // spotlight padding
+    _tourCurrentTarget = targetEl;
+    const PAD    = 10;
     const CARD_W = 320;
-    const GAP    = 14;
     const vw     = window.innerWidth;
-    const vh     = window.innerHeight;
     const mobile = vw < 640;
 
     const spotlight = document.getElementById('tour-spotlight');
     const card      = document.getElementById('tour-card');
 
     if (!targetEl) {
-      // No target — center everything, no spotlight
+      _tourCurrentTarget = null;
       spotlight.style.cssText =
         'position:fixed;top:50%;left:50%;width:0;height:0;border-radius:999px;' +
         'box-shadow:0 0 0 9999px rgba(0,0,0,0.76);z-index:501;pointer-events:none;' +
@@ -2687,58 +2687,86 @@
       return;
     }
 
-    // Scroll into view, then measure and position
-    clearTimeout(_tourScrollTimer);
-    targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    _tourScrollTimer = setTimeout(() => {
-      const r  = targetEl.getBoundingClientRect();
-      const sl = r.left   - PAD;
-      const st = r.top    - PAD;
-      const sw = r.width  + PAD * 2;
-      const sh = r.height + PAD * 2;
-
-      spotlight.style.cssText =
-        `position:fixed;left:${sl}px;top:${st}px;width:${sw}px;height:${sh}px;` +
-        `border-radius:14px;box-shadow:0 0 0 9999px rgba(0,0,0,0.74);` +
-        `z-index:501;pointer-events:none;transition:all .38s cubic-bezier(.4,0,.2,1);transform:none;`;
-
-      card.querySelector('.relative').style.borderRadius = '';
-      const cw = Math.min(CARD_W, vw - 32);
-
-      if (mobile) {
-        // Mobile: always pin card at bottom
-        card.style.cssText = 'position:fixed;bottom:0;left:0;right:0;width:100%;z-index:502;transition:none;';
-        card.querySelector('.relative').style.borderRadius = '24px 24px 0 0';
-        return;
-      }
-
-      // Desktop: place card below, above, or to the side
-      const below = vh - (st + sh + GAP);
-      const above = st - GAP;
-      let cardTop, cardLeft;
-
-      if (below >= 220) {
-        cardTop  = st + sh + GAP;
-        cardLeft = Math.max(16, Math.min(sl + sw / 2 - cw / 2, vw - cw - 16));
-      } else if (above >= 220) {
-        cardTop  = Math.max(16, st - GAP - 220);
-        cardLeft = Math.max(16, Math.min(sl + sw / 2 - cw / 2, vw - cw - 16));
-      } else {
-        cardTop  = Math.max(16, Math.min(st + sh / 2 - 110, vh - 260));
-        cardLeft = sl + sw + GAP;
-        if (cardLeft + cw > vw - 16) cardLeft = Math.max(16, sl - GAP - cw);
-      }
-
-      card.style.cssText =
-        `position:fixed;top:${cardTop}px;left:${cardLeft}px;width:${cw}px;z-index:502;` +
-        `transition:top .38s cubic-bezier(.4,0,.2,1),left .38s cubic-bezier(.4,0,.2,1);transform:none;`;
-    }, 360);
+    // Instant scroll so layout is settled before we measure
+    targetEl.scrollIntoView({ behavior: 'instant', block: 'center' });
+    // Double rAF: first frame commits the scroll, second frame reflects new layout
+    requestAnimationFrame(() => requestAnimationFrame(() => _applySpotlight(targetEl)));
   }
+
+  function _applySpotlight(targetEl) {
+    if (!_tourActive) return;
+    const PAD    = 10;
+    const CARD_W = 320;
+    const GAP    = 14;
+    const vw     = window.innerWidth;
+    const vh     = window.innerHeight;
+    const mobile = vw < 640;
+
+    const spotlight = document.getElementById('tour-spotlight');
+    const card      = document.getElementById('tour-card');
+    const r  = targetEl.getBoundingClientRect();
+    const sl = r.left   - PAD;
+    const st = r.top    - PAD;
+    const sw = r.width  + PAD * 2;
+    const sh = r.height + PAD * 2;
+
+    spotlight.style.cssText =
+      `position:fixed;left:${sl}px;top:${st}px;width:${sw}px;height:${sh}px;` +
+      `border-radius:14px;box-shadow:0 0 0 9999px rgba(0,0,0,0.74);` +
+      `z-index:501;pointer-events:none;transition:all .38s cubic-bezier(.4,0,.2,1);transform:none;`;
+
+    card.querySelector('.relative').style.borderRadius = '';
+    const cw = Math.min(CARD_W, vw - 32);
+
+    if (mobile) {
+      card.style.cssText = 'position:fixed;bottom:0;left:0;right:0;width:100%;z-index:502;transition:none;';
+      card.querySelector('.relative').style.borderRadius = '24px 24px 0 0';
+      return;
+    }
+
+    const below = vh - (st + sh + GAP);
+    const above = st - GAP;
+    let cardTop, cardLeft;
+
+    if (below >= 220) {
+      cardTop  = st + sh + GAP;
+      cardLeft = Math.max(16, Math.min(sl + sw / 2 - cw / 2, vw - cw - 16));
+    } else if (above >= 220) {
+      cardTop  = Math.max(16, st - GAP - 220);
+      cardLeft = Math.max(16, Math.min(sl + sw / 2 - cw / 2, vw - cw - 16));
+    } else {
+      cardTop  = Math.max(16, Math.min(st + sh / 2 - 110, vh - 260));
+      cardLeft = sl + sw + GAP;
+      if (cardLeft + cw > vw - 16) cardLeft = Math.max(16, sl - GAP - cw);
+    }
+
+    card.style.cssText =
+      `position:fixed;top:${cardTop}px;left:${cardLeft}px;width:${cw}px;z-index:502;` +
+      `transition:top .38s cubic-bezier(.4,0,.2,1),left .38s cubic-bezier(.4,0,.2,1);transform:none;`;
+  }
+
+  // While tour is active, keep spotlight locked to target as user scrolls
+  window.addEventListener('scroll', () => {
+    if (!_tourActive || !_tourCurrentTarget) return;
+    if (_tourScrollUpdateRaf) cancelAnimationFrame(_tourScrollUpdateRaf);
+    _tourScrollUpdateRaf = requestAnimationFrame(() => {
+      if (!_tourActive || !_tourCurrentTarget) return;
+      const el  = _tourCurrentTarget;
+      const PAD = 10;
+      const r   = el.getBoundingClientRect();
+      const spotlight = document.getElementById('tour-spotlight');
+      // No transition here — instant tracking during scroll
+      spotlight.style.transition = 'none';
+      spotlight.style.left   = (r.left  - PAD) + 'px';
+      spotlight.style.top    = (r.top   - PAD) + 'px';
+      spotlight.style.width  = (r.width  + PAD * 2) + 'px';
+      spotlight.style.height = (r.height + PAD * 2) + 'px';
+    });
+  }, { passive: true });
 
   // Re-render on resize
   window.addEventListener('resize', () => {
     if (!_tourActive) return;
-    clearTimeout(_tourScrollTimer);
     _renderTourStep();
   }, { passive: true });
   </script>
