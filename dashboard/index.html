@@ -210,8 +210,14 @@
       <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent"></div>
       <div class="flex items-center justify-between mb-6">
         <div>
-          <h2 class="font-serif text-xl text-white">Daily Earnings</h2>
-          <p class="text-muted text-xs mt-0.5">Last 30 days — updated every morning</p>
+          <div class="flex items-center gap-2 mb-0.5">
+            <h2 class="font-serif text-xl text-white">Daily Earnings</h2>
+            <select id="earnings-book-select" onchange="filterEarningsByBook(this.value)"
+                    class="bg-charcoal border border-border/60 text-white/80 text-[10px] rounded-md px-1.5 py-0.5 focus:border-gold/40 outline-none cursor-pointer">
+              <option value="">All books</option>
+            </select>
+          </div>
+          <p class="text-muted text-xs">Last 30 days — updated every morning</p>
         </div>
         <span id="chart-total-badge" class="hidden text-xs font-medium text-gold border border-gold/20 bg-gold/5 rounded-full px-3 py-1"></span>
       </div>
@@ -959,7 +965,29 @@
         : `${fmtK(totalWords)} / ${fmtK(target)} words`;
     }
 
+    let _earningsChart = null;
+    let _earningsBookId = '';
+
+    async function filterEarningsByBook(bookId) {
+      _earningsBookId = bookId;
+      const since = new Date(); since.setDate(since.getDate() - 29);
+      let q = db.from('earnings').select('date, amount_earned').eq('author_id', currentUserId)
+        .gte('date', since.toISOString().slice(0, 10)).order('date', { ascending: true });
+      if (bookId) q = q.eq('book_id', bookId);
+      const { data } = await q;
+      renderChart(data ?? []);
+    }
+
+    function _syncEarningsBookSelect(books) {
+      const sel = $('earnings-book-select');
+      if (!sel) return;
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">All books</option>'
+        + books.map(b => `<option value="${b.id}"${b.id === cur ? ' selected' : ''}>${escHtml(b.title)}</option>`).join('');
+    }
+
     function renderChart(rawRows) {
+      if (_earningsChart) { _earningsChart.destroy(); _earningsChart = null; }
       const map = {};
       rawRows.forEach(r => { map[r.date] = parseFloat(r.amount_earned); });
       const labels = [], values = [];
@@ -976,7 +1004,7 @@
       $('chart-skeleton').classList.add('hidden');
       const canvas = $('earnings-chart');
       canvas.classList.remove('hidden');
-      new Chart(canvas, {
+      _earningsChart = new Chart(canvas, {
         type: 'line',
         data: { labels, datasets: [{
           label: 'Earnings', data: values,
@@ -1301,10 +1329,12 @@
 
     function _syncCalBookSelect(books) {
       const sel = $('cal-book-select');
-      if (!sel) return;
-      const cur = sel.value;
-      sel.innerHTML = '<option value="">All books</option>'
-        + books.map(b => `<option value="${b.id}"${b.id === cur ? ' selected' : ''}>${escHtml(b.title)}</option>`).join('');
+      if (sel) {
+        const cur = sel.value;
+        sel.innerHTML = '<option value="">All books</option>'
+          + books.map(b => `<option value="${b.id}"${b.id === cur ? ' selected' : ''}>${escHtml(b.title)}</option>`).join('');
+      }
+      _syncEarningsBookSelect(books);
     }
 
     function renderBooks(books) {
@@ -2003,12 +2033,13 @@
       if (!body || !_chatAdminId || !currentUserId) return;
       input.value = '';
       input.style.height = 'auto';
-      const { data, error } = await db.from('messages').insert({
-        sender_id: currentUserId, recipient_id: _chatAdminId, body, sent_as: 'writer',
-      }).select().single();
+      const { data, error } = await db.rpc('send_message', {
+        p_recipient_id: _chatAdminId,
+        p_body: body,
+        p_sent_as: 'writer',
+      }).single();
       if (error) { showToast('Send failed: ' + error.message); input.value = body; return; }
-      _chatMessages.push(data);
-      _renderChatMessages();
+      if (data) { _chatMessages.push(data); _renderChatMessages(); }
     }
 
     // ── NOTIFICATIONS ──────────────────────────────────────────
