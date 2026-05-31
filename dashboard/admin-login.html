@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="icon" type="image/svg+xml" href="../assets/afs-favicon.svg"/>
   <title>Admin Access — Apex Fiction Studio</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -30,7 +31,7 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@400&display=swap" rel="stylesheet"/>
   <style>
     .form-input:focus {
       outline: none;
@@ -86,12 +87,15 @@
   <div class="relative z-10 w-full max-w-sm mx-auto">
 
     <!-- Logo + wordmark -->
-    <div class="flex items-center justify-center gap-3 mb-10">
-      <span class="w-8 h-8 rounded-sm bg-crimson flex items-center justify-center text-white font-serif font-bold text-sm">A</span>
-      <div class="flex flex-col leading-tight">
-        <span class="font-serif text-lg tracking-wide text-white">Apex Fiction Studio</span>
-        <span class="text-[10px] font-semibold tracking-[0.22em] uppercase text-crimson-light">Admin Portal</span>
-      </div>
+    <div class="flex flex-col items-center justify-center gap-2 mb-10">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="15 18 110 52" height="54" aria-label="AFS Publishing">
+        <g transform="translate(20,15)">
+          <text font-family="'Cinzel',Georgia,serif" font-weight="700" fill="#EEECE9" font-size="38" letter-spacing="4" x="0" y="35">AFS</text>
+          <line x1="-2" y1="28" x2="95" y2="28" stroke="#0d0f12" stroke-width="2"/>
+          <text font-family="'Montserrat',system-ui,sans-serif" font-weight="400" fill="rgba(238,236,233,0.42)" font-size="9" letter-spacing="5" x="2" y="52">Publishing</text>
+        </g>
+      </svg>
+      <span class="text-[10px] font-semibold tracking-[0.22em] uppercase text-crimson-light">Admin Portal</span>
     </div>
 
     <!-- Card -->
