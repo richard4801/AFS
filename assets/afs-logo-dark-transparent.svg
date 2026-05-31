@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 130" role="img" aria-label="AFS Publishing">
+
+  <!-- Transparent background — cream ink, for use on dark surfaces -->
+
+  <g stroke="#EEECE9" stroke-width="7" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+
+    <!-- A -->
+    <polyline points="57,84 81,14 105,84"/>
+    <line x1="65" y1="53" x2="97" y2="53"/>
+
+    <!-- F -->
+    <line x1="123" y1="14" x2="123" y2="84"/>
+    <line x1="123" y1="14" x2="159" y2="14"/>
+    <line x1="123" y1="49" x2="150" y2="49"/>
+
+    <!-- S -->
+    <path stroke-linecap="round"
+          d="M 219,21
+             C 222,13 215,13 202,13
+             C 183,13 177,24 177,34
+             C 177,43 186,47 200,49
+             C 214,51 223,57 223,67
+             C 223,77 215,85 201,85
+             C 186,85 177,76 177,67"/>
+  </g>
+
+  <line x1="57" y1="97" x2="223" y2="97"
+        stroke="#EEECE9" stroke-width="0.8"/>
+
+  <text x="140" y="115"
+        text-anchor="middle"
+        font-family="'Futura', 'Century Gothic', 'Trebuchet MS', Arial, sans-serif"
+        font-size="7.5"
+        fill="#EEECE9"
+        textLength="166"
+        lengthAdjust="spacing">PUBLISHING</text>
+
+</svg>
