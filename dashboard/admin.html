@@ -24,7 +24,7 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=DM+Serif+Display:ital@0;1&family=Montserrat:wght@400&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
   <style>
     @keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
     .skeleton { background: linear-gradient(90deg,#161616 25%,#222 50%,#161616 75%); background-size:800px 100%; animation:shimmer 1.6s ease-in-out infinite; border-radius:6px; }
@@ -69,7 +69,13 @@
   <header class="fixed top-5 inset-x-0 z-50 flex justify-center px-5 pointer-events-none">
     <nav class="pointer-events-auto flex items-center justify-between gap-4 w-full max-w-5xl rounded-full bg-obsidian/80 backdrop-blur-md border border-white/10 shadow-xl shadow-black/60 px-4 py-2.5">
       <div class="flex items-center gap-2 flex-shrink-0">
-        <img src="../assets/afs-mark.svg" alt="AFS" class="h-8 w-auto" draggable="false">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="15 18 110 52" height="36" aria-label="AFS Publishing">
+          <g transform="translate(20,15)">
+            <text font-family="'Cinzel',Georgia,serif" font-weight="700" fill="#EEECE9" font-size="38" letter-spacing="4" x="0" y="35">AFS</text>
+            <line x1="-2" y1="28" x2="95" y2="28" stroke="#0d0f12" stroke-width="2"/>
+            <text font-family="'Montserrat',system-ui,sans-serif" font-weight="400" fill="rgba(238,236,233,0.42)" font-size="9" letter-spacing="5" x="2" y="52">Publishing</text>
+          </g>
+        </svg>
         <span class="text-[10px] font-semibold tracking-[0.18em] uppercase text-crimson-light border border-crimson/25 bg-crimson/10 rounded-full px-2.5 py-0.5">Admin</span>
       </div>
       <div class="flex items-center gap-3">
