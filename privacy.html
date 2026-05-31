@@ -29,7 +29,7 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@400&display=swap" rel="stylesheet" />
   <style>
     html { background-color: #121212; }
     .divider-gold { height:1px; background:linear-gradient(90deg,transparent 0%,#C9A84C 30%,#C9A84C 70%,transparent 100%); opacity:.25; }
@@ -49,9 +49,14 @@
   <!-- NAV -->
   <header class="fixed top-4 sm:top-5 inset-x-0 z-50 flex justify-center px-3 sm:px-5 pointer-events-none">
     <nav class="pointer-events-auto flex items-center justify-between gap-3 sm:gap-6 w-full max-w-xl rounded-full bg-obsidian/70 backdrop-blur-md border border-white/10 shadow-xl shadow-black/60 px-3 sm:px-4 py-2.5">
-      <a href="index.html" class="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
-        <span class="w-6 h-6 rounded-sm bg-gold flex items-center justify-center text-obsidian font-serif font-bold text-xs flex-shrink-0">A</span>
-        <span class="font-serif text-sm sm:text-base tracking-wide text-white whitespace-nowrap">Apex Fiction Studio</span>
+      <a href="index.html" class="flex items-center flex-shrink-0">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="15 18 110 52" height="36" aria-label="AFS Publishing">
+          <g transform="translate(20,15)">
+            <text font-family="'Cinzel',Georgia,serif" font-weight="700" fill="#EEECE9" font-size="38" letter-spacing="4" x="0" y="35">AFS</text>
+            <line x1="-2" y1="28" x2="95" y2="28" stroke="#0d0f12" stroke-width="2"/>
+            <text font-family="'Montserrat',system-ui,sans-serif" font-weight="400" fill="rgba(238,236,233,0.42)" font-size="9" letter-spacing="5" x="2" y="52">Publishing</text>
+          </g>
+        </svg>
       </a>
       <div class="flex items-center gap-2 flex-shrink-0">
         <a href="dashboard/login.html"
@@ -223,9 +228,14 @@
   <!-- FOOTER -->
   <footer class="border-t border-border py-10 px-4 sm:px-6">
     <div class="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
-      <a href="index.html" class="flex items-center gap-3">
-        <span class="w-6 h-6 rounded-sm bg-gold flex items-center justify-center text-obsidian font-serif font-bold text-xs">A</span>
-        <span class="font-serif text-base tracking-wide text-white">Apex Fiction Studio</span>
+      <a href="index.html" class="flex items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="15 18 110 52" height="36" aria-label="AFS Publishing">
+          <g transform="translate(20,15)">
+            <text font-family="'Cinzel',Georgia,serif" font-weight="700" fill="#EEECE9" font-size="38" letter-spacing="4" x="0" y="35">AFS</text>
+            <line x1="-2" y1="28" x2="95" y2="28" stroke="#0d0f12" stroke-width="2"/>
+            <text font-family="'Montserrat',system-ui,sans-serif" font-weight="400" fill="rgba(238,236,233,0.42)" font-size="9" letter-spacing="5" x="2" y="52">Publishing</text>
+          </g>
+        </svg>
       </a>
       <p class="text-muted text-xs tracking-wide text-center">© 2026 Apex Fiction Studio. All rights reserved.</p>
       <div class="flex items-center gap-5 text-muted text-xs">
