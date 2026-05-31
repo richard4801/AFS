@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="AFS">
+
+  <!-- Dark square favicon -->
+  <rect width="64" height="64" rx="6" fill="#111110"/>
+
+  <g stroke="#EEECE9" stroke-width="4.5" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+    <!-- A: apex (32,10), feet (10,54) and (54,54) -->
+    <polyline points="10,54 32,10 54,54"/>
+    <!-- Crossbar at y=36 -->
+    <line x1="19" y1="36" x2="45" y2="36"/>
+  </g>
+
+  <!-- Horizontal accent lines below A (brand identity mark detail) -->
+  <g stroke="#EEECE9" stroke-width="1.2" stroke-linecap="butt">
+    <line x1="10" y1="59" x2="54" y2="59"/>
+    <line x1="14" y1="62.5" x2="50" y2="62.5"/>
+  </g>
+
+</svg>
