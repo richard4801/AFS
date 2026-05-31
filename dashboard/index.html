@@ -163,7 +163,7 @@
     </div>
 
     <!-- STATS -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
+    <div id="stats-grid" class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
       <div class="rounded-2xl border border-border bg-surface p-4 sm:p-5 relative overflow-hidden">
         <div class="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent"></div>
         <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-3">This Month</p>
@@ -228,7 +228,7 @@
     </div>
 
     <!-- UPDATE SCHEDULE CALENDAR -->
-    <div class="rounded-2xl border border-border bg-surface p-5 sm:p-6 mb-8 relative overflow-hidden">
+    <div id="cal-card" class="rounded-2xl border border-border bg-surface p-5 sm:p-6 mb-8 relative overflow-hidden">
       <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent"></div>
 
       <!-- Header -->
@@ -639,6 +639,10 @@
           Cancel
         </button>
       </div>
+      <button onclick="closeProfileModal();setTimeout(startTour,300)"
+              class="w-full mt-2 text-xs text-muted/50 hover:text-gold transition-colors py-1">
+        ↺ Replay dashboard tour
+      </button>
     </div>
   </div>
 
@@ -2432,6 +2436,12 @@
       loadNotifications();
       initChat(currentUserId);
 
+      // Auto-start tour for new writers; also trigger via ?tour=1 for testing
+      const _forceTour = new URLSearchParams(window.location.search).has('tour');
+      if (!profile?.onboarded || _forceTour) {
+        setTimeout(startTour, 900);
+      }
+
       const monthly = earnings30
         .filter(r => r.date.startsWith(new Date().toISOString().slice(0, 7)))
         .reduce((s, r) => s + parseFloat(r.amount_earned), 0);
@@ -2493,6 +2503,244 @@
         if (!raf) raf = requestAnimationFrame(paint);
       });
     }
+  </script>
+
+  <!-- ── INTERACTIVE TOUR ─────────────────────────────────────── -->
+  <div id="tour-overlay" class="hidden">
+    <!-- Backdrop blocks all clicks on the page during tour -->
+    <div id="tour-backdrop" class="fixed inset-0" style="z-index:500;"></div>
+    <!-- Spotlight: box-shadow punches a lit "hole" in the darkness -->
+    <div id="tour-spotlight" class="fixed" style="box-shadow:0 0 0 9999px rgba(0,0,0,0.76);border-radius:14px;z-index:501;pointer-events:none;transition:all .38s cubic-bezier(.4,0,.2,1);"></div>
+    <!-- Tooltip card -->
+    <div id="tour-card" class="fixed" style="z-index:502;transition:top .38s cubic-bezier(.4,0,.2,1),left .38s cubic-bezier(.4,0,.2,1);">
+      <div class="relative w-80 max-w-[calc(100vw-2rem)] rounded-2xl border border-border bg-surface shadow-2xl shadow-black/80 overflow-hidden">
+        <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent"></div>
+        <div class="p-5 pb-4">
+          <!-- Progress dots -->
+          <div id="tour-dots" class="flex items-center gap-1.5 mb-3.5"></div>
+          <p id="tour-step-label" class="text-[10px] font-semibold tracking-widest uppercase text-gold mb-1.5"></p>
+          <h3 id="tour-title" class="font-serif text-xl text-white mb-2 leading-snug"></h3>
+          <p id="tour-body" class="text-muted text-sm leading-relaxed"></p>
+        </div>
+        <div class="flex items-center justify-between px-5 py-3 border-t border-border/50 bg-charcoal/30">
+          <button onclick="skipTour()" class="text-xs text-muted/40 hover:text-muted transition-colors">Skip tour</button>
+          <div class="flex items-center gap-2">
+            <button id="tour-prev-btn" onclick="tourPrev()"
+                    class="px-3 py-1.5 text-xs font-medium text-muted hover:text-white border border-border hover:border-white/20 rounded-lg transition-all invisible">Back</button>
+            <button id="tour-next-btn" onclick="tourNext()"
+                    class="px-4 py-1.5 text-xs font-semibold bg-gold hover:bg-gold/80 text-obsidian rounded-lg transition-colors">Next →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // ── INTERACTIVE TOUR ──────────────────────────────────────
+  const TOUR_STEPS = [
+    {
+      label: 'Welcome',
+      title: 'Welcome to AFS!',
+      body: "You're now part of the Apex Fiction Studio collective. This 60-second tour walks you through your dashboard. Use the buttons below to navigate.",
+      target: null,
+    },
+    {
+      label: 'Your Earnings',
+      title: 'Track Your Income',
+      body: 'These cards show your monthly royalties, all-time total, total words written, and milestone progress — updated every morning.',
+      target: 'stats-grid',
+    },
+    {
+      label: 'Your Books',
+      title: 'Create & Submit Chapters',
+      body: 'This is your main workspace. Click "New Book" to start a manuscript, then add chapters and submit them for your editor to review. Aim for 3 chapters a day.',
+      target: 'books-section',
+    },
+    {
+      label: 'Update Calendar',
+      title: 'Hit 25 Writing Days a Month',
+      body: 'Every day you submit or get a chapter approved counts as an active day. Hit 25 per month to keep your book at maximum visibility on the platform.',
+      target: 'cal-card',
+    },
+    {
+      label: 'Project Brief',
+      title: 'Your Story Assignment',
+      body: 'Your editor assigns a project brief here — genre, characters, and plot direction. Read it carefully before writing your first chapter.',
+      target: 'brief-card',
+      optional: true,
+    },
+    {
+      label: 'Editor Chat',
+      title: 'Talk to Your Editor',
+      body: "Tap this button any time to message your Executive Editor. They're your main point of contact for feedback, revision guidance, and deadlines.",
+      target: 'chat-float',
+    },
+    {
+      label: 'Notifications',
+      title: 'Approvals & Revision Notes',
+      body: 'Chapter approvals, revision requests, and messages from your editor all appear here. The gold badge shows how many you have unread.',
+      target: 'notif-btn',
+    },
+    {
+      label: 'Payment Details',
+      title: 'Set Up Your Payout',
+      body: 'Click your name to open your profile. Add your PayPal, bank account, or Wise email so we can send your monthly payout without any delays.',
+      target: 'nav-name-btn',
+    },
+    {
+      label: "All Set!",
+      title: "You're Ready to Write",
+      body: "That's everything. Your editor will reach out within 24 hours. Start by creating your first book below — great writing starts here.",
+      target: null,
+      isLast: true,
+    },
+  ];
+
+  let _tourStep        = 0;
+  let _tourActive      = false;
+  let _tourScrollTimer = null;
+
+  function startTour() {
+    _tourStep   = 0;
+    _tourActive = true;
+    document.getElementById('tour-overlay').classList.remove('hidden');
+    _renderTourStep();
+  }
+
+  function skipTour() { _endTour(); }
+
+  function tourNext() {
+    if (_tourStep < TOUR_STEPS.length - 1) { _tourStep++; _renderTourStep(); }
+    else _endTour();
+  }
+
+  function tourPrev() {
+    if (_tourStep > 0) { _tourStep--; _renderTourStep(); }
+  }
+
+  function _endTour() {
+    _tourActive = false;
+    document.getElementById('tour-overlay').classList.add('hidden');
+    document.getElementById('tour-spotlight').style.cssText = '';
+    if (typeof currentUserId !== 'undefined' && currentUserId) {
+      db.from('profiles').update({ onboarded: true }).eq('id', currentUserId).then(() => {});
+      localStorage.setItem('afs_tour_done_' + currentUserId, '1');
+    }
+  }
+
+  function _renderTourStep() {
+    const step  = TOUR_STEPS[_tourStep];
+    const total = TOUR_STEPS.length;
+
+    // Progress dots — active dot widens into a pill
+    document.getElementById('tour-dots').innerHTML = TOUR_STEPS.map((_, i) => {
+      const active = i === _tourStep;
+      const past   = i < _tourStep;
+      const cls    = active ? 'bg-gold' : past ? 'bg-gold/40' : 'bg-white/15';
+      const w      = active ? 'style="width:20px"' : '';
+      return `<span class="inline-block h-1.5 rounded-full ${cls} transition-all duration-300" style="${active ? 'width:20px' : 'width:6px'}"></span>`;
+    }).join('');
+
+    document.getElementById('tour-step-label').textContent = `Step ${_tourStep + 1} of ${total}`;
+    document.getElementById('tour-title').textContent      = step.title;
+    document.getElementById('tour-body').textContent       = step.body;
+
+    const prevBtn = document.getElementById('tour-prev-btn');
+    const nextBtn = document.getElementById('tour-next-btn');
+    prevBtn.classList.toggle('invisible', _tourStep === 0);
+    nextBtn.textContent = step.isLast ? 'Start Writing →' : 'Next →';
+
+    // Resolve target — skip optional hidden elements
+    let targetEl = step.target ? document.getElementById(step.target) : null;
+    if (targetEl && step.optional && targetEl.classList.contains('hidden')) {
+      targetEl = null;
+    }
+
+    _positionTour(targetEl);
+  }
+
+  function _positionTour(targetEl) {
+    const PAD    = 10; // spotlight padding
+    const CARD_W = 320;
+    const GAP    = 14;
+    const vw     = window.innerWidth;
+    const vh     = window.innerHeight;
+    const mobile = vw < 640;
+
+    const spotlight = document.getElementById('tour-spotlight');
+    const card      = document.getElementById('tour-card');
+
+    if (!targetEl) {
+      // No target — center everything, no spotlight
+      spotlight.style.cssText =
+        'position:fixed;top:50%;left:50%;width:0;height:0;border-radius:999px;' +
+        'box-shadow:0 0 0 9999px rgba(0,0,0,0.76);z-index:501;pointer-events:none;' +
+        'transition:all .38s cubic-bezier(.4,0,.2,1);transform:translate(-50%,-50%);';
+      if (mobile) {
+        card.style.cssText = 'position:fixed;bottom:0;left:0;right:0;width:100%;z-index:502;';
+        card.querySelector('.relative').style.borderRadius = '24px 24px 0 0';
+      } else {
+        const cw = Math.min(CARD_W, vw - 32);
+        card.style.cssText = `position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:${cw}px;z-index:502;`;
+        card.querySelector('.relative').style.borderRadius = '';
+      }
+      return;
+    }
+
+    // Scroll into view, then measure and position
+    clearTimeout(_tourScrollTimer);
+    targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    _tourScrollTimer = setTimeout(() => {
+      const r  = targetEl.getBoundingClientRect();
+      const sl = r.left   - PAD;
+      const st = r.top    - PAD;
+      const sw = r.width  + PAD * 2;
+      const sh = r.height + PAD * 2;
+
+      spotlight.style.cssText =
+        `position:fixed;left:${sl}px;top:${st}px;width:${sw}px;height:${sh}px;` +
+        `border-radius:14px;box-shadow:0 0 0 9999px rgba(0,0,0,0.74);` +
+        `z-index:501;pointer-events:none;transition:all .38s cubic-bezier(.4,0,.2,1);transform:none;`;
+
+      card.querySelector('.relative').style.borderRadius = '';
+      const cw = Math.min(CARD_W, vw - 32);
+
+      if (mobile) {
+        // Mobile: always pin card at bottom
+        card.style.cssText = 'position:fixed;bottom:0;left:0;right:0;width:100%;z-index:502;transition:none;';
+        card.querySelector('.relative').style.borderRadius = '24px 24px 0 0';
+        return;
+      }
+
+      // Desktop: place card below, above, or to the side
+      const below = vh - (st + sh + GAP);
+      const above = st - GAP;
+      let cardTop, cardLeft;
+
+      if (below >= 220) {
+        cardTop  = st + sh + GAP;
+        cardLeft = Math.max(16, Math.min(sl + sw / 2 - cw / 2, vw - cw - 16));
+      } else if (above >= 220) {
+        cardTop  = Math.max(16, st - GAP - 220);
+        cardLeft = Math.max(16, Math.min(sl + sw / 2 - cw / 2, vw - cw - 16));
+      } else {
+        cardTop  = Math.max(16, Math.min(st + sh / 2 - 110, vh - 260));
+        cardLeft = sl + sw + GAP;
+        if (cardLeft + cw > vw - 16) cardLeft = Math.max(16, sl - GAP - cw);
+      }
+
+      card.style.cssText =
+        `position:fixed;top:${cardTop}px;left:${cardLeft}px;width:${cw}px;z-index:502;` +
+        `transition:top .38s cubic-bezier(.4,0,.2,1),left .38s cubic-bezier(.4,0,.2,1);transform:none;`;
+    }, 360);
+  }
+
+  // Re-render on resize
+  window.addEventListener('resize', () => {
+    if (!_tourActive) return;
+    clearTimeout(_tourScrollTimer);
+    _renderTourStep();
+  }, { passive: true });
   </script>
 
 </body>
