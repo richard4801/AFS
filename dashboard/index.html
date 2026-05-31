@@ -89,7 +89,7 @@
               will-change: mask-image,-webkit-mask-image;"></div>
 
   <!-- NAV -->
-  <header class="fixed top-5 inset-x-0 z-50 flex justify-center px-5 pointer-events-none">
+  <header class="fixed top-4 sm:top-5 inset-x-0 z-50 flex justify-center px-3 sm:px-5 pointer-events-none">
     <nav class="pointer-events-auto flex items-center justify-between gap-3 sm:gap-6 w-full max-w-4xl rounded-full bg-obsidian/70 backdrop-blur-md border border-white/10 shadow-xl shadow-black/60 px-4 py-2.5">
       <div class="flex items-center flex-shrink-0">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="15 18 110 52" height="36" style="clip-path:path('M0 0 H200 V14 H0 Z M0 17 H200 V36 H0 Z')" aria-label="AFS Publishing">
@@ -199,6 +199,12 @@
       </div>
     </div>
 
+    <!-- PAYOUT THRESHOLD NOTICE -->
+    <div class="flex items-start gap-3 rounded-xl mb-6 px-4 py-3" style="background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.15);">
+      <svg class="flex-shrink-0 w-4 h-4 text-gold mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <p class="text-xs leading-relaxed" style="color:rgba(255,255,255,0.5);"><strong style="color:rgba(255,255,255,0.8);">Monthly payouts release when your balance reaches $100.</strong> Earnings below that roll forward and pay out the month your balance crosses the threshold. Your <strong style="color:rgba(255,255,255,0.8);">$120 milestone bonus</strong> pays within 14 days of hitting 30,000 words — no $100 minimum applies to it.</p>
+    </div>
+
     <!-- PAYOUT HISTORY (only shown when payouts exist) -->
     <div id="payout-card" class="hidden rounded-2xl border border-border bg-surface p-5 sm:p-6 mb-8 relative overflow-hidden">
       <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent"></div>
@@ -212,7 +218,7 @@
     </div>
 
     <!-- CHART -->
-    <div class="rounded-2xl border border-border bg-surface p-6 mb-8 relative overflow-hidden">
+    <div class="rounded-2xl border border-border bg-surface p-4 sm:p-6 mb-6 sm:mb-8 relative overflow-hidden">
       <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent"></div>
       <div class="flex items-center justify-between mb-6">
         <div>
@@ -321,7 +327,7 @@
       <div id="brief-body" class="space-y-4"></div>
     </div>
     <!-- BRIEF PLACEHOLDER (shown when no brief assigned) -->
-    <div id="brief-placeholder" class="hidden rounded-2xl border border-dashed border-border bg-charcoal/30 p-6 mb-8 text-center">
+    <div id="brief-placeholder" class="hidden rounded-2xl border border-dashed border-border bg-charcoal/30 p-4 sm:p-6 mb-8 text-center">
       <p class="text-muted text-sm">Your project brief hasn't been assigned yet.</p>
       <p class="text-muted text-xs mt-1">Your Executive Editor will assign it soon — check the chat.</p>
     </div>
@@ -409,7 +415,7 @@
             <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent pointer-events-none"></div>
 
             <!-- Header -->
-            <div class="p-6 pb-4 flex flex-wrap items-start justify-between gap-3">
+            <div class="p-4 sm:p-6 pb-4 flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p id="editor-chapter-num" class="text-[10px] font-semibold tracking-[0.18em] uppercase text-gold mb-1"></p>
                 <h2 id="editor-heading" class="font-serif text-2xl text-white">New Chapter</h2>
@@ -422,12 +428,12 @@
             </div>
 
             <!-- READ MODE: formatted prose -->
-            <div id="editor-read-mode" class="hidden px-6 pb-6">
+            <div id="editor-read-mode" class="hidden px-4 sm:px-6 pb-6">
               <div id="chapter-preview-content" class="min-h-[120px]"></div>
             </div>
 
             <!-- EDIT MODE: title + docx + textarea + actions -->
-            <div id="editor-edit-mode" class="px-6 pb-6 space-y-5">
+            <div id="editor-edit-mode" class="px-4 sm:px-6 pb-6 space-y-5">
 
               <!-- Chapter title -->
               <div>
@@ -509,7 +515,7 @@
   </main>
 
   <!-- NOTIFICATION PANEL -->
-  <div id="notif-panel" class="hidden fixed z-[80] right-4 top-16 w-[340px] max-w-[calc(100vw-2rem)] rounded-2xl border border-border bg-surface shadow-2xl shadow-black/70 overflow-hidden">
+  <div id="notif-panel" class="hidden fixed z-[80] right-2 sm:right-4 top-16 w-[calc(100vw-1rem)] sm:w-[340px] rounded-2xl border border-border bg-surface shadow-2xl shadow-black/70 overflow-hidden">
     <div class="flex items-center justify-between px-4 py-3.5 border-b border-border/50 bg-charcoal/40">
       <div class="flex items-center gap-2">
         <svg class="w-3.5 h-3.5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"/></svg>
@@ -600,9 +606,13 @@
         <p class="text-muted text-[11px] mb-4">Used by AFS to send your monthly payout. Fill in whichever applies.</p>
         <div class="space-y-3">
           <div>
-            <label class="block text-[11px] font-medium text-white/60 tracking-wide mb-1.5">PayPal / Wise Email</label>
-            <input id="pay-paypal" type="email" placeholder="your@paypal.com"
+            <label class="block text-[11px] font-medium text-white/60 tracking-wide mb-1.5">Payoneer Email</label>
+            <input id="pay-payoneer" type="email" placeholder="your@payoneer.com"
                    class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-3 py-2.5 transition-all duration-200"/>
+          </div>
+          <div class="rounded-lg px-3 py-2.5" style="background:rgba(201,168,76,0.07);border:1px solid rgba(201,168,76,0.2)">
+            <p class="text-[10px] font-semibold tracking-widest uppercase text-gold mb-1">Nigerian / African Writer?</p>
+            <p class="text-[11px] leading-relaxed" style="color:rgba(255,255,255,0.55)">Use <strong style="color:rgba(255,255,255,0.8)">GeegPay</strong> instead of Payoneer — much lower withdrawal fees and better USD→NGN rates. Create a free account at <strong style="color:rgba(255,255,255,0.8)">geegpay.africa</strong>, then enter your GeegPay email above.</p>
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
@@ -2207,7 +2217,7 @@
     function openProfileModal() {
       $('profile-name-input').value = $('nav-name-btn').textContent.trim();
       const p = _parsePaymentInfo(_currentPaymentInfo);
-      $('pay-paypal').value   = p.paypal   || '';
+      $('pay-payoneer').value = p.payoneer || p.paypal || '';
       $('pay-bank').value     = p.bank     || '';
       $('pay-holder').value   = p.holder   || '';
       $('pay-account').value  = p.account  || '';
@@ -2223,7 +2233,7 @@
       const name = $('profile-name-input').value.trim();
       if (!name) return;
       const payObj = {
-        paypal:   $('pay-paypal').value.trim()   || undefined,
+        payoneer: $('pay-payoneer').value.trim() || undefined,
         bank:     $('pay-bank').value.trim()     || undefined,
         holder:   $('pay-holder').value.trim()   || undefined,
         account:  $('pay-account').value.trim()  || undefined,
@@ -2590,13 +2600,13 @@
     {
       label: 'Payment Details',
       title: 'Set Up Your Payout',
-      body: 'Click your name to open your profile. Add your PayPal, bank account, or Wise email so we can send your monthly payout without any delays.',
+      body: 'Click your name to open your profile. Add your Payoneer email or bank details so we can send your monthly payout. Nigerian writers — we recommend GeegPay for the lowest fees.',
       target: 'nav-name-btn',
     },
     {
       label: "All Set!",
       title: "You're Ready to Write",
-      body: "That's everything. Your editor will reach out within 24 hours. Start by creating your first book below — great writing starts here.",
+      body: "That's everything. Your Executive Editor will reach out within 24 hours with your first project brief. Sit tight — don't start writing until you hear from us.",
       target: null,
       isLast: true,
     },
@@ -2610,6 +2620,7 @@
   function startTour() {
     _tourStep   = 0;
     _tourActive = true;
+    document.getElementById('chat-float').style.zIndex = '10';
     document.getElementById('tour-overlay').classList.remove('hidden');
     _renderTourStep();
   }
@@ -2628,6 +2639,7 @@
   function _endTour() {
     _tourActive        = false;
     _tourCurrentTarget = null;
+    document.getElementById('chat-float').style.zIndex = '9999';
     document.getElementById('tour-overlay').classList.add('hidden');
     document.getElementById('tour-spotlight').style.cssText = '';
     if (typeof currentUserId !== 'undefined' && currentUserId) {
@@ -2656,7 +2668,7 @@
     const prevBtn = document.getElementById('tour-prev-btn');
     const nextBtn = document.getElementById('tour-next-btn');
     prevBtn.classList.toggle('invisible', _tourStep === 0);
-    nextBtn.textContent = step.isLast ? 'Start Writing →' : 'Next →';
+    nextBtn.textContent = step.isLast ? 'Got it →' : 'Next →';
 
     // Resolve target — skip optional hidden elements
     let targetEl = step.target ? document.getElementById(step.target) : null;
