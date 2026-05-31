@@ -389,7 +389,7 @@
       spin.classList.remove('hidden');
 
       const { error } = await db.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.href,
+        redirectTo: window.location.origin + '/dashboard/login.html',
       });
 
       btn.disabled = false;
@@ -442,16 +442,29 @@
     }
 
     // Detect if arriving via invite or password-reset link
-    const _hashParams = new URLSearchParams(window.location.hash.slice(1));
-    const _linkType   = _hashParams.get('type'); // 'invite' | 'recovery' | null
+    const _hashParams  = new URLSearchParams(window.location.hash.slice(1));
+    const _linkType    = _hashParams.get('type'); // 'invite' | 'recovery' | null
+    const _urlCode     = new URLSearchParams(window.location.search).has('code');
 
     db.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
-        showSetPasswordStep();
-      } else if (event === 'SIGNED_IN' && _linkType === 'invite' && session) {
-        showSetPasswordStep();
+        showSetPasswordStep(); return;
+      }
+      if (event === 'SIGNED_IN' && session) {
+        // PKCE recovery flow fires SIGNED_IN instead of PASSWORD_RECOVERY in some hosts.
+        // If we arrived here via ?code= redirect from a password-reset email, show form.
+        if (_urlCode || _linkType === 'recovery') { showSetPasswordStep(); return; }
+        if (_linkType === 'invite') { showSetPasswordStep(); return; }
       }
     });
+
+    // Immediate fallback: Supabase may have already exchanged the code before the
+    // onAuthStateChange listener fired. Re-check session now.
+    (async () => {
+      if (!_urlCode && _linkType !== 'recovery') return;
+      const { data: { session } } = await db.auth.getSession();
+      if (session) showSetPasswordStep();
+    })();
 
     // Digit-box auto-advance + backspace
     document.getElementById('digit-row').addEventListener('input', e => {

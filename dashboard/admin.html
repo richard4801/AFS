@@ -1120,20 +1120,22 @@
       if (!body || !_adminChatWriterId || !currentUserId) return;
       input.value = '';
       input.style.height = 'auto';
-      const { data, error } = await db.from('messages').insert({
-        sender_id: currentUserId, recipient_id: _adminChatWriterId, body, sent_as: 'admin',
-      }).select().single();
+      const { data, error } = await db.rpc('send_message', {
+        p_recipient_id: _adminChatWriterId,
+        p_body: body,
+        p_sent_as: 'admin',
+      }).single();
       if (error) { showToast('Send failed: ' + error.message); input.value = body; return; }
-      _adminChatMessages.push(data);
-      _renderAdminChatMessages();
-      // Only notify the bell if the writer is not currently online —
-      // if they're on the page the chat badge/chime already alerts them.
-      if (!_onlineWriters.has(_adminChatWriterId)) {
-        db.from('notifications').insert({
-          user_id: _adminChatWriterId, type: 'chat_message',
-          title: 'Message from Your Editor',
-          body: 'Open your chat to view.',
-        }).then(() => {});
+      if (data) {
+        _adminChatMessages.push(data);
+        _renderAdminChatMessages();
+        if (!_onlineWriters.has(_adminChatWriterId)) {
+          db.from('notifications').insert({
+            user_id: _adminChatWriterId, type: 'chat_message',
+            title: 'Message from Your Editor',
+            body: 'Open your chat to view.',
+          }).then(() => {});
+        }
       }
     }
 
