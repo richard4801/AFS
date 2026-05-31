@@ -227,8 +227,14 @@
 
       <!-- Header -->
       <div class="flex items-start justify-between gap-4 mb-5">
-        <div>
-          <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-1">Update Schedule</p>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1">
+            <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted">Update Schedule</p>
+            <select id="cal-book-select" onchange="calSelBook(this.value)"
+                    class="bg-charcoal border border-border/60 text-white/80 text-[10px] rounded-md px-1.5 py-0.5 focus:border-gold/40 outline-none cursor-pointer">
+              <option value="">All books</option>
+            </select>
+          </div>
           <h2 id="cal-month-label" class="font-serif text-xl text-white">Loading…</h2>
         </div>
         <div class="flex items-center gap-3">
@@ -819,8 +825,11 @@
     }
 
     // ── COMPLIANCE CALENDAR ────────────────────────────────────
-    let _calYear  = null;
-    let _calMonth = null; // 0-indexed
+    let _calYear   = null;
+    let _calMonth  = null; // 0-indexed
+    let _calBookId = '';   // '' = all books
+
+    function calSelBook(id) { _calBookId = id; loadCalendar(); }
 
     function calNav(dir) {
       _calMonth += dir;
@@ -843,12 +852,14 @@
       const startISO = firstDay.toISOString().slice(0, 10);
       const endISO   = lastDay.toISOString().slice(0, 10) + 'T23:59:59.999Z';
 
-      const { data } = await db.from('chapters')
+      let calQ = db.from('chapters')
         .select('created_at')
         .eq('author_id', currentUserId)
         .in('status', ['submitted', 'approved'])
         .gte('created_at', startISO)
         .lte('created_at', endISO);
+      if (_calBookId) calQ = calQ.eq('book_id', _calBookId);
+      const { data } = await calQ;
 
       // Group counts by local date string YYYY-MM-DD
       const dateMap = {};
@@ -1288,7 +1299,16 @@
       showEditorView(null);
     }
 
+    function _syncCalBookSelect(books) {
+      const sel = $('cal-book-select');
+      if (!sel) return;
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">All books</option>'
+        + books.map(b => `<option value="${b.id}"${b.id === cur ? ' selected' : ''}>${escHtml(b.title)}</option>`).join('');
+    }
+
     function renderBooks(books) {
+      _syncCalBookSelect(books);
       const grid = $('books-grid');
       if (!books.length) {
         grid.innerHTML = `
@@ -1643,7 +1663,21 @@
       $('chat-float').classList.add('hidden');
       if (_isMobile()) {
         _chatFullscreen = true;
-        panel.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border-radius:0;z-index:10000;display:flex;flex-direction:column;';
+        const vvh = window.visualViewport?.height || window.innerHeight;
+        const vvTop = window.visualViewport?.offsetTop || 0;
+        panel.style.cssText = `position:fixed;left:0;right:0;top:${vvTop}px;height:${vvh}px;width:100%;border-radius:0;z-index:10000;display:flex;flex-direction:column;`;
+        if (window.visualViewport && !panel._vvHandler) {
+          panel._vvHandler = () => {
+            if (!_chatOpen) return;
+            const h = Math.round(window.visualViewport.height);
+            const t = Math.round(window.visualViewport.offsetTop);
+            panel.style.height = h + 'px';
+            panel.style.top = t + 'px';
+            const msgs = $('chat-messages');
+            if (msgs) setTimeout(() => { msgs.scrollTop = msgs.scrollHeight; }, 60);
+          };
+          window.visualViewport.addEventListener('resize', panel._vvHandler);
+        }
       } else {
         panel.style.cssText = 'position:fixed;right:24px;bottom:96px;width:340px;height:520px;border-radius:16px;display:flex;flex-direction:column;z-index:9998;';
       }
@@ -2103,7 +2137,7 @@
       _saveDismissedIds();
       _notifications = _notifications.filter(n => n.id !== id);
       renderNotifBadge(); renderNotifList();
-      await db.from('notifications').delete().eq('id', id);
+      await db.from('notifications').delete().eq('id', id).eq('user_id', currentUserId);
     }
 
     async function clearAllNotifs() {
@@ -2113,7 +2147,7 @@
       _notifications = [];
       renderNotifBadge(); renderNotifList();
       const ids = [..._dismissedNotifIds];
-      await db.from('notifications').delete().in('id', ids);
+      await db.from('notifications').delete().in('id', ids).eq('user_id', currentUserId);
     }
 
     document.addEventListener('click', e => {
@@ -2377,6 +2411,21 @@
       loadBrief();
       loadPayouts();
       await loadBooks();
+
+      // Realtime: re-render books when admin updates a book (e.g. signs it)
+      db.channel('writer-books-' + currentUserId)
+        .on('postgres_changes', {
+          event: 'UPDATE', schema: 'public', table: 'books',
+          filter: 'author_id=eq.' + currentUserId,
+        }, payload => {
+          const updated = payload.new;
+          if (_bookReg.has(updated.id)) {
+            _bookReg.set(updated.id, { ..._bookReg.get(updated.id), ...updated });
+          }
+          renderBooks([..._bookReg.values()].sort((a, b) =>
+            new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at)));
+        })
+        .subscribe();
     })();
   </script>
 
