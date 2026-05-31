@@ -1,48 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 130" role="img" aria-label="AFS Publishing">
-
-  <!-- Light variant: cream background, dark ink -->
-  <rect width="280" height="130" fill="#EEECE9"/>
-
-  <g stroke="#1B1917" stroke-width="7" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
-
-    <!-- ─── A ─────────────────────────────────────
-         Apex (81,14)  Feet (57,84) (105,84)
-         No individual crossbar — shared slash handles it -->
-    <polyline points="57,84 81,14 105,84"/>
-
-    <!-- ─── F ─────────────────────────────────────
-         Stem + top bar only — shared slash is the mid-bar -->
-    <line x1="123" y1="14" x2="123" y2="84"/>
-    <line x1="123" y1="14" x2="159" y2="14"/>
-
-    <!-- ─── S ─────────────────────────────────────
-         Waist crossing sits exactly at y=49 -->
-    <path stroke-linecap="round"
-          d="M 219,21
-             C 222,13 215,13 202,13
-             C 183,13 177,24 177,34
-             C 177,43 186,47 200,49
-             C 214,51 223,57 223,67
-             C 223,77 215,85 201,85
-             C 186,85 177,76 177,67"/>
-
-    <!-- ─── Unified slash ─────────────────────────
-         Single horizontal cut through all three letters at mid-height y=49.
-         Acts as A crossbar, F mid-bar, and bisects S at its waist. -->
-    <line x1="57" y1="49" x2="223" y2="49"/>
-  </g>
-
-  <!-- Rule -->
-  <line x1="57" y1="97" x2="223" y2="97" stroke="#1B1917" stroke-width="0.8"/>
-
-  <!-- "PUBLISHING" — small-caps style, tracked out to AFS width -->
-  <text x="140" y="115"
-        text-anchor="middle"
-        font-family="'Futura', 'Century Gothic', 'Trebuchet MS', Arial, sans-serif"
-        font-size="7.5"
-        fill="#1B1917"
-        textLength="166"
-        lengthAdjust="spacing">PUBLISHING</text>
-
+<!-- Light variant (dark text on cream/white background) -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 80" width="100%" height="100%">
+    <defs>
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700&amp;family=Montserrat:wght@400&amp;display=swap');
+            .text-serif-dark { font-family: 'Cinzel', serif; font-weight: 700; fill: #111215; font-size: 38px; letter-spacing: 4px; }
+            .text-sans-dark { font-family: 'Montserrat', sans-serif; font-weight: 400; fill: #4a4a4a; letter-spacing: 5px; font-size: 9px; text-transform: uppercase; }
+        </style>
+    </defs>
+    <g transform="translate(20, 15)">
+        <text class="text-serif-dark" x="0" y="35">AFS</text>
+        <line x1="-2" y1="28" x2="95" y2="28" stroke="#ffffff" stroke-width="2" />
+        <text class="text-sans-dark" x="2" y="52">Publishing</text>
+    </g>
 </svg>
