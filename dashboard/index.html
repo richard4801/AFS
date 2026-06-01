@@ -5,8 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <link rel="icon" type="image/svg+xml" href="../assets/afs-favicon.svg"/>
   <title>Dashboard — Apex Fiction Studio</title>
-  <script>(function(){if(localStorage.getItem('afs-theme')==='light')document.documentElement.classList.add('light')})()</script>
-  <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -75,53 +74,6 @@
     .typing-dot { width:7px;height:7px;border-radius:50%;background:rgba(106,106,106,0.65);animation:typingBounce 1.1s ease-in-out infinite;flex-shrink:0; }
     @media (max-width:767px) { #chat-fs-btn { display:none !important; } }
   
-    /* ── LIGHT MODE ─────────────────────────────────────────────────────────── */
-    html.light{background-color:#F5F3EE!important}
-    html.light body{background-color:#F5F3EE!important;color:#1A1816!important}
-    html.light .bg-obsidian{background-color:#F5F3EE!important}
-    html.light .bg-charcoal{background-color:#ECEAE5!important}
-    html.light .bg-surface{background-color:#FFFFFF!important}
-    html.light .text-white{color:#1A1816!important}
-    html.light .text-muted{color:#6B6560!important}
-    html.light .text-white\/90{color:rgba(26,24,22,.9)!important}
-    html.light .text-white\/80{color:rgba(26,24,22,.8)!important}
-    html.light .text-white\/75{color:rgba(26,24,22,.75)!important}
-    html.light .text-white\/70{color:rgba(26,24,22,.7)!important}
-    html.light .text-white\/60{color:rgba(26,24,22,.6)!important}
-    html.light .border-border{border-color:#D4CFC7!important}
-    html.light .border-border\/60{border-color:rgba(212,207,199,.6)!important}
-    html.light .border-white\/10{border-color:rgba(26,24,22,.1)!important}
-    html.light .border-white\/20{border-color:rgba(26,24,22,.18)!important}
-    html.light nav.rounded-full{background-color:rgba(245,243,238,.88)!important;border-color:rgba(26,24,22,.12)!important}
-    html.light .afs-logo-main{fill:#2A2724!important}
-    html.light .afs-logo-sub{fill:rgba(42,39,36,.42)!important}
-    html.light .form-input{background-color:#ECEAE5!important;color:#1A1816!important;border-color:#D4CFC7!important}
-    html.light .form-input::placeholder,html.light input::placeholder,html.light textarea::placeholder{color:rgba(107,101,96,.5)!important}
-    html.light .divider-gold{opacity:.5!important}
-    html.light footer.border-t{border-top-color:#D4CFC7!important}
-    html.light #afs-grid{opacity:.1!important}
-    html.light #afs-glow{opacity:0!important}
-    html.light .prose-afs h2{color:#1A1816!important}
-    html.light .prose-afs h3{color:rgba(26,24,22,.85)!important}
-    html.light .prose-afs p,html.light .prose-afs ul li{color:#6B6560!important}
-    html.light .prose-afs strong{color:rgba(26,24,22,.85)!important}
-    html.light .highlight-box{background:rgba(201,168,76,.08)!important;border-color:rgba(201,168,76,.3)!important}
-    html.light .highlight-box p{color:rgba(26,24,22,.75)!important}
-    html.light .skeleton{background:linear-gradient(90deg,#ECEAE5 25%,#E0DDD8 50%,#ECEAE5 75%)!important;background-size:800px 100%!important}
-    html.light .thin-scroll::-webkit-scrollbar-thumb{background:#D4CFC7!important}
-    html.light .prose-editor{color:rgba(26,24,22,.88)!important}
-    html.light .prose-editor::placeholder{color:rgba(107,101,96,.4)!important}
-    html.light .prose-title-input{color:rgba(26,24,22,.9)!important;border-bottom-color:rgba(212,207,199,.9)!important}
-    html.light .prose-title-input::placeholder{color:rgba(107,101,96,.35)!important}
-    html.light .wp-para{color:rgba(26,24,22,.82)!important}
-    html.light .wp-scene-break{color:#6B6560!important}
-    html.light .wp-title{color:rgba(26,24,22,.9)!important}
-    html.light #edd-menu,html.light #cdd-menu{background-color:#FFFFFF!important;border-color:#D4CFC7!important}
-    html.light .digit-box{background:#ECEAE5!important;border-color:#D4CFC7!important;color:#1A1816!important}
-    html.light .digit-box.filled{border-color:rgba(201,168,76,.5)!important}
-    html.light .writer-comment-card{border-color:#D4CFC7!important}
-    html.light .fs-tool-btn:hover{background:rgba(26,24,22,.07)!important;border-color:rgba(26,24,22,.12)!important;color:#1A1816!important}
-    html.light .fs-tool-btn.active{background:rgba(201,168,76,.15)!important}
   </style>
 </head>
 
@@ -214,11 +166,6 @@
                 class="relative flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-white hover:bg-surface border border-border hover:border-white/20 transition-all duration-200">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
           <span id="notif-badge" class="hidden absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-gold text-obsidian text-[9px] font-bold rounded-full flex items-center justify-center px-0.5"></span>
-        </button>
-        <button id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode"
-                class="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-muted hover:text-white border border-border hover:border-white/20 transition-all duration-200">
-          <svg id="icon-sun" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-          <svg id="icon-moon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </button>
         <button id="sign-out-btn"
                 class="flex-shrink-0 inline-flex items-center gap-1.5 px-3 sm:px-4 py-1.5 text-sm font-medium text-muted hover:text-white border border-border hover:border-white/20 rounded-full transition-all duration-200">
@@ -393,7 +340,7 @@
                 <span id="cdd-label" class="truncate min-w-0 flex-1">All books</span>
                 <svg class="flex-shrink-0" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
               </button>
-              <div id="cdd-menu" class="hidden absolute top-full right-0 mt-1 z-[200] min-w-[150px] max-w-[220px] rounded-xl border border-border bg-charcoal shadow-xl shadow-black/70 py-1 overflow-hidden"></div>
+              <div id="cdd-menu" class="hidden absolute top-full left-0 mt-1 z-[200] min-w-[150px] max-w-[220px] rounded-xl border border-border bg-charcoal shadow-xl shadow-black/70 py-1 overflow-hidden"></div>
             </div>
           </div>
           <h2 id="cal-month-label" class="font-serif text-xl text-white">Loading…</h2>
@@ -3135,20 +3082,6 @@
       _earningsChart.data.datasets[0].pointBorderColor=l?'#F5F3EE':'#121212';
       _earningsChart.update('none');
     }
-
-    function toggleTheme(){
-      const l=document.documentElement.classList.toggle('light');
-      localStorage.setItem('afs-theme',l?'light':'dark');
-      _syncThemeIcons();
-      if(typeof _updateChartTheme==='function')_updateChartTheme();
-    }
-    function _syncThemeIcons(){
-      const l=document.documentElement.classList.contains('light');
-      const s=document.getElementById('icon-sun'),m=document.getElementById('icon-moon');
-      if(s)s.classList.toggle('hidden',l);
-      if(m)m.classList.toggle('hidden',!l);
-    }
-    document.addEventListener('DOMContentLoaded',_syncThemeIcons);
 </script>
 
 </body>
