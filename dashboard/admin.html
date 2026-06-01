@@ -5,8 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <link rel="icon" type="image/svg+xml" href="../assets/afs-favicon.svg"/>
   <title>Admin — Apex Fiction Studio</title>
-  <script>(function(){if(localStorage.getItem('afs-theme')==='light')document.documentElement.classList.add('light')})()</script>
-  <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -59,53 +58,6 @@
     .typing-dot { width:7px;height:7px;border-radius:50%;background:rgba(106,106,106,0.65);animation:typingBounce 1.1s ease-in-out infinite;flex-shrink:0; }
     @media (max-width:767px) { #admin-chat-fs-btn { display:none !important; } }
   
-    /* ── LIGHT MODE ─────────────────────────────────────────────────────────── */
-    html.light{background-color:#F5F3EE!important}
-    html.light body{background-color:#F5F3EE!important;color:#1A1816!important}
-    html.light .bg-obsidian{background-color:#F5F3EE!important}
-    html.light .bg-charcoal{background-color:#ECEAE5!important}
-    html.light .bg-surface{background-color:#FFFFFF!important}
-    html.light .text-white{color:#1A1816!important}
-    html.light .text-muted{color:#6B6560!important}
-    html.light .text-white\/90{color:rgba(26,24,22,.9)!important}
-    html.light .text-white\/80{color:rgba(26,24,22,.8)!important}
-    html.light .text-white\/75{color:rgba(26,24,22,.75)!important}
-    html.light .text-white\/70{color:rgba(26,24,22,.7)!important}
-    html.light .text-white\/60{color:rgba(26,24,22,.6)!important}
-    html.light .border-border{border-color:#D4CFC7!important}
-    html.light .border-border\/60{border-color:rgba(212,207,199,.6)!important}
-    html.light .border-white\/10{border-color:rgba(26,24,22,.1)!important}
-    html.light .border-white\/20{border-color:rgba(26,24,22,.18)!important}
-    html.light nav.rounded-full{background-color:rgba(245,243,238,.88)!important;border-color:rgba(26,24,22,.12)!important}
-    html.light .afs-logo-main{fill:#2A2724!important}
-    html.light .afs-logo-sub{fill:rgba(42,39,36,.42)!important}
-    html.light .form-input{background-color:#ECEAE5!important;color:#1A1816!important;border-color:#D4CFC7!important}
-    html.light .form-input::placeholder,html.light input::placeholder,html.light textarea::placeholder{color:rgba(107,101,96,.5)!important}
-    html.light .divider-gold{opacity:.5!important}
-    html.light footer.border-t{border-top-color:#D4CFC7!important}
-    html.light #afs-grid{opacity:.1!important}
-    html.light #afs-glow{opacity:0!important}
-    html.light .prose-afs h2{color:#1A1816!important}
-    html.light .prose-afs h3{color:rgba(26,24,22,.85)!important}
-    html.light .prose-afs p,html.light .prose-afs ul li{color:#6B6560!important}
-    html.light .prose-afs strong{color:rgba(26,24,22,.85)!important}
-    html.light .highlight-box{background:rgba(201,168,76,.08)!important;border-color:rgba(201,168,76,.3)!important}
-    html.light .highlight-box p{color:rgba(26,24,22,.75)!important}
-    html.light .skeleton{background:linear-gradient(90deg,#ECEAE5 25%,#E0DDD8 50%,#ECEAE5 75%)!important;background-size:800px 100%!important}
-    html.light .thin-scroll::-webkit-scrollbar-thumb{background:#D4CFC7!important}
-    html.light .prose-editor{color:rgba(26,24,22,.88)!important}
-    html.light .prose-editor::placeholder{color:rgba(107,101,96,.4)!important}
-    html.light .prose-title-input{color:rgba(26,24,22,.9)!important;border-bottom-color:rgba(212,207,199,.9)!important}
-    html.light .prose-title-input::placeholder{color:rgba(107,101,96,.35)!important}
-    html.light .wp-para{color:rgba(26,24,22,.82)!important}
-    html.light .wp-scene-break{color:#6B6560!important}
-    html.light .wp-title{color:rgba(26,24,22,.9)!important}
-    html.light #edd-menu,html.light #cdd-menu{background-color:#FFFFFF!important;border-color:#D4CFC7!important}
-    html.light .digit-box{background:#ECEAE5!important;border-color:#D4CFC7!important;color:#1A1816!important}
-    html.light .digit-box.filled{border-color:rgba(201,168,76,.5)!important}
-    html.light .writer-comment-card{border-color:#D4CFC7!important}
-    html.light .fs-tool-btn:hover{background:rgba(26,24,22,.07)!important;border-color:rgba(26,24,22,.12)!important;color:#1A1816!important}
-    html.light .fs-tool-btn.active{background:rgba(201,168,76,.15)!important}
   </style>
 </head>
 
@@ -115,34 +67,50 @@
   <div id="afs-grid" class="pointer-events-none fixed inset-0"
        style="z-index:0;background-image:linear-gradient(rgba(163,22,33,0.18) 1px,transparent 1px),linear-gradient(90deg,rgba(163,22,33,0.18) 1px,transparent 1px);background-size:48px 48px;-webkit-mask-image:radial-gradient(circle 520px at -9999px -9999px,black 0%,transparent 70%);mask-image:radial-gradient(circle 520px at -9999px -9999px,black 0%,transparent 70%);will-change:mask-image,-webkit-mask-image;"></div>
 
-  <!-- NAV -->
-  <header class="fixed top-5 inset-x-0 z-50 flex justify-center px-5 pointer-events-none">
-    <nav class="pointer-events-auto flex items-center justify-between gap-4 w-full max-w-5xl rounded-full bg-obsidian/80 backdrop-blur-md border border-white/10 shadow-xl shadow-black/60 px-4 py-2.5">
-      <div class="flex items-center gap-2 flex-shrink-0">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="15 18 110 52" height="36" style="clip-path:path('M0 0 H200 V14 H0 Z M0 17 H200 V36 H0 Z')" aria-label="AFS Publishing">
-          <g transform="translate(20,15)">
-            <text class="afs-logo-main" font-family="'Cinzel',Georgia,serif" font-weight="400" fill="#EEECE9" font-size="38" letter-spacing="4" x="0" y="35">AFS</text>
-            
-            <text class="afs-logo-sub" font-family="'Montserrat',system-ui,sans-serif" font-weight="400" fill="rgba(238,236,233,0.42)" font-size="9" letter-spacing="5" x="2" y="52">Publishing</text>
-          </g>
-        </svg>
-        <span class="text-[10px] font-semibold tracking-[0.18em] uppercase text-crimson-light border border-crimson/25 bg-crimson/10 rounded-full px-2.5 py-0.5">Admin</span>
-      </div>
-      <div class="flex items-center gap-3">
-        <span id="nav-name" class="hidden sm:block text-muted text-sm truncate max-w-[160px]"></span>
-        <a href="index.html" class="hidden sm:inline-flex flex-shrink-0 items-center gap-1.5 px-4 py-1.5 text-sm font-medium text-muted hover:text-white border border-border hover:border-white/20 rounded-full transition-all duration-200">Writer View</a>
-        <button id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode"
-                class="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-muted hover:text-white border border-border hover:border-white/20 transition-all duration-200">
-          <svg id="icon-sun" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-          <svg id="icon-moon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-        </button>
-        <button id="sign-out-btn" class="flex-shrink-0 inline-flex items-center gap-1.5 px-3 sm:px-4 py-1.5 text-sm font-medium text-muted hover:text-white border border-border hover:border-white/20 rounded-full transition-all duration-200">
-          <span class="hidden sm:inline">Sign Out</span>
-          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        </button>
-      </div>
-    </nav>
+  <!-- MOBILE TOP BAR -->
+  <header class="md:hidden fixed top-0 inset-x-0 z-50 flex items-center justify-between px-4 py-3 bg-charcoal/95 backdrop-blur-md border-b border-border">
+    <div class="flex items-center gap-2.5">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="15 18 110 52" height="26" style="clip-path:path('M0 0 H200 V14 H0 Z M0 17 H200 V36 H0 Z')" aria-label="AFS Publishing">
+        <g transform="translate(20,15)">
+          <text font-family="'Cinzel',Georgia,serif" font-weight="400" fill="#EEECE9" font-size="38" letter-spacing="4" x="0" y="35">AFS</text>
+          <text font-family="'Montserrat',system-ui,sans-serif" font-weight="400" fill="rgba(238,236,233,0.42)" font-size="9" letter-spacing="5" x="2" y="52">Publishing</text>
+        </g>
+      </svg>
+      <span class="text-[9px] font-bold tracking-[0.22em] uppercase text-crimson-light border border-crimson/35 bg-crimson/12 rounded-full px-2.5 py-0.5">Admin</span>
+    </div>
+    <span id="nav-name" class="text-muted text-xs truncate max-w-[130px]"></span>
   </header>
+
+  <!-- MOBILE TAB BAR (scrollable, icon + short label) -->
+  <nav class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-charcoal/95 backdrop-blur-md border-t border-border flex overflow-x-auto" style="padding-bottom:max(0px,env(safe-area-inset-bottom))">
+    <button id="tab-writers" onclick="switchSection('writers')"
+            class="flex-shrink-0 flex-1 min-w-[60px] flex flex-col items-center gap-1 px-1 py-2.5 text-crimson-light border-t-2 border-crimson transition-colors duration-200">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span class="text-[9px] font-semibold tracking-wide uppercase">Writers</span>
+    </button>
+    <button id="tab-applications" onclick="switchSection('applications')"
+            class="relative flex-shrink-0 flex-1 min-w-[60px] flex flex-col items-center gap-1 px-1 py-2.5 text-muted border-t-2 border-transparent hover:text-white transition-colors duration-200">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+      <span class="text-[9px] font-semibold tracking-wide uppercase">Apply</span>
+      <span id="tab-applications-badge" class="hidden absolute top-1.5 right-2 min-w-[16px] h-4 px-1 rounded-full bg-crimson text-white text-[9px] font-bold flex items-center justify-center"></span>
+    </button>
+    <button id="tab-contracts" onclick="switchSection('contracts')"
+            class="relative flex-shrink-0 flex-1 min-w-[60px] flex flex-col items-center gap-1 px-1 py-2.5 text-muted border-t-2 border-transparent hover:text-white transition-colors duration-200">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      <span class="text-[9px] font-semibold tracking-wide uppercase">Contracts</span>
+      <span id="tab-contracts-badge" class="hidden absolute top-1.5 right-2 min-w-[16px] h-4 px-1 rounded-full bg-gold text-obsidian text-[9px] font-bold flex items-center justify-center"></span>
+    </button>
+    <button id="tab-payments" onclick="switchSection('payments')"
+            class="flex-shrink-0 flex-1 min-w-[60px] flex flex-col items-center gap-1 px-1 py-2.5 text-muted border-t-2 border-transparent hover:text-white transition-colors duration-200">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      <span class="text-[9px] font-semibold tracking-wide uppercase">Payments</span>
+    </button>
+    <button id="tab-income" onclick="switchSection('income')"
+            class="flex-shrink-0 flex-1 min-w-[60px] flex flex-col items-center gap-1 px-1 py-2.5 text-muted border-t-2 border-transparent hover:text-white transition-colors duration-200">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      <span class="text-[9px] font-semibold tracking-wide uppercase">Income</span>
+    </button>
+  </nav>
 
   <!-- DELETE BOOK MODAL -->
   <div id="delete-book-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center px-4" style="background:rgba(0,0,0,0.82);backdrop-filter:blur(4px);">
@@ -349,112 +317,168 @@
   </div>
 
   <!-- LAYOUT -->
-  <div class="relative z-10 flex flex-col md:flex-row md:h-screen pt-20">
+  <div class="relative z-10 flex md:h-screen pt-14 md:pt-0">
 
-    <!-- SIDEBAR -->
-    <aside class="flex flex-col border-b md:border-b-0 md:w-64 md:flex-shrink-0 md:border-r border-border bg-charcoal/40 backdrop-blur-sm md:overflow-hidden">
-      <div class="flex border-b border-border flex-shrink-0">
+    <!-- DESKTOP VERTICAL SIDEBAR -->
+    <aside class="hidden md:flex flex-col flex-shrink-0 border-r border-border bg-charcoal/60 backdrop-blur-sm overflow-hidden" style="width:240px;">
+
+      <!-- Logo + Admin pill -->
+      <div class="flex items-center gap-3 px-5 py-5 border-b border-border/60 flex-shrink-0">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="15 18 110 52" height="28" style="clip-path:path('M0 0 H200 V14 H0 Z M0 17 H200 V36 H0 Z')" aria-label="AFS Publishing">
+          <g transform="translate(20,15)">
+            <text font-family="'Cinzel',Georgia,serif" font-weight="400" fill="#EEECE9" font-size="38" letter-spacing="4" x="0" y="35">AFS</text>
+            <text font-family="'Montserrat',system-ui,sans-serif" font-weight="400" fill="rgba(238,236,233,0.42)" font-size="9" letter-spacing="5" x="2" y="52">Publishing</text>
+          </g>
+        </svg>
+        <span class="text-[9px] font-bold tracking-[0.22em] uppercase text-crimson-light border border-crimson/35 bg-crimson/12 rounded-full px-2.5 py-0.5 flex-shrink-0">Admin</span>
+      </div>
+
+      <!-- Vertical nav items -->
+      <nav class="flex-shrink-0 py-3 space-y-0.5 px-2">
+
         <button id="tab-writers" onclick="switchSection('writers')"
-                class="flex-1 px-2 py-3.5 text-[10px] font-semibold tracking-[0.16em] uppercase transition-colors duration-200 text-crimson-light border-b-2 border-crimson">
-          Writers
+                class="group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-crimson-light bg-crimson/8 border-l-[3px] border-crimson transition-all duration-200 hover:bg-crimson/12">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span class="text-[12px] font-semibold tracking-wide">Writers</span>
         </button>
-        <button id="tab-income" onclick="switchSection('income')"
-                class="flex-1 px-2 py-3.5 text-[10px] font-semibold tracking-[0.16em] uppercase transition-colors duration-200 text-muted border-b-2 border-transparent hover:text-white">
-          Income
-        </button>
+
         <button id="tab-applications" onclick="switchSection('applications')"
-                class="flex-1 px-2 py-3.5 text-[10px] font-semibold tracking-[0.16em] uppercase transition-colors duration-200 text-muted border-b-2 border-transparent hover:text-white relative">
-          Apply
-          <span id="tab-applications-badge" class="hidden absolute top-2 right-2 min-w-[16px] h-4 px-1 rounded-full bg-crimson text-white text-[9px] font-bold flex items-center justify-center"></span>
+                class="group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted border-l-[3px] border-transparent hover:text-white hover:bg-white/5 transition-all duration-200">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+          <span class="text-[12px] font-semibold tracking-wide flex-1 text-left">Applications</span>
+          <span id="tab-applications-badge" class="hidden min-w-[18px] h-[18px] px-1 rounded-full bg-crimson text-white text-[9px] font-bold flex items-center justify-center flex-shrink-0"></span>
         </button>
-        <button id="tab-payments" onclick="switchSection('payments')"
-                class="relative flex-1 px-2 py-3.5 text-[10px] font-semibold tracking-[0.16em] uppercase transition-colors duration-200 text-muted border-b-2 border-transparent hover:text-white">
-          Pay
-        </button>
+
         <button id="tab-contracts" onclick="switchSection('contracts')"
-                class="relative flex-1 px-2 py-3.5 text-[10px] font-semibold tracking-[0.16em] uppercase transition-colors duration-200 text-muted border-b-2 border-transparent hover:text-white">
-          Sign
-          <span id="tab-contracts-badge" class="hidden absolute top-2 right-2 min-w-[16px] h-4 px-1 rounded-full bg-gold text-obsidian text-[9px] font-bold flex items-center justify-center"></span>
+                class="group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted border-l-[3px] border-transparent hover:text-white hover:bg-white/5 transition-all duration-200">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          <span class="text-[12px] font-semibold tracking-wide flex-1 text-left">Contracts</span>
+          <span id="tab-contracts-badge" class="hidden min-w-[18px] h-[18px] px-1 rounded-full bg-gold text-obsidian text-[9px] font-bold flex items-center justify-center flex-shrink-0"></span>
         </button>
-      </div>
 
-      <div id="sidebar-writers" class="flex flex-col flex-1 overflow-hidden">
-        <p class="px-4 pt-4 pb-2 text-[10px] font-semibold tracking-[0.18em] uppercase text-muted flex-shrink-0">All Writers</p>
-        <div id="writers-list" class="overflow-y-auto thin-scroll px-2 pb-4 space-y-1 max-h-44 md:max-h-none md:flex-1">
-          <div class="skeleton h-10 w-full"></div>
-          <div class="skeleton h-10 w-full mt-1"></div>
-        </div>
-      </div>
+        <button id="tab-payments" onclick="switchSection('payments')"
+                class="group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted border-l-[3px] border-transparent hover:text-white hover:bg-white/5 transition-all duration-200">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          <span class="text-[12px] font-semibold tracking-wide">Payments</span>
+        </button>
 
-      <div id="sidebar-income" class="hidden flex-col flex-1 overflow-hidden">
-        <p class="px-4 pt-4 pb-2 text-[10px] font-semibold tracking-[0.18em] uppercase text-muted flex-shrink-0">Writers</p>
-        <div id="writer-list" class="overflow-y-auto thin-scroll px-2 pb-4 space-y-1 max-h-44 md:max-h-none md:flex-1"></div>
-      </div>
+        <button id="tab-income" onclick="switchSection('income')"
+                class="group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted border-l-[3px] border-transparent hover:text-white hover:bg-white/5 transition-all duration-200">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          <span class="text-[12px] font-semibold tracking-wide">Income</span>
+        </button>
 
-      <div id="sidebar-applications" class="hidden flex-col flex-1 overflow-hidden">
-        <p class="px-4 pt-4 pb-2 text-[10px] font-semibold tracking-[0.18em] uppercase text-muted flex-shrink-0">Overview</p>
-        <div class="px-3 pb-4 space-y-2">
-          <div class="rounded-xl bg-charcoal border border-border p-3 text-center">
-            <p id="pending-count" class="text-2xl font-bold text-yellow-400 font-serif">—</p>
-            <p class="text-[10px] text-muted tracking-wide uppercase mt-0.5">Pending</p>
-          </div>
-          <div class="rounded-xl bg-charcoal border border-border p-3 text-center">
-            <p id="approved-count" class="text-2xl font-bold text-green-400 font-serif">—</p>
-            <p class="text-[10px] text-muted tracking-wide uppercase mt-0.5">Approved</p>
-          </div>
-          <div class="rounded-xl bg-charcoal border border-border p-3 text-center">
-            <p id="rejected-count" class="text-2xl font-bold text-muted font-serif">—</p>
-            <p class="text-[10px] text-muted tracking-wide uppercase mt-0.5">Rejected</p>
+      </nav>
+
+      <!-- Divider -->
+      <div class="h-px bg-border/50 mx-4 my-1 flex-shrink-0"></div>
+
+      <!-- Contextual sub-panels (below nav) -->
+      <div class="flex-1 overflow-y-auto thin-scroll">
+
+        <!-- Writers sub-panel -->
+        <div id="sidebar-writers" class="flex flex-col">
+          <p class="px-4 pt-4 pb-2 text-[9px] font-bold tracking-[0.22em] uppercase text-muted/70 flex-shrink-0">All Writers</p>
+          <div id="writers-list" class="px-2 pb-4 space-y-0.5">
+            <div class="skeleton h-10 w-full rounded-lg"></div>
+            <div class="skeleton h-10 w-full rounded-lg mt-1"></div>
           </div>
         </div>
+
+        <!-- Income sub-panel -->
+        <div id="sidebar-income" class="hidden flex-col">
+          <p class="px-4 pt-4 pb-2 text-[9px] font-bold tracking-[0.22em] uppercase text-muted/70">Writers</p>
+          <div id="writer-list" class="px-2 pb-4 space-y-0.5"></div>
+        </div>
+
+        <!-- Applications sub-panel -->
+        <div id="sidebar-applications" class="hidden flex-col">
+          <p class="px-4 pt-4 pb-2 text-[9px] font-bold tracking-[0.22em] uppercase text-muted/70">Overview</p>
+          <div class="px-3 pb-4 space-y-2">
+            <div class="rounded-xl bg-obsidian border border-border p-3 text-center">
+              <p id="pending-count" class="text-2xl font-bold text-yellow-400 font-serif">—</p>
+              <p class="text-[9px] text-muted tracking-widest uppercase mt-0.5">Pending</p>
+            </div>
+            <div class="rounded-xl bg-obsidian border border-border p-3 text-center">
+              <p id="approved-count" class="text-2xl font-bold text-green-400 font-serif">—</p>
+              <p class="text-[9px] text-muted tracking-widest uppercase mt-0.5">Approved</p>
+            </div>
+            <div class="rounded-xl bg-obsidian border border-border p-3 text-center">
+              <p id="rejected-count" class="text-2xl font-bold text-muted font-serif">—</p>
+              <p class="text-[9px] text-muted tracking-widest uppercase mt-0.5">Rejected</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Payments sub-panel -->
+        <div id="sidebar-payments" class="hidden flex-col">
+          <p class="px-4 pt-4 pb-2 text-[9px] font-bold tracking-[0.22em] uppercase text-muted/70">Writers</p>
+          <div id="payout-writer-list" class="px-2 pb-4 space-y-0.5"></div>
+        </div>
+
+        <!-- Contracts sub-panel -->
+        <div id="sidebar-contracts" class="hidden flex-col">
+          <p class="px-4 pt-4 pb-2 text-[9px] font-bold tracking-[0.22em] uppercase text-muted/70">Contract Status</p>
+          <div id="contract-writer-list" class="px-2 pb-4 space-y-0.5"></div>
+        </div>
+
       </div>
 
-      <div id="sidebar-payments" class="hidden flex-col flex-1 overflow-hidden">
-        <p class="px-4 pt-4 pb-2 text-[10px] font-semibold tracking-[0.18em] uppercase text-muted flex-shrink-0">Writers</p>
-        <div id="payout-writer-list" class="overflow-y-auto thin-scroll px-2 pb-4 space-y-1 max-h-44 md:max-h-none md:flex-1"></div>
-      </div>
-
-      <div id="sidebar-contracts" class="hidden flex-col flex-1 overflow-hidden">
-        <p class="px-4 pt-4 pb-2 text-[10px] font-semibold tracking-[0.18em] uppercase text-muted flex-shrink-0">Contract Status</p>
-        <div id="contract-writer-list" class="overflow-y-auto thin-scroll px-2 pb-4 space-y-1 max-h-44 md:max-h-none md:flex-1"></div>
+      <!-- Sign out pinned to bottom -->
+      <div class="flex-shrink-0 px-4 py-4 border-t border-border/50">
+        <div class="flex items-center justify-between mb-3">
+          <span class="admin-nav-name text-muted text-[11px] truncate max-w-[130px]"></span>
+        </div>
+        <button id="sign-out-btn"
+                class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-muted hover:text-white hover:bg-white/5 border border-transparent hover:border-border/50 text-[11px] font-medium transition-all duration-200">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Sign Out
+        </button>
       </div>
     </aside>
 
     <!-- MAIN -->
-    <main class="flex-1 overflow-y-auto thin-scroll">
+    <main class="flex-1 overflow-y-auto thin-scroll md:h-screen pb-20 md:pb-0">
 
       <!-- WRITERS PANEL -->
       <div id="panel-writers" class="md:h-full">
 
         <!-- Level 0: empty -->
-        <div id="view-empty" class="flex flex-col items-center justify-center min-h-[50vh] md:h-full text-center px-8">
-          <div class="w-16 h-16 rounded-2xl bg-surface border border-border flex items-center justify-center mb-5">
-            <svg class="w-7 h-7 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <div id="view-empty" class="flex flex-col items-center justify-center min-h-[60vh] md:h-full text-center px-8 py-16">
+          <div class="w-20 h-20 rounded-2xl bg-surface border border-border flex items-center justify-center mb-6 shadow-lg shadow-black/30">
+            <svg class="w-9 h-9 text-muted/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.3">
               <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/>
             </svg>
           </div>
-          <h2 class="font-serif text-2xl text-white mb-2">Select a Writer</h2>
-          <p class="text-muted text-sm max-w-xs leading-relaxed">Choose a writer from the sidebar to view their books and manage chapters.</p>
+          <h2 class="font-serif text-3xl text-white mb-3">Select a Writer</h2>
+          <p class="text-muted text-sm max-w-xs leading-relaxed">Choose a writer from the sidebar to view their books, chapters, and manage their work.</p>
         </div>
 
         <!-- Level 1: writer's books -->
-        <div id="view-writer-books" class="hidden p-4 md:p-6">
-          <div class="flex items-start justify-between gap-4 mb-6">
+        <div id="view-writer-books" class="hidden p-5 md:p-7">
+          <!-- Writer header -->
+          <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-7 pb-6 border-b border-border/50">
             <div>
-              <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-crimson-light mb-1">Writer</p>
-              <h2 id="writer-name-heading" class="font-serif text-3xl text-white"></h2>
-              <p id="writer-email-heading" class="text-muted text-sm mt-0.5"></p>
+              <p class="text-[10px] font-bold tracking-[0.22em] uppercase text-crimson-light mb-1.5">Writer Profile</p>
+              <h2 id="writer-name-heading" class="font-serif text-3xl text-white leading-tight mb-1"></h2>
+              <span id="writer-email-heading" class="inline-block text-[11px] text-muted/80 bg-charcoal border border-border rounded-full px-3 py-0.5 mt-0.5"></span>
             </div>
-            <div class="flex gap-2 flex-shrink-0 flex-wrap justify-end">
+            <!-- Action buttons row — Brief, Payout, Send Contract all visible -->
+            <div class="flex items-center gap-2 flex-shrink-0 flex-wrap">
               <button onclick="openBriefModal()"
-                      class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface hover:bg-charcoal border border-border hover:border-white/20 text-white text-xs font-medium rounded-lg transition-all duration-200">
-                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                Brief
+                      class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-surface hover:bg-charcoal border border-border hover:border-white/25 text-white/80 hover:text-white text-xs font-medium rounded-lg transition-all duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                Assign Brief
               </button>
               <button onclick="openPayoutModal(selectedWriter?.id)"
-                      class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gold/10 hover:bg-gold/20 border border-gold/30 hover:border-gold/60 text-gold text-xs font-medium rounded-lg transition-all duration-200">
-                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                Payout
+                      class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gold/10 hover:bg-gold/20 border border-gold/30 hover:border-gold/55 text-gold text-xs font-medium rounded-lg transition-all duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                Record Payout
+              </button>
+              <button onclick="selectedWriter && sendContractToWriter(selectedWriter.id, selectedWriter.full_name || selectedWriter.name, selectedWriter.email)"
+                      class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-crimson hover:bg-crimson-light border border-crimson/60 hover:border-crimson text-white text-xs font-semibold rounded-lg transition-all duration-200 shadow-md shadow-crimson/20">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                Send Contract
               </button>
             </div>
           </div>
@@ -707,41 +731,60 @@
       </div>
 
       <!-- CONTRACTS PANEL -->
-      <div id="panel-contracts" class="hidden p-4 md:p-6">
-        <div class="mb-6">
-          <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted mb-1">Contracts</p>
-          <h2 class="font-serif text-2xl text-white">Signing Management</h2>
-          <p class="text-muted text-sm mt-1">Send contracts to approved writers and track signatures.</p>
+      <div id="panel-contracts" class="hidden p-5 md:p-7">
+        <div class="mb-7">
+          <p class="text-[10px] font-bold tracking-[0.22em] uppercase text-crimson-light mb-1.5">Management</p>
+          <h2 class="font-serif text-2xl sm:text-3xl text-white mb-1">Contract Signing</h2>
+          <p class="text-muted text-sm">Send contracts to approved writers and track their signatures.</p>
+        </div>
+        <!-- Summary cards -->
+        <div class="grid grid-cols-3 gap-3 mb-7">
+          <div class="rounded-xl bg-surface border border-border p-4 text-center">
+            <p id="contracts-total-count" class="text-2xl font-bold text-white font-serif">—</p>
+            <p class="text-[9px] text-muted tracking-widest uppercase mt-1">Total Sent</p>
+          </div>
+          <div class="rounded-xl bg-surface border border-border p-4 text-center">
+            <p id="contracts-signed-count" class="text-2xl font-bold text-emerald-400 font-serif">—</p>
+            <p class="text-[9px] text-muted tracking-widest uppercase mt-1">Signed</p>
+          </div>
+          <div class="rounded-xl bg-surface border border-border p-4 text-center">
+            <p id="contracts-pending-count" class="text-2xl font-bold text-gold font-serif">—</p>
+            <p class="text-[9px] text-muted tracking-widest uppercase mt-1">Pending</p>
+          </div>
         </div>
         <div id="contracts-list" class="space-y-3"></div>
-        <div id="contracts-empty" class="hidden text-center py-12">
-          <p class="text-muted text-sm">No contracts sent yet.</p>
+        <div id="contracts-empty" class="hidden text-center py-16">
+          <div class="w-14 h-14 rounded-2xl bg-surface border border-border flex items-center justify-center mx-auto mb-4">
+            <svg class="w-6 h-6 text-muted/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
+          </div>
+          <p class="text-white/60 text-sm font-medium mb-1">No contracts sent yet</p>
+          <p class="text-muted text-xs">Select a writer from the sidebar to send their contract.</p>
         </div>
       </div>
 
       <!-- APPLICATIONS PANEL -->
-      <div id="panel-applications" class="hidden p-4 md:p-6">
-        <div class="mb-5 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      <div id="panel-applications" class="hidden p-5 md:p-7">
+        <div class="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
-            <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-crimson-light mb-2">Applications</p>
-            <h2 class="font-serif text-2xl sm:text-3xl text-white">Writer Applications</h2>
-            <p class="text-muted text-sm mt-1">Review, approve, or reject incoming applications.</p>
+            <p class="text-[10px] font-bold tracking-[0.22em] uppercase text-crimson-light mb-1.5">Inbox</p>
+            <h2 class="font-serif text-2xl sm:text-3xl text-white mb-1">Writer Applications</h2>
+            <p class="text-muted text-sm">Review, approve, or reject incoming writer applications.</p>
           </div>
-          <div class="flex gap-1 flex-shrink-0">
+          <div class="flex gap-1.5 flex-shrink-0">
             <button id="filter-pending"  onclick="filterApplications('pending')"
                     class="px-3 py-1.5 rounded-lg text-[10px] font-semibold tracking-wide uppercase border transition-colors bg-crimson/15 text-crimson-light border-crimson/30">
               Pending
             </button>
             <button id="filter-approved" onclick="filterApplications('approved')"
-                    class="px-3 py-1.5 rounded-lg text-[10px] font-semibold tracking-wide uppercase border transition-colors text-muted border-transparent hover:text-white">
+                    class="px-3 py-1.5 rounded-lg text-[10px] font-semibold tracking-wide uppercase border transition-colors text-muted border-transparent hover:text-white hover:bg-white/5">
               Approved
             </button>
             <button id="filter-rejected" onclick="filterApplications('rejected')"
-                    class="px-3 py-1.5 rounded-lg text-[10px] font-semibold tracking-wide uppercase border transition-colors text-muted border-transparent hover:text-white">
+                    class="px-3 py-1.5 rounded-lg text-[10px] font-semibold tracking-wide uppercase border transition-colors text-muted border-transparent hover:text-white hover:bg-white/5">
               Rejected
             </button>
             <button id="filter-all"      onclick="filterApplications('all')"
-                    class="px-3 py-1.5 rounded-lg text-[10px] font-semibold tracking-wide uppercase border transition-colors text-muted border-transparent hover:text-white">
+                    class="px-3 py-1.5 rounded-lg text-[10px] font-semibold tracking-wide uppercase border transition-colors text-muted border-transparent hover:text-white hover:bg-white/5">
               All
             </button>
           </div>
@@ -2844,20 +2887,18 @@
       window.addEventListener('mousemove', e => { curX=e.clientX; curY=e.clientY; if(!raf) raf=requestAnimationFrame(paint); }, {passive:true});
       document.addEventListener('mouseleave', () => { curX=-9999; curY=-9999; if(!raf) raf=requestAnimationFrame(paint); });
     }
-
-    function toggleTheme(){
-      const l=document.documentElement.classList.toggle('light');
-      localStorage.setItem('afs-theme',l?'light':'dark');
-      _syncThemeIcons();
-      if(typeof _updateChartTheme==='function')_updateChartTheme();
-    }
-    function _syncThemeIcons(){
-      const l=document.documentElement.classList.contains('light');
-      const s=document.getElementById('icon-sun'),m=document.getElementById('icon-moon');
-      if(s)s.classList.toggle('hidden',l);
-      if(m)m.classList.toggle('hidden',!l);
-    }
-    document.addEventListener('DOMContentLoaded',_syncThemeIcons);
 </script>
+  <script>
+    // Mirror nav-name to desktop sidebar name display
+    (function() {
+      const src = document.getElementById('nav-name');
+      const targets = document.querySelectorAll('.admin-nav-name');
+      if (!src || !targets.length) return;
+      const obs = new MutationObserver(() => {
+        targets.forEach(t => { t.textContent = src.textContent; });
+      });
+      obs.observe(src, { childList: true, characterData: true, subtree: true });
+    })();
+  </script>
 </body>
 </html>
