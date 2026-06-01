@@ -218,7 +218,7 @@
     </div>
 
     <!-- CHART -->
-    <div class="rounded-2xl border border-border bg-surface p-4 sm:p-6 mb-6 sm:mb-8 relative overflow-hidden">
+    <div class="rounded-2xl border border-border bg-surface p-4 sm:p-6 mb-6 sm:mb-8 relative">
       <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent"></div>
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-5 sm:mb-6">
         <div>
@@ -227,11 +227,11 @@
             <!-- Custom book picker -->
             <div class="relative" id="edd-wrap">
               <button onclick="_toggleDD('edd')"
-                      class="flex items-center gap-1 text-[10px] text-white/60 bg-charcoal border border-border/60 rounded-md px-1.5 py-0.5 hover:border-gold/40 hover:text-white/80 transition-colors">
-                <span id="edd-label">All books</span>
-                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                      class="flex items-center gap-1 max-w-[110px] overflow-hidden text-[10px] text-white/60 bg-charcoal border border-border/60 rounded-md px-1.5 py-0.5 hover:border-gold/40 hover:text-white/80 transition-colors">
+                <span id="edd-label" class="truncate min-w-0 flex-1">All books</span>
+                <svg class="flex-shrink-0" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
               </button>
-              <div id="edd-menu" class="hidden absolute top-full left-0 mt-1 z-[200] min-w-[150px] max-w-[220px] rounded-xl border border-border bg-charcoal shadow-xl shadow-black/70 py-1 overflow-hidden"></div>
+              <div id="edd-menu" class="hidden absolute top-full right-0 mt-1 z-[200] min-w-[150px] max-w-[220px] rounded-xl border border-border bg-charcoal shadow-xl shadow-black/70 py-1 overflow-hidden"></div>
             </div>
           </div>
           <p class="text-muted text-xs">Last 30 days — updated every morning</p>
@@ -245,7 +245,7 @@
     </div>
 
     <!-- UPDATE SCHEDULE CALENDAR -->
-    <div id="cal-card" class="rounded-2xl border border-border bg-surface p-5 sm:p-6 mb-8 relative overflow-hidden">
+    <div id="cal-card" class="rounded-2xl border border-border bg-surface p-5 sm:p-6 mb-8 relative">
       <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent"></div>
 
       <!-- Header -->
@@ -256,11 +256,11 @@
             <!-- Custom book picker -->
             <div class="relative" id="cdd-wrap">
               <button onclick="_toggleDD('cdd')"
-                      class="flex items-center gap-1 text-[10px] text-white/60 bg-charcoal border border-border/60 rounded-md px-1.5 py-0.5 hover:border-gold/40 hover:text-white/80 transition-colors">
-                <span id="cdd-label">All books</span>
-                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                      class="flex items-center gap-1 max-w-[110px] overflow-hidden text-[10px] text-white/60 bg-charcoal border border-border/60 rounded-md px-1.5 py-0.5 hover:border-gold/40 hover:text-white/80 transition-colors">
+                <span id="cdd-label" class="truncate min-w-0 flex-1">All books</span>
+                <svg class="flex-shrink-0" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
               </button>
-              <div id="cdd-menu" class="hidden absolute top-full left-0 mt-1 z-[200] min-w-[150px] max-w-[220px] rounded-xl border border-border bg-charcoal shadow-xl shadow-black/70 py-1 overflow-hidden"></div>
+              <div id="cdd-menu" class="hidden absolute top-full right-0 mt-1 z-[200] min-w-[150px] max-w-[220px] rounded-xl border border-border bg-charcoal shadow-xl shadow-black/70 py-1 overflow-hidden"></div>
             </div>
           </div>
           <h2 id="cal-month-label" class="font-serif text-xl text-white">Loading…</h2>
