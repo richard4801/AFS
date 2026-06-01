@@ -137,6 +137,63 @@
               mask-image: radial-gradient(circle 520px at -9999px -9999px,black 0%,transparent 70%);
               will-change: mask-image,-webkit-mask-image;"></div>
 
+  <!-- CONTRACT SIGNING MODAL -->
+  <div id="contract-modal" class="hidden fixed inset-0 z-[80] flex flex-col" style="background:rgba(0,0,0,0.92);backdrop-filter:blur(6px);">
+    <div class="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-border flex-shrink-0">
+      <div>
+        <p class="text-[10px] font-semibold tracking-widest uppercase text-gold mb-0.5">AFS &mdash; Confidential</p>
+        <h2 class="text-white text-sm font-semibold">Independent Contractor Agreement</h2>
+      </div>
+      <button onclick="closeContractModal()" class="w-8 h-8 rounded-full border border-border hover:border-white/20 flex items-center justify-center text-muted hover:text-white transition-colors">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <!-- Scroll progress bar -->
+    <div class="flex-shrink-0 h-0.5 bg-border">
+      <div id="contract-progress" class="h-full bg-gold transition-all duration-300" style="width:0%"></div>
+    </div>
+
+    <!-- iframe viewer -->
+    <div class="flex-1 overflow-hidden relative">
+      <iframe id="contract-iframe" src="" class="w-full h-full border-0" title="AFS Independent Contractor Agreement"></iframe>
+    </div>
+
+    <!-- Signature section (locked until scrolled) -->
+    <div class="flex-shrink-0 border-t border-border bg-charcoal/80 backdrop-blur-sm">
+      <div id="contract-scroll-hint" class="px-4 sm:px-6 py-3 flex items-center gap-2 text-muted text-xs">
+        <svg class="animate-bounce flex-shrink-0" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
+        Scroll through the full contract above before signing
+      </div>
+      <div id="contract-sign-form" class="hidden px-4 sm:px-6 py-4">
+        <div id="contract-signed-state" class="hidden text-center py-2">
+          <div class="inline-flex items-center gap-2 text-green-400 text-sm font-medium mb-1">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Contract signed successfully
+          </div>
+          <p id="contract-signed-timestamp" class="text-muted text-xs"></p>
+        </div>
+        <div id="contract-input-state">
+          <p class="text-white/70 text-xs mb-3">By signing, you confirm you have read and agree to all terms above.</p>
+          <div class="flex flex-col sm:flex-row gap-3">
+            <input id="contract-name-input" type="text" placeholder="Your full legal name"
+              class="flex-1 form-input bg-surface border border-border rounded-xl px-3 py-2.5 text-sm text-white placeholder-muted focus:outline-none focus:border-gold/60 focus:ring-1 focus:ring-gold/20"/>
+            <label class="flex items-center gap-2 cursor-pointer flex-shrink-0 self-center">
+              <input id="contract-agree-check" type="checkbox" class="w-4 h-4 rounded border-border accent-gold cursor-pointer"/>
+              <span class="text-xs text-muted">I agree to all terms</span>
+            </label>
+            <button id="contract-sign-btn" onclick="submitContractSignature()"
+              class="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 bg-gold text-obsidian text-xs font-bold rounded-xl hover:bg-gold-light transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed">
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              Sign Contract
+            </button>
+          </div>
+          <div id="contract-sign-error" class="hidden mt-2 text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- NAV -->
   <header class="fixed top-4 sm:top-5 inset-x-0 z-50 flex justify-center px-3 sm:px-5 pointer-events-none">
     <nav class="pointer-events-auto flex items-center justify-between gap-3 sm:gap-6 w-full max-w-4xl rounded-full bg-obsidian/70 backdrop-blur-md border border-white/10 shadow-xl shadow-black/60 px-4 py-2.5">
@@ -184,6 +241,28 @@
         Good to see you, <span id="greeting-name" class="italic">Writer</span>.
       </h1>
       <p class="text-muted text-sm mt-1" id="today-date"></p>
+    </div>
+
+    <!-- CONTRACT SIGNING BANNER -->
+    <div id="contract-banner" class="hidden relative rounded-2xl border border-gold/40 bg-surface p-5 sm:p-6 mb-8 overflow-hidden">
+      <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/50 to-transparent"></div>
+      <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse at top right,rgba(201,168,76,0.07) 0%,transparent 60%)"></div>
+      <div class="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="flex items-start gap-3">
+          <div class="w-9 h-9 rounded-full bg-gold/15 border border-gold/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </div>
+          <div>
+            <p class="text-[10px] font-semibold tracking-widest uppercase text-gold mb-0.5">Action Required</p>
+            <h3 class="text-white text-sm font-medium mb-1">Your contract awaits your signature</h3>
+            <p class="text-muted text-xs leading-relaxed">Review and sign your AFS Independent Contractor Agreement to activate your earnings dashboard and begin writing.</p>
+          </div>
+        </div>
+        <button onclick="openContractModal()" class="flex-shrink-0 inline-flex items-center gap-2 px-4 py-2 bg-gold/10 hover:bg-gold/20 border border-gold/30 hover:border-gold/60 text-gold text-xs font-semibold rounded-full transition-all duration-200 whitespace-nowrap">
+          Review &amp; Sign
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </button>
+      </div>
     </div>
 
     <!-- ONBOARDING WELCOME CARD (hidden by default, shown for new writers) -->
@@ -2567,6 +2646,7 @@
       loadBrief();
       loadPayouts();
       await loadBooks();
+      checkContractStatus();
 
       // Realtime: re-render books when admin updates a book (e.g. signs it)
       db.channel('writer-books-' + currentUserId)
@@ -2583,6 +2663,156 @@
         })
         .subscribe();
     })();
+
+    // ── CONTRACT SIGNING ──────────────────────────────────────────────
+    let _contractId = null;
+    let _contractScrolled = false;
+
+    async function checkContractStatus() {
+      const { data: { user } } = await db.auth.getUser();
+      if (!user) return;
+      const { data: rows } = await db.from('contracts')
+        .select('id,status,signed_at,name_signed,doc_version')
+        .eq('writer_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      if (!rows || rows.length === 0) return;
+      const c = rows[0];
+      _contractId = c.id;
+      if (c.status === 'pending') {
+        $('contract-banner').classList.remove('hidden');
+      }
+    }
+
+    function _buildContractHTML(profile) {
+      const name    = profile.full_name || profile.name || '{{WRITER_NAME}}';
+      const email   = profile.email     || '{{WRITER_EMAIL}}';
+      const country = profile.country   || '{{WRITER_COUNTRY}}';
+      const payment = profile.payoneer  || profile.bank_details || profile.payment_info || '{{WRITER_PAYMENT}}';
+      const date    = new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
+      return fetch('../assets/contract-v1.html')
+        .then(r => r.text())
+        .then(html => html
+          .replace(/\{\{WRITER_NAME\}\}/g,    escHtml(name))
+          .replace(/\{\{WRITER_EMAIL\}\}/g,   escHtml(email))
+          .replace(/\{\{WRITER_COUNTRY\}\}/g, escHtml(country))
+          .replace(/\{\{WRITER_PAYMENT\}\}/g, escHtml(payment))
+          .replace(/\{\{EFFECTIVE_DATE\}\}/g, date)
+        );
+    }
+
+    async function openContractModal() {
+      $('contract-modal').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      _contractScrolled = false;
+      $('contract-scroll-hint').classList.remove('hidden');
+      $('contract-sign-form').classList.add('hidden');
+      $('contract-progress').style.width = '0%';
+
+      // Reset sign form state
+      $('contract-input-state').classList.remove('hidden');
+      $('contract-signed-state').classList.add('hidden');
+      const btn = $('contract-sign-btn');
+      btn.disabled = false;
+      btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> Sign Contract';
+      $('contract-name-input').value = '';
+      $('contract-agree-check').checked = false;
+      $('contract-sign-error').classList.add('hidden');
+
+      // Load personalized contract into iframe
+      const { data: { user } } = await db.auth.getUser();
+      const { data: profile } = await db.from('profiles').select('*').eq('id', user.id).single();
+      const html = await _buildContractHTML(profile || {});
+      const blob = new Blob([html], { type: 'text/html' });
+      const blobUrl = URL.createObjectURL(blob);
+      const iframe = $('contract-iframe');
+      iframe.src = blobUrl;
+
+      // Scroll detection via iframe contentWindow
+      iframe.onload = () => {
+        try {
+          const iDoc = iframe.contentDocument || iframe.contentWindow.document;
+          const scrollEl = iDoc.scrollingElement || iDoc.documentElement;
+          iDoc.addEventListener('scroll', () => {
+            const pct = scrollEl.scrollTop / (scrollEl.scrollHeight - scrollEl.clientHeight);
+            const pctClamped = Math.min(100, Math.round(pct * 100));
+            $('contract-progress').style.width = pctClamped + '%';
+            if (pct >= 0.88 && !_contractScrolled) {
+              _contractScrolled = true;
+              $('contract-scroll-hint').classList.add('hidden');
+              $('contract-sign-form').classList.remove('hidden');
+            }
+          }, { passive: true });
+        } catch(e) {
+          // Fallback: unlock after 6 seconds
+          setTimeout(() => {
+            if (!_contractScrolled) {
+              _contractScrolled = true;
+              $('contract-scroll-hint').classList.add('hidden');
+              $('contract-sign-form').classList.remove('hidden');
+            }
+          }, 6000);
+        }
+      };
+    }
+
+    function closeContractModal() {
+      $('contract-modal').classList.add('hidden');
+      document.body.style.overflow = '';
+      const iframe = $('contract-iframe');
+      if (iframe.src && iframe.src.startsWith('blob:')) URL.revokeObjectURL(iframe.src);
+      iframe.src = '';
+    }
+
+    async function submitContractSignature() {
+      const name   = $('contract-name-input').value.trim();
+      const agreed = $('contract-agree-check').checked;
+      $('contract-sign-error').classList.add('hidden');
+      if (!name)                       { showContractError('Please enter your full legal name.'); return; }
+      if (name.split(' ').length < 2)  { showContractError('Please enter your full name (first and last).'); return; }
+      if (!agreed)                     { showContractError('Please confirm you have read and agree to the terms.'); return; }
+      if (!_contractId)                { showContractError('Contract record not found. Please refresh and try again.'); return; }
+
+      const btn = $('contract-sign-btn');
+      btn.disabled = true;
+      btn.textContent = 'Signing…';
+
+      const { error } = await db.from('contracts')
+        .update({
+          status:      'signed',
+          signed_at:   new Date().toISOString(),
+          name_signed: name,
+          user_agent:  navigator.userAgent,
+        })
+        .eq('id', _contractId)
+        .eq('status', 'pending');
+
+      if (error) {
+        btn.disabled = false;
+        btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> Sign Contract';
+        showContractError('Could not save signature. Please try again.');
+        return;
+      }
+
+      // Show success
+      $('contract-input-state').classList.add('hidden');
+      $('contract-signed-state').classList.remove('hidden');
+      const now = new Date();
+      $('contract-signed-timestamp').textContent =
+        'Signed on ' + now.toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' }) +
+        ' at ' + now.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+      $('contract-banner').classList.add('hidden');
+      $('contract-progress').style.width = '100%';
+
+      // Close modal after 3 seconds
+      setTimeout(closeContractModal, 3000);
+    }
+
+    function showContractError(msg) {
+      const el = $('contract-sign-error');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+    }
   </script>
 
   <!-- Cursor spotlight: mobile drift / desktop cursor -->
