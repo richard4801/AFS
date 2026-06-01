@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AFS Independent Contractor Agreement</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Plus+Jakarta+Sans:wght@400;600&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      background: #FAFAF8;
+      color: #2A2724;
+      font-family: 'EB Garamond', Georgia, serif;
+      font-size: 11pt;
+      line-height: 1.9;
+    }
+
+    body {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 60px 80px;
+    }
+
+    /* ── TITLE BLOCK ── */
+    .doc-title {
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      font-weight: 600;
+      font-size: 13.5pt;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      text-align: center;
+      color: #2A2724;
+      margin-bottom: 6px;
+    }
+
+    .doc-subtitle {
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      font-weight: 400;
+      font-size: 8.5pt;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      text-align: center;
+      color: #8A7D6A;
+      margin-bottom: 22px;
+    }
+
+    .gold-rule {
+      border: none;
+      height: 1px;
+      background: linear-gradient(to right, transparent, #C9A84C 20%, #C9A84C 80%, transparent);
+      margin: 0 auto 28px;
+      width: 100%;
+    }
+
+    /* ── PARTIES BLOCK ── */
+    .parties-block {
+      margin: 0 0 28px 0;
+      font-size: 10.5pt;
+      line-height: 1.85;
+    }
+
+    .parties-block p {
+      margin-bottom: 4px;
+    }
+
+    .party-label {
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      font-weight: 600;
+      font-size: 8pt;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #8A7D6A;
+      margin-bottom: 4px;
+      margin-top: 14px;
+    }
+
+    .party-label:first-child { margin-top: 0; }
+
+    /* ── SECTIONS ── */
+    .section {
+      margin-bottom: 24px;
+    }
+
+    .section-heading {
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      font-weight: 600;
+      font-size: 8.5pt;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #5A4F43;
+      margin-bottom: 10px;
+      padding-bottom: 5px;
+      border-bottom: 1px solid rgba(201,168,76,0.25);
+    }
+
+    p {
+      margin-bottom: 10px;
+      text-align: justify;
+      hyphens: auto;
+    }
+
+    .subsection {
+      margin-bottom: 10px;
+    }
+
+    .subsection-label {
+      font-weight: 600;
+      font-style: normal;
+    }
+
+    /* ── TEMPLATE FIELDS ── */
+    .tpl-field {
+      border-bottom: 1.5px solid #C9A84C;
+      padding-bottom: 1px;
+      color: #8A7D6A;
+      font-style: italic;
+    }
+
+    /* ── SIGNATURE BLOCK ── */
+    .signature-section {
+      margin-top: 40px;
+      padding-top: 28px;
+      border-top: 1px solid rgba(201,168,76,0.35);
+    }
+
+    .sig-heading {
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      font-weight: 600;
+      font-size: 8.5pt;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #5A4F43;
+      margin-bottom: 20px;
+    }
+
+    .sig-columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+    }
+
+    .sig-party-label {
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      font-weight: 600;
+      font-size: 7.5pt;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #8A7D6A;
+      margin-bottom: 12px;
+    }
+
+    .sig-line {
+      border-bottom: 1px solid #2A2724;
+      margin-bottom: 6px;
+      height: 28px;
+    }
+
+    .sig-field-label {
+      font-size: 9pt;
+      color: #8A7D6A;
+      margin-bottom: 10px;
+    }
+
+    .sig-value {
+      font-size: 10pt;
+      color: #2A2724;
+      font-style: italic;
+      margin-bottom: 4px;
+    }
+
+    .sig-method {
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      font-size: 7.5pt;
+      letter-spacing: 0.08em;
+      color: #8A7D6A;
+      margin-top: 4px;
+    }
+
+    .doc-footer {
+      margin-top: 40px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(42,39,36,0.1);
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      font-size: 7.5pt;
+      color: #A09080;
+      letter-spacing: 0.06em;
+      text-align: center;
+    }
+
+    /* ── PRINT ── */
+    @media print {
+      html, body {
+        background: #FFFFFF;
+        padding: 0;
+        max-width: none;
+      }
+
+      body {
+        padding: 20mm 22mm;
+      }
+
+      .gold-rule {
+        background: #C9A84C;
+      }
+
+      a { color: inherit; text-decoration: none; }
+
+      .section { page-break-inside: avoid; }
+
+      .signature-section { page-break-before: always; }
+    }
+
+    @media (max-width: 600px) {
+      body { padding: 30px 24px; }
+      .sig-columns { grid-template-columns: 1fr; gap: 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TITLE BLOCK -->
+  <h1 class="doc-title">Independent Contractor Agreement</h1>
+  <p class="doc-subtitle">Apex Fiction Studio &mdash; Confidential</p>
+  <hr class="gold-rule"/>
+
+  <!-- SECTION 1: THE PARTIES -->
+  <div class="section">
+    <div class="section-heading">1. The Parties</div>
+    <p>This Independent Contractor Agreement (&ldquo;Agreement&rdquo;) is entered into as of <span class="tpl-field">{{EFFECTIVE_DATE}}</span> by and between:</p>
+
+    <div class="parties-block">
+      <div class="party-label">AFS (Apex Fiction Studio)</div>
+      <p>Contact: apexfictionstudio@gmail.com</p>
+
+      <div class="party-label">and</div>
+
+      <div class="party-label">The Writer (Independent Contractor)</div>
+      <p>Full Legal Name: <span class="tpl-field">{{WRITER_NAME}}</span><br/>
+      Email: <span class="tpl-field">{{WRITER_EMAIL}}</span><br/>
+      Country of Residence: <span class="tpl-field">{{WRITER_COUNTRY}}</span><br/>
+      Designated Payment Account: <span class="tpl-field">{{WRITER_PAYMENT}}</span></p>
+
+      <p style="margin-top:10px;">Together referred to as &ldquo;the Parties.&rdquo;</p>
+    </div>
+  </div>
+
+  <!-- SECTION 2: BACKGROUND -->
+  <div class="section">
+    <div class="section-heading">2. Background</div>
+    <p>AFS is a fiction publishing studio that sources, edits, and monetises serialised novels on third-party platforms, including but not limited to Kindle Vella, Dreame, Goodnovel, Fizzo, Innovel, and other international publishing platforms (collectively, the &ldquo;Platforms&rdquo;). AFS wishes to engage the Writer as an independent contractor to produce original written works on its behalf, and the Writer wishes to accept such engagement, on the terms set out in this Agreement.</p>
+  </div>
+
+  <!-- SECTION 3: NATURE OF RELATIONSHIP -->
+  <div class="section">
+    <div class="section-heading">3. Nature of Relationship</div>
+    <div class="subsection">
+      <p><span class="subsection-label">3.1 Independent Contractor.</span> The Writer is engaged as an independent contractor and not as an employee, agent, partner, or joint venturer of AFS. Nothing in this Agreement shall be construed to create an employment relationship.</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">3.2 No Benefits.</span> As an independent contractor, the Writer is not entitled to any employment benefits, including but not limited to health insurance, paid leave, pension contributions, or any statutory employment entitlements.</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">3.3 Tax Responsibility.</span> The Writer is solely responsible for all applicable taxes, social security contributions, and other statutory deductions arising from payments received under this Agreement in their country of residence. AFS shall have no obligation to withhold taxes on behalf of the Writer unless required to do so by applicable law.</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">3.4 Other Engagements.</span> The Writer may engage in other professional activities that do not conflict with or breach this Agreement, provided that such activities do not involve creating works that directly compete with the Works (as defined below) on the same Platforms.</p>
+    </div>
+  </div>
+
+  <!-- SECTION 4: WORK AND DELIVERABLES -->
+  <div class="section">
+    <div class="section-heading">4. Work &amp; Deliverables</div>
+    <div class="subsection">
+      <p><span class="subsection-label">4.1 Scope of Work.</span> The Writer agrees to produce original serialised fiction (&ldquo;the Work&rdquo; or &ldquo;Works&rdquo;) under the direction of AFS. The genre, storyline, characters, and other creative elements shall be assigned or approved by AFS. The Writer shall produce a minimum of three (3) chapters per active writing day, each chapter containing no fewer than one thousand (1,000) words unless otherwise specified in writing by AFS.</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">4.2 Chapter Submissions.</span> All chapters must be submitted via the AFS dashboard for editorial review. AFS reserves the right to request revisions, reject chapters that do not meet editorial or quality standards, and require rewrites before publication. The Writer agrees to complete reasonable revision requests within 48 hours of receipt.</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">4.3 Quality Standards.</span> All Work must be original, coherent, engaging, and free of plagiarism, excessive AI-generated content, or content that violates the policies of the Platforms. The Writer must maintain consistent tone, character voice, and narrative continuity throughout each Work. AFS may conduct spot-checks for originality using standard detection tools.</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">4.4 Update Day Requirement.</span> The Writer must maintain a minimum of twenty-five (25) active update days per calendar month. An &ldquo;active update day&rdquo; is defined as any calendar day on which the Writer submits and receives approval for a minimum of three (3) chapters. Failure to meet 25 active update days in any calendar month will directly reduce the Work&rsquo;s visibility ranking on the publishing platform, affecting reader reach and the Writer&rsquo;s earnings. The Writer&rsquo;s compliance with this requirement is tracked in real time on the private dashboard calendar.</p>
+    </div>
+  </div>
+
+  <!-- SECTION 5: EDITORIAL REVIEW -->
+  <div class="section">
+    <div class="section-heading">5. Editorial Review</div>
+    <div class="subsection">
+      <p><span class="subsection-label">5.1 Review Process.</span> All submitted chapters are subject to editorial review by AFS. AFS may approve, request revisions, or reject chapters at its sole discretion based on quality, consistency, and platform suitability.</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">5.2 Turnaround.</span> AFS will endeavour to review submitted chapters within five (5) business days. However, review timelines may vary depending on volume and platform requirements, and AFS does not guarantee a fixed turnaround time.</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">5.3 Publication Decisions.</span> AFS retains final authority over which chapters are published, the timing of publication, the Platforms on which the Work is published, and any decisions to pause, withdraw, or modify the publication of the Work.</p>
+    </div>
+  </div>
+
+  <!-- SECTION 6: COMPENSATION -->
+  <div class="section">
+    <div class="section-heading">6. Compensation</div>
+    <div class="subsection">
+      <p><span class="subsection-label">6.1 Revenue Share.</span> In consideration of the Work produced under this Agreement, AFS shall pay the Writer a share of the net royalties (&ldquo;Net Revenue&rdquo;) received by AFS from the Platforms in respect of the Writer&rsquo;s Work, at the rate agreed between the Parties at the time of onboarding and confirmed in writing. &ldquo;Net Revenue&rdquo; means gross royalty payments received by AFS from the Platforms, less any applicable platform fees, transaction charges, currency conversion costs, and any taxes withheld by the Platforms.</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">6.2 Milestone Bonus.</span> Upon the Work reaching a cumulative total of thirty thousand (30,000) approved and published words, the Writer shall be entitled to a one-time milestone bonus of One Hundred and Twenty United States Dollars (USD $120.00), payable within fourteen (14) calendar days of the milestone being verified by AFS.</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">6.3 Payment Schedule.</span> Net Revenue payments shall be made on a monthly basis, no later than the fifteenth (15th) day of the month following the month in which the revenues were received by AFS from the Platforms. Payment shall be made to the Writer&rsquo;s designated payment account specified above, via Payoneer, PayPal, wire transfer, or such other method as the Parties may agree in writing.</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">6.4 Minimum Payout Threshold.</span> Monthly royalty payments are subject to a minimum balance threshold of One Hundred United States Dollars (USD $100.00). Accrued earnings below this threshold will roll forward and be included in the following month&rsquo;s payment cycle. This threshold does not apply to the Milestone Bonus described in Section 6.2, which is paid independently of the accrued balance.</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">6.5 Statements.</span> AFS shall provide the Writer with a monthly earnings statement through the AFS dashboard, detailing the revenues received in respect of their Work and the amount payable to the Writer.</p>
+    </div>
+  </div>
+
+  <!-- SECTION 7: INTELLECTUAL PROPERTY -->
+  <div class="section">
+    <div class="section-heading">7. Intellectual Property</div>
+    <div class="subsection">
+      <p><span class="subsection-label">7.1 Assignment.</span> The Writer hereby irrevocably assigns to AFS, with full title guarantee, all intellectual property rights (including copyright and related rights) in and to the Work and all chapters, drafts, and other materials produced under this Agreement, throughout the world, in perpetuity, in all media now known or hereafter invented.</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">7.2 Moral Rights.</span> To the extent permitted by applicable law, the Writer irrevocably waives all moral rights in relation to the Work, including the right to be identified as the author and the right to object to derogatory treatment of the Work.</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">7.3 Work Made for Hire.</span> To the extent the Work qualifies as a &ldquo;work made for hire&rdquo; under applicable law, it is intended to be a work made for hire for AFS, and all rights therein shall vest exclusively in AFS.</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">7.4 No Competing Use.</span> The Writer shall not publish, distribute, or otherwise exploit the Work or any substantial portion thereof independently or through any third party without the prior written consent of AFS, for the duration of this Agreement and for a period of two (2) years following its termination.</p>
+    </div>
+  </div>
+
+  <!-- SECTION 8: CONFIDENTIALITY -->
+  <div class="section">
+    <div class="section-heading">8. Confidentiality</div>
+    <div class="subsection">
+      <p><span class="subsection-label">8.1 Obligation.</span> The Writer acknowledges that in the course of this engagement they may receive or have access to confidential information of AFS, including but not limited to: editorial strategies, platform relationships and rates, unpublished Works, writer identities, business plans, and financial information (&ldquo;Confidential Information&rdquo;). The Writer undertakes to hold all Confidential Information in strict confidence and not to disclose it to any third party, during the term of this Agreement and indefinitely thereafter.</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">8.2 Pen Names.</span> The Writer agrees to publish exclusively under pen names assigned or approved by AFS, and shall not publicly identify themselves as the author of any Work, nor identify AFS as the publishing entity behind any pen name, without the express written consent of AFS.</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">8.3 Platform Identity.</span> The Writer shall not create or operate accounts on any Platform under the same pen name or any variation of it, independently of AFS, nor shall they contact any Platform directly regarding the Works without the prior written approval of AFS.</p>
+    </div>
+  </div>
+
+  <!-- SECTION 9: PLAGIARISM AND AI CONTENT -->
+  <div class="section">
+    <div class="section-heading">9. Plagiarism &amp; AI-Generated Content</div>
+    <div class="subsection">
+      <p><span class="subsection-label">9.1 Original Work Only.</span> All Work submitted under this Agreement must be entirely the original creative output of the Writer. Submission of plagiarised content &mdash; defined as copying or substantially reproducing existing published or unpublished works without authorisation &mdash; is a material breach of this Agreement and may result in immediate termination and a clawback of any payments made in respect of the infringing Work.</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">9.2 AI-Assisted Content.</span> The use of AI writing tools (including but not limited to ChatGPT, Claude, Gemini, and similar large-language-model tools) to generate significant portions of submitted Work without disclosure to and approval by AFS is prohibited. The Writer may use AI tools for brainstorming, outlining, or light editing, but all substantive prose must be primarily the Writer&rsquo;s own creative output. Where AI assistance is used to an extent that materially contributes to the final text, the Writer must disclose this to AFS prior to submission. AFS reserves the right to reject AI-heavy submissions without payment.</p>
+    </div>
+  </div>
+
+  <!-- SECTION 10: TERM AND TERMINATION -->
+  <div class="section">
+    <div class="section-heading">10. Term &amp; Termination</div>
+    <div class="subsection">
+      <p><span class="subsection-label">10.1 Term.</span> This Agreement commences on <span class="tpl-field">{{EFFECTIVE_DATE}}</span> and continues until terminated by either Party in accordance with this Section.</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">10.2 Termination for Convenience.</span> Either Party may terminate this Agreement by providing fourteen (14) calendar days&rsquo; written notice to the other Party. During the notice period, the Writer shall continue to fulfil their obligations under this Agreement.</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">10.3 Termination for Cause.</span> AFS may terminate this Agreement immediately upon written notice if the Writer: (a) commits a material breach of any term of this Agreement (including but not limited to plagiarism, failure to meet quality standards, or breach of confidentiality obligations); (b) becomes insolvent or enters any form of bankruptcy or insolvency proceedings; (c) is convicted of any criminal offence that AFS reasonably considers likely to bring AFS into disrepute; or (d) fails to submit any Work for a continuous period of thirty (30) calendar days without prior written explanation and agreement from AFS.</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">10.4 Consequences of Termination.</span> Upon termination: (i) the Writer shall immediately cease producing new Work; (ii) AFS shall pay the Writer all Net Revenue accrued up to the effective date of termination (subject to the minimum threshold in Section 6.4, which shall not apply at termination &mdash; all accrued net amounts shall be paid in full regardless of balance); (iii) the intellectual property assignment in Section 7 and the confidentiality obligations in Section 8 shall survive termination indefinitely.</p>
+    </div>
+  </div>
+
+  <!-- SECTION 11: REPRESENTATIONS AND WARRANTIES -->
+  <div class="section">
+    <div class="section-heading">11. Representations &amp; Warranties</div>
+    <p>The Writer represents and warrants to AFS that:</p>
+    <div class="subsection">
+      <p><span class="subsection-label">11.1</span> They have full legal capacity and authority to enter into this Agreement and perform their obligations hereunder;</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">11.2</span> The Work produced under this Agreement will be original and will not infringe the intellectual property rights of any third party;</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">11.3</span> The Work will not contain any content that is defamatory, obscene, unlawful, or that violates the content policies of the Platforms;</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">11.4</span> They are not subject to any existing agreement that would conflict with or prevent performance of this Agreement;</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">11.5</span> All information provided to AFS during the application and onboarding process is truthful and accurate.</p>
+    </div>
+  </div>
+
+  <!-- SECTION 12: DISPUTE RESOLUTION -->
+  <div class="section">
+    <div class="section-heading">12. Dispute Resolution</div>
+    <div class="subsection">
+      <p><span class="subsection-label">12.1 Good Faith Negotiation.</span> In the event of any dispute, controversy, or claim arising out of or in connection with this Agreement, the Parties shall first attempt to resolve the matter amicably through good faith negotiations. Either Party may initiate this process by giving written notice of the dispute to the other.</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">12.2 Mediation.</span> If the dispute is not resolved through negotiation within thirty (30) calendar days of the notice referred to in Section 12.1 (or such longer period as the Parties may agree in writing), either Party may refer the matter to mediation, administered by a mutually agreed mediator or, failing agreement, an independent mediator appointed by a recognised mediation body.</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">12.3 Arbitration.</span> If the dispute is not resolved through mediation within a further thirty (30) calendar days, it shall be finally resolved by binding arbitration. The arbitration shall be conducted by a sole arbitrator agreed upon by the Parties or, failing agreement, appointed by the relevant arbitral institution. The language of arbitration shall be English.</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">12.4 Governing Law.</span> This Agreement shall be governed by and construed in accordance with the laws of England and Wales (or such other jurisdiction as the Parties may agree in writing at the time of signing), without regard to its conflict of law provisions.</p>
+    </div>
+  </div>
+
+  <!-- SECTION 13: GENERAL PROVISIONS -->
+  <div class="section">
+    <div class="section-heading">13. General Provisions</div>
+    <div class="subsection">
+      <p><span class="subsection-label">13.1 Entire Agreement.</span> This Agreement constitutes the entire agreement between the Parties with respect to its subject matter and supersedes all prior agreements, representations, and understandings, whether oral or written.</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">13.2 Amendments.</span> No amendment to this Agreement shall be effective unless made in writing and signed (including electronically) by both Parties.</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">13.3 Severability.</span> If any provision of this Agreement is found to be invalid, illegal, or unenforceable, the remaining provisions shall continue in full force and effect.</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">13.4 Waiver.</span> No failure or delay by either Party in exercising any right or remedy under this Agreement shall operate as a waiver of that right or remedy.</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">13.5 Notices.</span> Notices under this Agreement shall be given in writing by email to the addresses set out in Section 1, and shall be deemed received on the day of transmission (provided no error notification is received).</p>
+    </div>
+  </div>
+
+  <!-- SECTION 14: LIMITATION OF LIABILITY -->
+  <div class="section">
+    <div class="section-heading">14. Limitation of Liability</div>
+    <div class="subsection">
+      <p><span class="subsection-label">14.1</span> AFS&rsquo;s total aggregate liability to the Writer under or in connection with this Agreement, whether arising in contract, tort (including negligence), breach of statutory duty, or otherwise, shall not exceed the total Net Revenue payments made to the Writer in the twelve (12) months immediately preceding the event giving rise to the claim.</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">14.2</span> Neither Party shall be liable to the other for any indirect, incidental, special, consequential, or punitive damages, including loss of profits or loss of opportunity, arising from or in connection with this Agreement, even if advised of the possibility of such damages.</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">14.3</span> AFS is not liable for fluctuations in platform royalty rates, changes to platform algorithms, removal of titles by third-party platforms for reasons outside AFS&rsquo;s control, or changes to platform payout schedules. AFS will notify the Writer promptly of any material change affecting earnings.</p>
+    </div>
+  </div>
+
+  <!-- SECTION 15: FORCE MAJEURE -->
+  <div class="section">
+    <div class="section-heading">15. Force Majeure</div>
+    <p>Neither Party shall be in breach of this Agreement or liable for delay in performing, or failure to perform, any of its obligations under this Agreement if such delay or failure results from events, circumstances, or causes beyond its reasonable control, including without limitation: acts of God, pandemic, platform outages, payment processor disruptions, governmental actions, or internet infrastructure failures. In such circumstances, the affected Party shall promptly notify the other and use reasonable endeavours to resume performance as soon as possible.</p>
+  </div>
+
+  <!-- SECTION 16: ELECTRONIC SIGNATURES -->
+  <div class="section">
+    <div class="section-heading">16. Electronic Signatures</div>
+    <p>The Parties expressly agree that this Agreement may be executed by electronic signature, and that an electronic signature shall be as legally binding and enforceable as a handwritten signature. The Writer&rsquo;s act of typing their full legal name into the AFS dashboard signing interface and clicking the confirmation button, together with the timestamp and authenticated session data recorded at that moment, shall constitute a valid, binding electronic signature for all purposes under applicable law, including the Electronic Communications Act 2000 (UK), the Electronic Signatures in Global and National Commerce Act (US), and equivalent legislation in other jurisdictions. A record of this Agreement and the electronic signing event is retained by AFS and is available to the Writer on request.</p>
+  </div>
+
+  <!-- SECTION 17: DATA PROTECTION -->
+  <div class="section">
+    <div class="section-heading">17. Data Protection</div>
+    <p>Each Party agrees to comply with all applicable data protection legislation in relation to any personal data processed under or in connection with this Agreement. AFS will process the Writer&rsquo;s personal data (name, email, payment details, IP address at signing) solely for the purposes of administering this Agreement, making payments, and maintaining signing records. AFS will not share the Writer&rsquo;s personal data with third parties except where required by law or strictly necessary to administer payments. The Writer consents to this processing by signing this Agreement.</p>
+  </div>
+
+  <!-- SECTION 18: INDEMNIFICATION -->
+  <div class="section">
+    <div class="section-heading">18. Indemnification</div>
+    <p>The Writer shall indemnify, defend, and hold harmless AFS and its officers, employees, and agents from and against any and all claims, damages, losses, costs, and expenses (including reasonable legal fees) arising out of or relating to: (a) any breach by the Writer of the warranties in Section 11; (b) any claim that the Work infringes the intellectual property rights of any third party; or (c) any plagiarism or unauthorised AI-generated content submitted by the Writer under this Agreement.</p>
+  </div>
+
+  <!-- SECTION 19: GENERAL PROVISIONS (renumbered) -->
+  <div class="section">
+    <div class="section-heading">19. General Provisions</div>
+    <div class="subsection">
+      <p><span class="subsection-label">19.1 Entire Agreement.</span> This Agreement constitutes the entire agreement between the Parties with respect to its subject matter and supersedes all prior agreements, representations, and understandings, whether oral or written, including any prior informal arrangements.</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">19.2 Amendments.</span> No amendment to this Agreement shall be effective unless made in writing and signed (including electronically) by both Parties.</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">19.3 Severability.</span> If any provision of this Agreement is found to be invalid, illegal, or unenforceable, the remaining provisions shall continue in full force and effect.</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">19.4 Waiver.</span> No failure or delay by either Party in exercising any right or remedy under this Agreement shall operate as a waiver of that right or remedy.</p>
+    </div>
+    <div class="subsection">
+      <p><span class="subsection-label">19.5 Notices.</span> Notices under this Agreement shall be given in writing by email to the addresses set out in Section 1, and shall be deemed received on the day of transmission (provided no error notification is received).</p>
+    </div>
+  </div>
+
+  <!-- SECTION 20: EXECUTION AND SIGNATURES -->
+  <div class="signature-section">
+    <div class="sig-heading">20. Execution &amp; Signatures</div>
+    <p style="margin-bottom:24px;">By executing this Agreement electronically, each Party confirms they have read, understood, and agree to be bound by all terms set out above.</p>
+
+    <div class="sig-columns">
+      <!-- AFS Column -->
+      <div>
+        <div class="sig-party-label">For Apex Fiction Studio</div>
+        <div class="sig-line"></div>
+        <div class="sig-field-label">Name: Apex Fiction Studio</div>
+        <div class="sig-field-label">Contact: apexfictionstudio@gmail.com</div>
+        <div class="sig-method">[Pre-authorised by AFS &mdash; this Agreement is valid upon the Writer&rsquo;s electronic execution below]</div>
+      </div>
+
+      <!-- Writer Column -->
+      <div>
+        <div class="sig-party-label">The Writer</div>
+        <div class="sig-line"></div>
+        <div class="sig-value">Signed: <span class="tpl-field">{{WRITER_NAME}}</span></div>
+        <div class="sig-field-label">Date: <span class="tpl-field">{{EFFECTIVE_DATE}}</span></div>
+        <div class="sig-method">Method: Electronic signature via AFS dashboard</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="doc-footer">
+    AFS Independent Contractor Agreement &bull; Version 1 &bull; Confidential &mdash; Not for Distribution
+  </div>
+
+</body>
+</html>
