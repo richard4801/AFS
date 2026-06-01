@@ -336,34 +336,34 @@
       <!-- Vertical nav items -->
       <nav class="flex-shrink-0 py-3 space-y-0.5 px-2">
 
-        <button id="tab-writers" onclick="switchSection('writers')"
-                class="group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-crimson-light bg-crimson/8 border-l-[3px] border-crimson transition-all duration-200 hover:bg-crimson/12">
+        <button data-dsk-tab="writers" onclick="switchSection('writers')"
+                class="desk-nav-btn group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-crimson-light bg-crimson/8 border-l-[3px] border-crimson transition-all duration-200 hover:bg-crimson/12">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           <span class="text-[12px] font-semibold tracking-wide">Writers</span>
         </button>
 
-        <button id="tab-applications" onclick="switchSection('applications')"
-                class="group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted border-l-[3px] border-transparent hover:text-white hover:bg-white/5 transition-all duration-200">
+        <button data-dsk-tab="applications" onclick="switchSection('applications')"
+                class="desk-nav-btn group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted border-l-[3px] border-transparent hover:text-white hover:bg-white/5 transition-all duration-200">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
           <span class="text-[12px] font-semibold tracking-wide flex-1 text-left">Applications</span>
-          <span id="tab-applications-badge" class="hidden min-w-[18px] h-[18px] px-1 rounded-full bg-crimson text-white text-[9px] font-bold flex items-center justify-center flex-shrink-0"></span>
+          <span data-dsk-badge="applications" class="hidden min-w-[18px] h-[18px] px-1 rounded-full bg-crimson text-white text-[9px] font-bold flex items-center justify-center flex-shrink-0"></span>
         </button>
 
-        <button id="tab-contracts" onclick="switchSection('contracts')"
-                class="group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted border-l-[3px] border-transparent hover:text-white hover:bg-white/5 transition-all duration-200">
+        <button data-dsk-tab="contracts" onclick="switchSection('contracts')"
+                class="desk-nav-btn group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted border-l-[3px] border-transparent hover:text-white hover:bg-white/5 transition-all duration-200">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
           <span class="text-[12px] font-semibold tracking-wide flex-1 text-left">Contracts</span>
-          <span id="tab-contracts-badge" class="hidden min-w-[18px] h-[18px] px-1 rounded-full bg-gold text-obsidian text-[9px] font-bold flex items-center justify-center flex-shrink-0"></span>
+          <span data-dsk-badge="contracts" class="hidden min-w-[18px] h-[18px] px-1 rounded-full bg-gold text-obsidian text-[9px] font-bold flex items-center justify-center flex-shrink-0"></span>
         </button>
 
-        <button id="tab-payments" onclick="switchSection('payments')"
-                class="group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted border-l-[3px] border-transparent hover:text-white hover:bg-white/5 transition-all duration-200">
+        <button data-dsk-tab="payments" onclick="switchSection('payments')"
+                class="desk-nav-btn group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted border-l-[3px] border-transparent hover:text-white hover:bg-white/5 transition-all duration-200">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
           <span class="text-[12px] font-semibold tracking-wide">Payments</span>
         </button>
 
-        <button id="tab-income" onclick="switchSection('income')"
-                class="group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted border-l-[3px] border-transparent hover:text-white hover:bg-white/5 transition-all duration-200">
+        <button data-dsk-tab="income" onclick="switchSection('income')"
+                class="desk-nav-btn group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted border-l-[3px] border-transparent hover:text-white hover:bg-white/5 transition-all duration-200">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
           <span class="text-[12px] font-semibold tracking-wide">Income</span>
         </button>
@@ -662,11 +662,11 @@
       </div><!-- /panel-writers -->
 
       <!-- INCOME PANEL -->
-      <div id="panel-income" class="hidden p-4 md:p-6">
-        <div class="mb-6">
-          <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-crimson-light mb-2">Income Management</p>
-          <h2 class="font-serif text-2xl sm:text-3xl text-white">Record Daily Earnings</h2>
-          <p class="text-muted text-sm mt-1">Insert a royalty row for a writer.</p>
+      <div id="panel-income" class="hidden p-5 md:p-7">
+        <div class="mb-7">
+          <p class="text-[10px] font-bold tracking-[0.22em] uppercase text-crimson-light mb-1.5">Income Management</p>
+          <h2 class="font-serif text-2xl sm:text-3xl text-white mb-1">Record Daily Earnings</h2>
+          <p class="text-muted text-sm">Insert a royalty row for a writer.</p>
         </div>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
           <!-- Form card -->
@@ -719,11 +719,11 @@
       </div>
 
       <!-- PAYMENTS PANEL -->
-      <div id="panel-payments" class="hidden p-4 md:p-6">
-        <div class="mb-6">
-          <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-crimson-light mb-2">Payment Management</p>
-          <h2 class="font-serif text-2xl sm:text-3xl text-white">Writer Payouts</h2>
-          <p class="text-muted text-sm mt-1">Track payments sent to each writer and record new payouts.</p>
+      <div id="panel-payments" class="hidden p-5 md:p-7">
+        <div class="mb-7">
+          <p class="text-[10px] font-bold tracking-[0.22em] uppercase text-crimson-light mb-1.5">Payment Management</p>
+          <h2 class="font-serif text-2xl sm:text-3xl text-white mb-1">Writer Payouts</h2>
+          <p class="text-muted text-sm">Track payments sent to each writer and record new payouts.</p>
         </div>
         <div id="payments-content">
           <p class="text-muted/50 text-sm text-center py-20">Select a writer from the sidebar to view their payout history.</p>
@@ -2889,15 +2889,70 @@
     }
 </script>
   <script>
-    // Mirror nav-name to desktop sidebar name display
+    // ── Desktop sidebar sync ─────────────────────────────────────────
+    // 1. Mirror nav-name text to desktop sidebar name display
     (function() {
       const src = document.getElementById('nav-name');
       const targets = document.querySelectorAll('.admin-nav-name');
       if (!src || !targets.length) return;
-      const obs = new MutationObserver(() => {
-        targets.forEach(t => { t.textContent = src.textContent; });
-      });
+      const sync = () => targets.forEach(t => { t.textContent = src.textContent; });
+      const obs = new MutationObserver(sync);
       obs.observe(src, { childList: true, characterData: true, subtree: true });
+    })();
+
+    // 2. Mirror tab active state to desktop sidebar nav buttons
+    (function() {
+      const sections = ['writers','income','applications','payments','contracts'];
+
+      function syncDeskNav(activeSection) {
+        document.querySelectorAll('.desk-nav-btn').forEach(btn => {
+          const s = btn.dataset.dskTab;
+          const isActive = s === activeSection;
+          const isContracts = s === 'contracts';
+          // Active: crimson border + crimson text; Inactive: transparent border + muted
+          btn.classList.toggle('border-crimson',    isActive && !isContracts);
+          btn.classList.toggle('text-crimson-light', isActive && !isContracts);
+          btn.classList.toggle('bg-crimson/8',       isActive && !isContracts);
+          btn.classList.toggle('hover\\:bg-crimson/12', isActive && !isContracts);
+          btn.classList.toggle('border-gold',        isActive && isContracts);
+          btn.classList.toggle('text-gold',          isActive && isContracts);
+          btn.classList.toggle('bg-gold/8',          isActive && isContracts);
+          btn.classList.toggle('border-transparent', !isActive);
+          btn.classList.toggle('text-muted',         !isActive);
+          btn.classList.toggle('hover:text-white',   !isActive);
+          btn.classList.toggle('hover:bg-white/5',   !isActive);
+        });
+      }
+
+      // Observe each mobile tab button for class changes
+      sections.forEach(s => {
+        const mobileBtn = document.getElementById('tab-' + s);
+        if (!mobileBtn) return;
+        const obs = new MutationObserver(() => {
+          // Determine which section is active by checking which tab has the active border class
+          const active = sections.find(sec => {
+            const b = document.getElementById('tab-' + sec);
+            return b && (b.classList.contains('border-crimson') || b.classList.contains('border-gold'));
+          });
+          if (active) syncDeskNav(active);
+        });
+        obs.observe(mobileBtn, { attributes: true, attributeFilter: ['class'] });
+      });
+
+      // Sync badge text & visibility from mobile to desktop badge mirrors
+      ['applications','contracts'].forEach(s => {
+        const mobileBadge = document.getElementById('tab-' + s + '-badge');
+        const deskBadge   = document.querySelector('[data-dsk-badge="' + s + '"]');
+        if (!mobileBadge || !deskBadge) return;
+        const obs = new MutationObserver(() => {
+          deskBadge.textContent = mobileBadge.textContent;
+          deskBadge.classList.toggle('hidden', mobileBadge.classList.contains('hidden'));
+        });
+        obs.observe(mobileBadge, { attributes: true, attributeFilter: ['class'], childList: true, characterData: true, subtree: true });
+      });
+
+      // Initial sync — writers is active by default
+      syncDeskNav('writers');
     })();
   </script>
 </body>
