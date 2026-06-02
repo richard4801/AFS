@@ -472,6 +472,11 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                 Record Payout
               </button>
+              <button id="send-invite-btn" onclick="selectedWriter && sendInvite(selectedWriter.id, selectedWriter.name, selectedWriter.email)"
+                      class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gold/10 hover:bg-gold/20 border border-gold/30 hover:border-gold/55 text-gold text-xs font-medium rounded-lg transition-all duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22 6 12 13 2 6"/></svg>
+                <span id="invite-btn-label">Send Invite</span>
+              </button>
               <button onclick="selectedWriter && sendContractToWriter(selectedWriter.id, selectedWriter.name, selectedWriter.email)"
                       class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-crimson hover:bg-crimson-light border border-crimson/60 hover:border-crimson text-white text-xs font-semibold rounded-lg transition-all duration-200 shadow-md shadow-crimson/20">
                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
@@ -2716,6 +2721,39 @@
       _updateAppCounts();
       renderApplications();
       showToast('Application rejected.');
+    }
+
+    async function sendInvite(writerId, writerName, writerEmail) {
+      const { data: { session } } = await db.auth.getSession();
+      const btn = $('send-invite-btn');
+      const lbl = $('invite-btn-label');
+      const origText = lbl.textContent;
+
+      try {
+        btn.disabled = true;
+        lbl.textContent = 'Sending…';
+
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/send-invite`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
+          body: JSON.stringify({ writerId, writerEmail }),
+        });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || 'Failed to send invite');
+
+        showToast('Invite sent to ' + writerName);
+        lbl.textContent = 'Invite sent (expires in 30m)';
+
+        // Auto-hide after 30 minutes
+        setTimeout(() => {
+          btn.disabled = false;
+          lbl.textContent = origText;
+        }, 30 * 60 * 1000);
+      } catch (err) {
+        btn.disabled = false;
+        lbl.textContent = origText;
+        showToast('Error: ' + err.message);
+      }
     }
 
     async function deleteWriter(writerId, writerName) {
