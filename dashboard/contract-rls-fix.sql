@@ -37,7 +37,7 @@ $$;
 GRANT EXECUTE ON FUNCTION admin_send_contract(uuid, text) TO authenticated;
 
 
--- ── 2. Admin: fetch all contracts (bypasses RLS) ───────────────────────
+-- ── 2. Admin: fetch all contracts with writer names (bypasses RLS) ─────
 CREATE OR REPLACE FUNCTION admin_get_contracts()
 RETURNS json
 LANGUAGE plpgsql
@@ -51,8 +51,25 @@ BEGIN
 
   RETURN COALESCE(
     (
-      SELECT json_agg(row_to_json(c) ORDER BY c.sent_at DESC)
+      SELECT json_agg(
+        json_build_object(
+          'id',           c.id,
+          'writer_id',    c.writer_id,
+          'writer_name',  p.name,
+          'writer_email', p.email,
+          'doc_version',  c.doc_version,
+          'sent_at',      c.sent_at,
+          'sent_by',      c.sent_by,
+          'signed_at',    c.signed_at,
+          'name_signed',  c.name_signed,
+          'ip_address',   c.ip_address,
+          'user_agent',   c.user_agent,
+          'status',       c.status,
+          'created_at',   c.created_at
+        ) ORDER BY c.sent_at DESC
+      )
       FROM contracts c
+      LEFT JOIN profiles p ON p.id = c.writer_id
     ),
     '[]'::json
   );
