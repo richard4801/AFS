@@ -1677,10 +1677,7 @@
       const { data } = await db.from('chapters').select('chapter_number')
         .eq('book_id', book.id).order('chapter_number', { ascending: false }).limit(1);
       window._nextChNum = (data?.[0]?.chapter_number || 0) + 1;
-      $('view-books').classList.add('hidden');
-      $('view-chapters').classList.add('hidden');
-      $('view-editor').classList.remove('hidden');
-      showEditorView(null);
+      openFSDirectly();
     }
 
     function _syncCalBookSelect(books) {
