@@ -87,7 +87,8 @@ Deno.serve(async (req) => {
       .single()
     if (!profile?.is_admin) throw new Error('Forbidden')
 
-    const { applicationId } = await req.json()
+    const { applicationId, redirectTo } = await req.json()
+    const loginUrl = redirectTo || 'https://apexfictionstudio.com/dashboard/login.html'
 
     // Load the application
     const { data: app, error: appErr } = await adminClient
@@ -104,7 +105,7 @@ Deno.serve(async (req) => {
       app.email,
       {
         data: { full_name: app.name },
-        redirectTo: 'https://apexfictionstudio.com/dashboard/login.html',
+        redirectTo: loginUrl,
       },
     )
     if (inviteErr) throw inviteErr
