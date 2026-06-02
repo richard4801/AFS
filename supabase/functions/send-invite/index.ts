@@ -86,21 +86,36 @@ Deno.serve(async (req) => {
     const { writerId, writerEmail } = await req.json()
     if (!writerId || !writerEmail) throw new Error('writerId and writerEmail are required')
 
-    // inviteUserByEmail works for both new and existing unconfirmed users.
-    // It generates a fresh PKCE invite link and sends Supabase's default email —
-    // we then also send our own branded email via Resend with the same link.
+    const resendKey = Deno.env.get('RESEND_API_KEY')
+    if (!resendKey) throw new Error('RESEND_API_KEY not configured')
+
+    // Try fresh invite first (works for new / unconfirmed users).
+    // If the user is already confirmed, fall back to a password-recovery link
+    // which lands them on the set-password step in login.html.
+    let actionLink: string
+
     const { data: inviteData, error: inviteErr } = await adminClient.auth.admin.inviteUserByEmail(
       writerEmail,
       { redirectTo: 'https://apexfictionstudio.com/dashboard/login.html' },
     )
-    if (inviteErr) throw inviteErr
 
-    // Send our branded email via Resend
-    const resendKey = Deno.env.get('RESEND_API_KEY')
-    if (!resendKey) throw new Error('RESEND_API_KEY not configured')
+    if (inviteErr) {
+      if (!inviteErr.message.includes('already been registered')) throw inviteErr
 
-    // Build the invite link from the user's confirmation token
-    const confirmationUrl = `https://apexfictionstudio.com/dashboard/login.html`
+      // User already confirmed — generate a password reset link instead
+      const { data: linkData, error: linkErr } = await adminClient.auth.admin.generateLink({
+        type: 'recovery',
+        email: writerEmail,
+        options: { redirectTo: 'https://apexfictionstudio.com/dashboard/login.html' },
+      })
+      if (linkErr) throw linkErr
+      if (!linkData?.properties?.action_link) throw new Error('Failed to generate reset link')
+      actionLink = linkData.properties.action_link
+    } else {
+      // For a fresh invite, send them directly to login.html — Supabase will
+      // have emailed the real magic link; our branded email points to the dashboard
+      actionLink = 'https://apexfictionstudio.com/dashboard/login.html'
+    }
 
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -109,7 +124,7 @@ Deno.serve(async (req) => {
         from: 'Apex Fiction Studio <notifications@apexfictionstudio.com>',
         to: [writerEmail],
         subject: `Your Apex Fiction Studio Invitation`,
-        html: inviteEmailHtml(writerEmail, confirmationUrl),
+        html: inviteEmailHtml(writerEmail, actionLink),
       }),
     })
 
