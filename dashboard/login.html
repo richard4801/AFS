@@ -322,15 +322,19 @@
     const SUPABASE_URL      = 'https://qbqsbdswcqmrxoizgfrw.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_v0fbhx8NkRNxYYVw8VGz_g_7Eqja11K';
 
-    // Capture URL params BEFORE createClient so Supabase can't clean them first
+    // Capture URL params BEFORE createClient so Supabase can't clean them first.
+    // Supabase emails use implicit flow (#access_token=...) so we must read hash now.
     const _hashParams     = new URLSearchParams(window.location.hash.slice(1));
-    const _linkType       = _hashParams.get('type'); // 'invite' | 'recovery' | null
-    const _urlCode        = new URLSearchParams(window.location.search).has('code');
-    const _isAuthRedirect = _urlCode || _linkType === 'recovery' || _linkType === 'invite';
+    const _linkType       = _hashParams.get('type');          // 'invite' | 'recovery' | null
+    const _hashToken      = _hashParams.get('access_token');  // present in implicit-flow links
+    const _urlCode        = new URLSearchParams(window.location.search).has('code'); // PKCE links
+    const _isAuthRedirect = _urlCode || !!_hashToken || _linkType === 'recovery' || _linkType === 'invite';
 
     const { createClient } = supabase;
+    // Use implicit flow — Supabase emails embed tokens in the URL hash (#access_token=...).
+    // PKCE flow ignores hash tokens and would never detect the session.
     const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { persistSession: true, storage: window.localStorage, flowType: 'pkce' },
+      auth: { persistSession: true, storage: window.localStorage, flowType: 'implicit' },
     });
 
     const TRUST_PREFIX = 'afs_dev_';
@@ -540,21 +544,19 @@
       }
     }
 
-    // Auth redirect handler — covers all PKCE event variants:
-    // PASSWORD_RECOVERY (ideal), SIGNED_IN (some Supabase versions),
-    // INITIAL_SESSION (PKCE after code exchange on page load).
+    // Auth redirect handler.
+    // Implicit flow fires PASSWORD_RECOVERY for reset links, SIGNED_IN for invites.
     db.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
         showSetPasswordStep(); return;
       }
-      if (_isAuthRedirect && session &&
-          (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
+      if (_isAuthRedirect && session && event === 'SIGNED_IN') {
         showSetPasswordStep(); return;
       }
     });
 
-    // Immediate fallback: if Supabase already exchanged the code and fired
-    // INITIAL_SESSION before our listener registered, getSession() has it now.
+    // Immediate fallback: implicit-flow client reads hash tokens synchronously on
+    // init, so by the time we reach here the session may already exist.
     (async () => {
       if (!_isAuthRedirect) return;
       const { data: { session } } = await db.auth.getSession();
