@@ -2720,23 +2720,23 @@
 
     async function deleteWriter(writerId, writerName) {
       if (!confirm(`Remove "${writerName}" permanently?\n\nAll their books, chapters, and earnings data will be deleted. This cannot be undone.`)) return;
-      const { data: { session } } = await db.auth.getSession();
-      try {
-        const res = await fetch(`${SUPABASE_URL}/functions/v1/delete-writer`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
-          body: JSON.stringify({ writerId }),
-        });
-        const result = await res.json();
-        if (!res.ok) throw new Error(result.error || 'Deletion failed');
-        showToast(writerName + ' has been removed.');
-        _writerReg.delete(writerId);
-        selectedWriter = null;
-        $('view-writer-books').classList.add('hidden');
-        await Promise.all([ loadWritersList(), loadWriters() ]);
-      } catch (err) {
-        showToast('Error: ' + err.message);
-      }
+      const { error } = await db.rpc('admin_delete_writer', { p_writer_id: writerId });
+      if (error) { showToast('Error: ' + error.message); return; }
+      showToast(writerName + ' has been removed.');
+      _writerReg.delete(writerId);
+      selectedWriter = null;
+      $('view-writer-books').classList.add('hidden');
+      await Promise.all([ loadWritersList(), loadWriters() ]);
+    }
+
+    async function deleteContract(contractId) {
+      if (!confirm('Delete this contract permanently? This cannot be undone.')) return;
+      const { error } = await db.rpc('admin_delete_contract', { p_contract_id: contractId });
+      if (error) { showToast('Error: ' + error.message); return; }
+      showToast('Contract deleted.');
+      _contractsLoaded = false;
+      await loadContractsSection();
+      _contractsLoaded = true;
     }
 
     function showToast(msg) {
@@ -2835,6 +2835,7 @@
           + '<div class="flex items-center gap-2 flex-shrink-0">'
           + '<span class="text-[10px] font-bold uppercase tracking-wider border rounded-full px-2 py-0.5 ' + statusColor + '">' + c.status + '</span>'
           + (c.status === 'signed' ? '<button onclick="viewSignedContract(\'' + c.id + '\')" class="text-xs text-muted hover:text-white border border-border hover:border-white/20 rounded-full px-3 py-1 transition-colors">View</button>' : '')
+          + '<button onclick="deleteContract(\'' + c.id + '\')" class="text-red-400/40 hover:text-red-400 transition-colors p-1 rounded-md hover:bg-red-500/10" title="Delete contract"><svg xmlns=\'http://www.w3.org/2000/svg\' width=\'13\' height=\'13\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><polyline points=\'3 6 5 6 21 6\'/><path d=\'M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6\'/><path d=\'M10 11v6\'/><path d=\'M14 11v6\'/><path d=\'M9 6V4h6v2\'/></svg></button>'
           + '</div></div>';
       }).join('');
     }
