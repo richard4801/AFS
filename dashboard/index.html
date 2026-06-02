@@ -554,21 +554,45 @@
     </div>
 
     <!-- PROJECT BRIEF -->
-    <div id="brief-card" class="hidden rounded-2xl border border-border bg-surface p-5 sm:p-6 mb-8 relative overflow-hidden">
+    <!-- BRIEF PREVIEW CARD -->
+    <button id="brief-card" onclick="openBriefFullscreen()" class="hidden w-full text-left rounded-2xl border border-border hover:border-gold/30 bg-surface p-5 sm:p-6 mb-8 relative overflow-hidden transition-colors duration-200 group">
       <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent"></div>
-      <div class="flex items-center justify-between mb-5">
-        <div>
+      <div class="flex items-start justify-between gap-3 mb-3">
+        <div class="min-w-0">
           <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-1">Project Brief</p>
-          <h2 id="brief-title" class="font-serif text-xl text-white">Loading…</h2>
+          <h2 id="brief-title" class="font-serif text-xl text-white truncate">Loading…</h2>
         </div>
-        <span id="brief-genre" class="text-[10px] font-medium tracking-widest uppercase text-gold border border-gold/20 bg-gold/5 rounded-full px-3 py-1"></span>
+        <span id="brief-genre" class="flex-shrink-0 text-[10px] font-medium tracking-widest uppercase text-gold border border-gold/20 bg-gold/5 rounded-full px-3 py-1 mt-1"></span>
       </div>
-      <div id="brief-body" class="space-y-4"></div>
-    </div>
+      <p id="brief-preview" class="text-white/55 text-sm leading-relaxed line-clamp-3 mb-4"></p>
+      <div class="flex items-center gap-1.5 text-gold/70 group-hover:text-gold text-xs font-medium tracking-wide transition-colors">
+        <span>Read full brief</span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </div>
+    </button>
     <!-- BRIEF PLACEHOLDER (shown when no brief assigned) -->
     <div id="brief-placeholder" class="hidden rounded-2xl border border-dashed border-border bg-charcoal/30 p-4 sm:p-6 mb-8 text-center">
       <p class="text-muted text-sm">Your project brief hasn't been assigned yet.</p>
       <p class="text-muted text-xs mt-1">Your Executive Editor will assign it soon — check the chat.</p>
+    </div>
+
+    <!-- BRIEF FULLSCREEN READER -->
+    <div id="brief-fullscreen" class="hidden fixed inset-0 z-[80] flex flex-col" style="background:#0D0B09;">
+      <!-- Header -->
+      <div class="flex-shrink-0 flex items-center justify-between px-5 sm:px-8 py-4 border-b border-border/50" style="background:#0D0B09;">
+        <div class="min-w-0 mr-4">
+          <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-0.5">Project Brief</p>
+          <h2 id="brief-full-title" class="font-serif text-xl text-white truncate"></h2>
+        </div>
+        <div class="flex items-center gap-3 flex-shrink-0">
+          <span id="brief-full-genre" class="hidden sm:inline-block text-[10px] font-medium tracking-widest uppercase text-gold border border-gold/20 bg-gold/5 rounded-full px-3 py-1"></span>
+          <button onclick="closeBriefFullscreen()" class="w-8 h-8 flex items-center justify-center rounded-lg border border-border text-muted hover:text-white hover:border-white/25 transition-colors text-xl leading-none">×</button>
+        </div>
+      </div>
+      <!-- Body -->
+      <div class="flex-1 overflow-y-auto thin-scroll">
+        <div id="brief-full-body" class="max-w-2xl mx-auto px-5 sm:px-8 py-8 space-y-8"></div>
+      </div>
     </div>
 
     <!-- MY BOOKS SECTION -->
@@ -2671,6 +2695,8 @@
     }
 
     // ── PROJECT BRIEF ──────────────────────────────────────────
+    let _briefData = null;
+
     async function loadBrief() {
       const { data } = await db.from('briefs')
         .select('*').eq('writer_id', currentUserId).eq('status', 'active').maybeSingle();
@@ -2678,22 +2704,69 @@
         $('brief-placeholder').classList.remove('hidden');
         return;
       }
+      _briefData = data;
       $('brief-card').classList.remove('hidden');
       $('brief-title').textContent = data.title;
       $('brief-genre').textContent = data.genre;
+      // Preview: first non-empty section, truncated
+      const previewText = (data.synopsis || data.character_notes || data.plot_outline || '').trim();
+      $('brief-preview').textContent = previewText.length > 220
+        ? previewText.slice(0, 220).trimEnd() + '…'
+        : previewText;
+    }
+
+    function openBriefFullscreen() {
+      if (!_briefData) return;
+      const d = _briefData;
+      $('brief-full-title').textContent = d.title;
+      $('brief-full-genre').textContent = d.genre;
+      $('brief-full-genre').classList.toggle('hidden', !d.genre);
+
       const sections = [
-        { key: 'synopsis',        label: 'Synopsis' },
-        { key: 'character_notes', label: 'Characters' },
-        { key: 'plot_outline',    label: 'Plot Outline' },
+        { key: 'synopsis',              label: 'Synopsis' },
+        { key: 'character_notes',       label: 'Characters' },
+        { key: 'plot_outline',          label: 'Plot Outline' },
+        { key: 'writing_instructions',  label: 'Writing Instructions' },
       ];
-      $('brief-body').innerHTML = sections
-        .filter(s => data[s.key]?.trim())
+
+      let html = sections
+        .filter(s => d[s.key]?.trim())
         .map(s => `
           <div>
-            <p class="text-[10px] font-semibold tracking-widest uppercase text-muted mb-2">${s.label}</p>
-            <p class="text-white/80 text-sm leading-relaxed whitespace-pre-line">${escHtml(data[s.key])}</p>
-          </div>`).join('<div class="border-t border-border/40 my-1"></div>');
+            <p class="text-[10px] font-semibold tracking-[0.2em] uppercase text-muted mb-3">${s.label}</p>
+            <div class="text-white/80 text-sm leading-[1.9] whitespace-pre-wrap">${escHtml(d[s.key])}</div>
+          </div>`)
+        .join('<div class="border-t border-border/40"></div>');
+
+      if (d.sample_book_url?.trim()) {
+        html += `<div class="border-t border-border/40"></div>
+          <div>
+            <p class="text-[10px] font-semibold tracking-[0.2em] uppercase text-muted mb-3">Sample Book</p>
+            <p class="text-white/60 text-sm mb-3">Read this before you start writing — it shows the tone, style, and quality we expect.</p>
+            <a href="${escHtml(d.sample_book_url)}" target="_blank" rel="noopener noreferrer"
+               class="inline-flex items-center gap-2 text-gold text-sm font-medium hover:underline">
+              Open sample book
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            </a>
+          </div>`;
+      }
+
+      $('brief-full-body').innerHTML = html;
+      $('brief-fullscreen').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
     }
+
+    function closeBriefFullscreen() {
+      $('brief-fullscreen').classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    // Close on Escape
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && !$('brief-fullscreen').classList.contains('hidden')) {
+        closeBriefFullscreen();
+      }
+    });
 
     // ── PAYOUT HISTORY ─────────────────────────────────────────
     async function loadPayouts() {

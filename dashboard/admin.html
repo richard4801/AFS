@@ -228,6 +228,17 @@
           <textarea id="brief-plot" rows="4" placeholder="Chapter-by-chapter outline or key plot beats…"
                     class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-3 py-2.5 resize-none"></textarea>
         </div>
+        <div>
+          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Writing Instructions</label>
+          <textarea id="brief-instructions" rows="4" placeholder="Tone, pacing, style, content guidelines — how writers should approach this book…"
+                    class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-3 py-2.5 resize-none"></textarea>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Sample Book URL</label>
+          <input id="brief-sample-url" type="url" placeholder="https://…"
+                 class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-3 py-2.5"/>
+          <p class="text-muted text-[11px] mt-1.5">A link writers should read to understand the expected writing style.</p>
+        </div>
         <div id="brief-error" class="hidden text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2"></div>
         <div class="flex gap-3 pt-1">
           <button onclick="saveBrief()"
@@ -2508,11 +2519,13 @@
       $('brief-error').classList.add('hidden');
       const { data } = await db.from('briefs').select('*').eq('writer_id', writerId).eq('status', 'active').maybeSingle();
       _editingBriefId = data?.id || null;
-      $('brief-title').value      = data?.title           || '';
-      $('brief-genre').value      = data?.genre           || 'Werewolf Romance';
-      $('brief-synopsis').value   = data?.synopsis        || '';
-      $('brief-characters').value = data?.character_notes || '';
-      $('brief-plot').value       = data?.plot_outline    || '';
+      $('brief-title').value        = data?.title                 || '';
+      $('brief-genre').value        = data?.genre                 || 'Werewolf Romance';
+      $('brief-synopsis').value     = data?.synopsis              || '';
+      $('brief-characters').value   = data?.character_notes       || '';
+      $('brief-plot').value         = data?.plot_outline          || '';
+      $('brief-instructions').value = data?.writing_instructions  || '';
+      $('brief-sample-url').value   = data?.sample_book_url       || '';
       $('brief-modal').classList.remove('hidden');
     }
 
@@ -2527,11 +2540,13 @@
       const { data: { session } } = await db.auth.getSession();
       const payload = {
         writer_id: writerId, created_by: session.user.id, title,
-        genre:           $('brief-genre').value.trim()      || 'Werewolf Romance',
-        synopsis:        $('brief-synopsis').value.trim()   || null,
-        character_notes: $('brief-characters').value.trim() || null,
-        plot_outline:    $('brief-plot').value.trim()       || null,
-        updated_at:      new Date().toISOString(),
+        genre:                $('brief-genre').value.trim()        || 'Werewolf Romance',
+        synopsis:             $('brief-synopsis').value.trim()     || null,
+        character_notes:      $('brief-characters').value.trim()   || null,
+        plot_outline:         $('brief-plot').value.trim()         || null,
+        writing_instructions: $('brief-instructions').value.trim() || null,
+        sample_book_url:      $('brief-sample-url').value.trim()   || null,
+        updated_at:           new Date().toISOString(),
       };
       let error;
       if (_editingBriefId) {
