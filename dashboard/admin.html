@@ -324,7 +324,7 @@
 
       <!-- Logo -->
       <div class="px-6 pt-6 pb-5 border-b border-border/40 flex-shrink-0">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="15 18 110 52" height="30"
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="15 18 110 52" height="36"
              style="clip-path:path('M0 0 H200 V14 H0 Z M0 17 H200 V36 H0 Z')"
              aria-label="AFS Publishing">
           <g transform="translate(20,15)">
@@ -2748,13 +2748,14 @@
       const { data: contractsRaw } = await db.rpc('admin_get_contracts');
       const contracts = contractsRaw || [];
 
+      // Also fetch all writers for the sidebar (to show writers with no contract sent yet)
       const { data: writers } = await db
         .from('profiles')
         .select('id,name,email')
         .eq('role', 'writer')
         .order('name');
 
-      // Build sidebar list
+      // Build sidebar list — show all writers, with their contract status
       const sidebarEl = $('contract-writer-list');
       sidebarEl.innerHTML = '';
       (writers || []).forEach(w => {
@@ -2778,7 +2779,7 @@
       if (pending > 0) { badge.textContent = pending; badge.classList.remove('hidden'); }
       else badge.classList.add('hidden');
 
-      // Main panel: full contracts list
+      // Main panel: full contracts list — use writer_name embedded in contract row by SQL JOIN
       const listEl = $('contracts-list');
       if (!contracts || contracts.length === 0) {
         listEl.innerHTML = '';
@@ -2787,8 +2788,8 @@
       }
       $('contracts-empty').classList.add('hidden');
       listEl.innerHTML = (contracts || []).map(c => {
-        const w = (writers || []).find(x => x.id === c.writer_id);
-        const name = w?.name || w?.email || 'Unknown';
+        // writer_name and writer_email come directly from the SQL LEFT JOIN
+        const name = c.writer_name || c.writer_email || c.name_signed || 'Unknown';
         const statusColor = c.status === 'signed'  ? 'text-green-400 bg-green-400/10 border-green-400/20'
                           : c.status === 'pending' ? 'text-gold bg-gold/10 border-gold/20'
                           : 'text-muted bg-border/30 border-border';
@@ -2863,7 +2864,8 @@
         .eq('id', c.writer_id).single();
 
       const html = await (await fetch('../assets/contract-v1.html')).text();
-      const wName    = writer?.name     || '';
+      // name_signed is the legal name typed at signing — use it as the authoritative name
+      const wName    = c.name_signed  || writer?.name     || '';
       const wEmail   = writer?.email    || '';
       const wCountry = writer?.country  || '';
       const wPayment = writer?.payoneer || writer?.bank_details || writer?.payment_info || '';
