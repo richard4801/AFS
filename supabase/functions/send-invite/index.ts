@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
@@ -121,11 +122,13 @@ Deno.serve(async (req) => {
     })
   } catch (err: unknown) {
     const raw = err instanceof Error ? err.message : 'Unknown error'
+    console.error('send-invite error:', raw)
     const SAFE = ['Unauthorized', 'Forbidden', 'writerId and writerEmail are required', 'RESEND_API_KEY not configured']
     const message = SAFE.some(s => raw.includes(s)) ? raw : 'Internal server error'
+    const status = raw.includes('Unauthorized') || raw.includes('Forbidden') ? 403 : 400
     return new Response(JSON.stringify({ error: message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: raw.includes('Unauthorized') || raw.includes('Forbidden') ? 403 : 400,
+      status,
     })
   }
 })
