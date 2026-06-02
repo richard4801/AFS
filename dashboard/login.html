@@ -324,7 +324,7 @@
 
     const { createClient } = supabase;
     const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { persistSession: true, storage: window.localStorage, flowType: 'implicit' },
+      auth: { persistSession: true, storage: window.localStorage, flowType: 'pkce' },
     });
 
     const TRUST_PREFIX = 'afs_dev_';
@@ -554,7 +554,8 @@
     // Immediate fallback: Supabase may have already exchanged the code before the
     // onAuthStateChange listener fired. Re-check session now.
     (async () => {
-      if (!_urlCode && _linkType !== 'recovery') return;
+      const isAuthRedirect = _urlCode || _linkType === 'recovery' || _linkType === 'invite';
+      if (!isAuthRedirect) return;
       const { data: { session } } = await db.auth.getSession();
       if (session) showSetPasswordStep();
     })();
