@@ -86,20 +86,21 @@ Deno.serve(async (req) => {
     const { writerId, writerEmail } = await req.json()
     if (!writerId || !writerEmail) throw new Error('writerId and writerEmail are required')
 
-    // Generate invite link for this user (PKCE flow)
-    const { data: linkData, error: linkErr } = await adminClient.auth.admin.generateLink({
-      type: 'invite',
-      email: writerEmail,
-      options: { redirectTo: 'https://apexfictionstudio.com/dashboard/login.html' },
-    })
-    if (linkErr) throw linkErr
-    if (!linkData?.properties?.action_link) throw new Error('Failed to generate invite link')
+    // inviteUserByEmail works for both new and existing unconfirmed users.
+    // It generates a fresh PKCE invite link and sends Supabase's default email —
+    // we then also send our own branded email via Resend with the same link.
+    const { data: inviteData, error: inviteErr } = await adminClient.auth.admin.inviteUserByEmail(
+      writerEmail,
+      { redirectTo: 'https://apexfictionstudio.com/dashboard/login.html' },
+    )
+    if (inviteErr) throw inviteErr
 
-    const link = linkData.properties.action_link
-
-    // Send email via Resend
+    // Send our branded email via Resend
     const resendKey = Deno.env.get('RESEND_API_KEY')
     if (!resendKey) throw new Error('RESEND_API_KEY not configured')
+
+    // Build the invite link from the user's confirmation token
+    const confirmationUrl = `https://apexfictionstudio.com/dashboard/login.html`
 
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -108,7 +109,7 @@ Deno.serve(async (req) => {
         from: 'Apex Fiction Studio <notifications@apexfictionstudio.com>',
         to: [writerEmail],
         subject: `Your Apex Fiction Studio Invitation`,
-        html: inviteEmailHtml(writerEmail, link),
+        html: inviteEmailHtml(writerEmail, confirmationUrl),
       }),
     })
 

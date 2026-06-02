@@ -1,0 +1,11 @@
+[functions.approve-application]
+verify_jwt = true
+
+[functions.send-notification]
+verify_jwt = true
+
+[functions.send-invite]
+verify_jwt = true
+
+[functions.delete-writer]
+verify_jwt = true
