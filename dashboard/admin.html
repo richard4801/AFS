@@ -2557,6 +2557,24 @@
       if (error) { $('brief-error').textContent = error.message; $('brief-error').classList.remove('hidden'); return; }
       closeBriefModal();
       showToast(_editingBriefId ? 'Brief updated ✓' : 'Brief assigned ✓');
+
+      // In-app + email notification to writer
+      const writerProfile = allProfiles.find(p => p.id === writerId) || selectedWriter;
+      const briefTitle = payload.title;
+      const briefGenre = payload.genre;
+      await db.from('notifications').insert({
+        user_id: writerId,
+        type: 'brief_assigned',
+        title: 'Project Brief Ready',
+        body: `Your project brief "${briefTitle}" has been assigned. Open your dashboard to read it.`,
+      }).catch(() => {});
+      if (writerProfile?.email) {
+        fetch(`${SUPABASE_URL}/functions/v1/send-notification`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session?.access_token },
+          body: JSON.stringify({ type: 'brief_assigned', writerId, writerEmail: writerProfile.email, writerName: writerProfile.name || selectedWriter?.name || '', data: { title: briefTitle, genre: briefGenre } }),
+        }).catch(() => {});
+      }
     }
 
     $('brief-modal').addEventListener('click', e => { if (e.target === $('brief-modal')) closeBriefModal(); });

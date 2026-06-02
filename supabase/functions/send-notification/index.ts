@@ -17,7 +17,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-type EventType = 'income_posted' | 'chapter_approved' | 'chapter_rejected'
+type EventType = 'income_posted' | 'chapter_approved' | 'chapter_rejected' | 'brief_assigned'
 
 interface Payload {
   type: EventType
@@ -68,6 +68,29 @@ const templates: Record<EventType, (p: Payload) => { subject: string; html: stri
         <a href="https://apexfictionstudio.com/dashboard/index.html"
            style="display:inline-block;background:#C9A84C;color:#121212;font-size:13px;font-weight:700;padding:12px 24px;border-radius:8px;text-decoration:none;">
           View Your Dashboard →
+        </a>
+        <p style="color:#3A3A3A;font-size:11px;margin-top:40px;">© 2026 Apex Fiction Studio</p>
+      </div>`,
+  }),
+
+  brief_assigned: ({ writerName, data }) => ({
+    subject: `Your project brief is ready — Apex Fiction Studio`,
+    html: `
+      <div style="background:#121212;color:#fff;font-family:Inter,sans-serif;max-width:520px;margin:0 auto;padding:40px 32px;">
+        <div style="font-family:Georgia,serif;font-size:22px;color:#C9A84C;margin-bottom:8px;">Apex Fiction Studio</div>
+        <div style="height:1px;background:linear-gradient(90deg,transparent,#C9A84C,transparent);opacity:.4;margin-bottom:32px;"></div>
+        <h1 style="font-family:Georgia,serif;font-size:28px;color:#fff;margin:0 0 16px;">Your Brief Is Ready</h1>
+        <p style="color:#7A7A7A;font-size:15px;line-height:1.7;margin:0 0 24px;">
+          Hi ${escHtml(writerName)}, your editor has assigned you a project brief. Head to your dashboard to read it before you begin writing.
+        </p>
+        <div style="background:#1C1C1C;border:1px solid #2E2E2E;border-radius:12px;padding:20px 24px;margin-bottom:28px;">
+          <p style="margin:0 0 4px;color:#7A7A7A;font-size:11px;letter-spacing:.18em;text-transform:uppercase;">Project</p>
+          <p style="margin:0;color:#fff;font-family:Georgia,serif;font-size:20px;">${escHtml(data.title)}</p>
+          ${data.genre ? `<p style="margin:8px 0 0;color:#C9A84C;font-size:12px;letter-spacing:.12em;text-transform:uppercase;">${escHtml(data.genre)}</p>` : ''}
+        </div>
+        <a href="https://richard4801.github.io/AFS/dashboard/index.html"
+           style="display:inline-block;background:#C9A84C;color:#121212;font-size:13px;font-weight:700;padding:12px 24px;border-radius:8px;text-decoration:none;">
+          Read Your Brief →
         </a>
         <p style="color:#3A3A3A;font-size:11px;margin-top:40px;">© 2026 Apex Fiction Studio</p>
       </div>`,
