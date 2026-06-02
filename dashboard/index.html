@@ -576,25 +576,6 @@
       <p class="text-muted text-xs mt-1">Your Executive Editor will assign it soon — check the chat.</p>
     </div>
 
-    <!-- BRIEF FULLSCREEN READER -->
-    <div id="brief-fullscreen" class="hidden fixed inset-0 z-[80] flex flex-col" style="background:#0D0B09;">
-      <!-- Header -->
-      <div class="flex-shrink-0 flex items-center justify-between px-5 sm:px-8 py-4 border-b border-border/50" style="background:#0D0B09;">
-        <div class="min-w-0 mr-4">
-          <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-0.5">Project Brief</p>
-          <h2 id="brief-full-title" class="font-serif text-xl text-white truncate"></h2>
-        </div>
-        <div class="flex items-center gap-3 flex-shrink-0">
-          <span id="brief-full-genre" class="hidden sm:inline-block text-[10px] font-medium tracking-widest uppercase text-gold border border-gold/20 bg-gold/5 rounded-full px-3 py-1"></span>
-          <button onclick="closeBriefFullscreen()" class="w-8 h-8 flex items-center justify-center rounded-lg border border-border text-muted hover:text-white hover:border-white/25 transition-colors text-xl leading-none">×</button>
-        </div>
-      </div>
-      <!-- Body -->
-      <div class="flex-1 overflow-y-auto thin-scroll">
-        <div id="brief-full-body" class="max-w-2xl mx-auto px-5 sm:px-8 py-8 space-y-8"></div>
-      </div>
-    </div>
-
     <!-- MY BOOKS SECTION -->
     <div id="books-section">
 
@@ -776,6 +757,34 @@
       <a href="mailto:support@apexfictionstudio.com" class="text-gold/70 hover:text-gold transition-colors">Contact your editor.</a>
     </p>
   </main>
+
+  <!-- BRIEF FULLSCREEN READER — outside <main> so it isn't capped by main's z-10 stacking context -->
+  <div id="brief-fullscreen" class="hidden fixed inset-0 z-[200] flex flex-col" style="background:#0D0B09;">
+    <!-- Header -->
+    <div class="flex-shrink-0 flex items-center justify-between px-5 sm:px-8 py-4 sm:py-5 border-b border-border/50" style="background:#0D0B09;">
+      <div class="min-w-0 mr-4">
+        <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-0.5">Project Brief</p>
+        <h2 id="brief-full-title" class="font-serif text-xl text-white truncate"></h2>
+      </div>
+      <div class="flex items-center gap-3 flex-shrink-0">
+        <span id="brief-full-genre" class="hidden sm:inline-block text-[10px] font-medium tracking-widest uppercase text-gold border border-gold/20 bg-gold/5 rounded-full px-3 py-1"></span>
+        <button onclick="closeBriefFullscreen()" aria-label="Close brief"
+                class="w-9 h-9 flex items-center justify-center rounded-lg border border-border text-muted hover:text-white hover:border-white/25 active:scale-95 transition-all text-2xl leading-none">×</button>
+      </div>
+    </div>
+    <!-- Body -->
+    <div class="flex-1 overflow-y-auto thin-scroll">
+      <div id="brief-full-body" class="max-w-2xl mx-auto px-5 sm:px-8 py-8 space-y-8"></div>
+    </div>
+    <!-- Delete brief footer -->
+    <div class="flex-shrink-0 border-t border-border/30 px-5 sm:px-8 py-4 flex justify-end" style="background:#0D0B09;">
+      <button onclick="deleteBrief()" id="delete-brief-btn"
+              class="inline-flex items-center gap-2 text-xs text-red-400/60 hover:text-red-400 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        Delete this brief
+      </button>
+    </div>
+  </div>
 
   <!-- NOTIFICATION PANEL -->
   <div id="notif-panel" class="hidden fixed z-[80] right-2 sm:right-4 top-16 w-[calc(100vw-1rem)] sm:w-[340px] rounded-2xl border border-border bg-surface shadow-2xl shadow-black/70 overflow-hidden">
@@ -2759,6 +2768,21 @@
     function closeBriefFullscreen() {
       $('brief-fullscreen').classList.add('hidden');
       document.body.style.overflow = '';
+    }
+
+    async function deleteBrief() {
+      if (!_briefData?.id) return;
+      if (!confirm('Remove this brief from your dashboard?\n\nYou won\'t be able to undo this.')) return;
+      const btn = $('delete-brief-btn');
+      btn.disabled = true;
+      btn.textContent = 'Deleting…';
+      const { error } = await db.from('briefs').update({ status: 'archived' }).eq('id', _briefData.id);
+      if (error) { btn.disabled = false; btn.textContent = 'Delete this brief'; showToast('Error: ' + error.message); return; }
+      _briefData = null;
+      closeBriefFullscreen();
+      $('brief-card').classList.add('hidden');
+      $('brief-placeholder').classList.remove('hidden');
+      showToast('Brief removed.');
     }
 
     // Close on Escape
