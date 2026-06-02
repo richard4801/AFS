@@ -322,6 +322,12 @@
     const SUPABASE_URL      = 'https://qbqsbdswcqmrxoizgfrw.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_v0fbhx8NkRNxYYVw8VGz_g_7Eqja11K';
 
+    // Capture URL params BEFORE createClient so Supabase can't clean them first
+    const _hashParams     = new URLSearchParams(window.location.hash.slice(1));
+    const _linkType       = _hashParams.get('type'); // 'invite' | 'recovery' | null
+    const _urlCode        = new URLSearchParams(window.location.search).has('code');
+    const _isAuthRedirect = _urlCode || _linkType === 'recovery' || _linkType === 'invite';
+
     const { createClient } = supabase;
     const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: { persistSession: true, storage: window.localStorage, flowType: 'pkce' },
@@ -534,28 +540,23 @@
       }
     }
 
-    // Detect if arriving via invite or password-reset link
-    const _hashParams  = new URLSearchParams(window.location.hash.slice(1));
-    const _linkType    = _hashParams.get('type'); // 'invite' | 'recovery' | null
-    const _urlCode     = new URLSearchParams(window.location.search).has('code');
-
+    // Auth redirect handler — covers all PKCE event variants:
+    // PASSWORD_RECOVERY (ideal), SIGNED_IN (some Supabase versions),
+    // INITIAL_SESSION (PKCE after code exchange on page load).
     db.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
         showSetPasswordStep(); return;
       }
-      if (event === 'SIGNED_IN' && session) {
-        // PKCE recovery flow fires SIGNED_IN instead of PASSWORD_RECOVERY in some hosts.
-        // If we arrived here via ?code= redirect from a password-reset email, show form.
-        if (_urlCode || _linkType === 'recovery') { showSetPasswordStep(); return; }
-        if (_linkType === 'invite') { showSetPasswordStep(); return; }
+      if (_isAuthRedirect && session &&
+          (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
+        showSetPasswordStep(); return;
       }
     });
 
-    // Immediate fallback: Supabase may have already exchanged the code before the
-    // onAuthStateChange listener fired. Re-check session now.
+    // Immediate fallback: if Supabase already exchanged the code and fired
+    // INITIAL_SESSION before our listener registered, getSession() has it now.
     (async () => {
-      const isAuthRedirect = _urlCode || _linkType === 'recovery' || _linkType === 'invite';
-      if (!isAuthRedirect) return;
+      if (!_isAuthRedirect) return;
       const { data: { session } } = await db.auth.getSession();
       if (session) showSetPasswordStep();
     })();
