@@ -475,7 +475,7 @@
               <button id="send-invite-btn" onclick="selectedWriter && sendInvite(selectedWriter.id, selectedWriter.name, selectedWriter.email)"
                       class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gold/10 hover:bg-gold/20 border border-gold/30 hover:border-gold/55 text-gold text-xs font-medium rounded-lg transition-all duration-200">
                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22 6 12 13 2 6"/></svg>
-                <span id="invite-btn-label">Send Invite</span>
+                <span id="invite-btn-label">Send Password Reset</span>
               </button>
               <button onclick="selectedWriter && sendContractToWriter(selectedWriter.id, selectedWriter.name, selectedWriter.email)"
                       class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-crimson hover:bg-crimson-light border border-crimson/60 hover:border-crimson text-white text-xs font-semibold rounded-lg transition-all duration-200 shadow-md shadow-crimson/20">
@@ -2724,36 +2724,29 @@
     }
 
     async function sendInvite(writerId, writerName, writerEmail) {
-      const { data: { session } } = await db.auth.getSession();
       const btn = $('send-invite-btn');
       const lbl = $('invite-btn-label');
-      const origText = lbl.textContent;
+      btn.disabled = true;
+      lbl.textContent = 'Sending…';
 
-      try {
-        btn.disabled = true;
-        lbl.textContent = 'Sending…';
+      const { error } = await db.auth.resetPasswordForEmail(writerEmail, {
+        redirectTo: 'https://apexfictionstudio.com/dashboard/login.html',
+      });
 
-        const res = await fetch(`${SUPABASE_URL}/functions/v1/send-invite`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
-          body: JSON.stringify({ writerId, writerEmail }),
-        });
-        const result = await res.json();
-        if (!res.ok) throw new Error(result.error || 'Failed to send invite');
-
-        showToast('Invite sent to ' + writerName);
-        lbl.textContent = 'Invite sent (expires in 30m)';
-
-        // Auto-hide after 30 minutes
-        setTimeout(() => {
-          btn.disabled = false;
-          lbl.textContent = origText;
-        }, 30 * 60 * 1000);
-      } catch (err) {
+      if (error) {
         btn.disabled = false;
-        lbl.textContent = origText;
-        showToast('Error: ' + err.message);
+        lbl.textContent = 'Send Password Reset';
+        showToast('Error: ' + error.message);
+        return;
       }
+
+      showToast('Password reset sent to ' + writerName);
+      lbl.textContent = 'Sent (expires in 30m)';
+
+      setTimeout(() => {
+        btn.disabled = false;
+        lbl.textContent = 'Send Password Reset';
+      }, 30 * 60 * 1000);
     }
 
     async function deleteWriter(writerId, writerName) {
