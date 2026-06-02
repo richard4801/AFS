@@ -30,7 +30,7 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=DM+Serif+Display:ital@0;1&family=Montserrat:wght@400&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=DM+Serif+Display:ital@0;1&family=Lora:ital,wght@0,400;0,600;1,400&family=Montserrat:wght@400&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
   <style>
     @keyframes shimmer {
       0%   { background-position: -400px 0; }
@@ -70,7 +70,10 @@
     .fs-tool-btn:hover { background:rgba(255,255,255,0.07); border-color:rgba(255,255,255,0.12); color:#fff; }
     .fs-tool-btn.active { background:rgba(201,168,76,0.15); border-color:rgba(201,168,76,0.3); color:#C9A84C; }
     #fs-content:empty::before { content:attr(data-placeholder); color:rgba(122,122,122,0.35); font-style:italic; pointer-events:none; }
-    #fs-content p { margin-bottom:1.5em; line-height:2.0; font-family:'DM Serif Display',Georgia,serif; font-size:17px; letter-spacing:0.015em; color:rgba(255,255,255,0.88); }
+    #fs-content, #fs-content p, #fs-content div { font-family:'Lora',Georgia,serif; font-size:17px; font-weight:400; line-height:1.95; letter-spacing:0.01em; color:rgba(255,255,255,0.80); }
+    #fs-content p { margin-bottom:1.4em; }
+    #fs-content strong, #fs-content b { font-weight:600; color:rgba(255,255,255,0.92); }
+    #fs-content em, #fs-content i { font-style:italic; }
     @keyframes typingBounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
     .typing-dot { width:7px;height:7px;border-radius:50%;background:rgba(106,106,106,0.65);animation:typingBounce 1.1s ease-in-out infinite;flex-shrink:0; }
     @media (max-width:767px) { #chat-fs-btn { display:none !important; } }
@@ -639,7 +642,7 @@
 
         <div class="flex items-center justify-between mb-4">
           <h3 class="font-serif text-lg text-white">Chapters</h3>
-          <button id="add-chapter-btn" onclick="showEditorView(null)"
+          <button id="add-chapter-btn" onclick="openFSDirectly()"
                   class="inline-flex items-center gap-1.5 px-4 py-2 bg-gold/10 hover:bg-gold/20 border border-gold/30 hover:border-gold/60 text-gold text-xs font-semibold rounded-lg transition-all duration-200">
             + Add Chapter
           </button>
@@ -1056,16 +1059,16 @@
     </div>
     <!-- Row 2: Formatting toolbar -->
     <div class="flex-shrink-0 flex items-center gap-1 px-4 py-1.5 border-b border-border/50 bg-charcoal/60">
-      <button data-cmd="bold"      onclick="execFmt('bold')"      title="Bold (Ctrl+B)"      class="fs-tool-btn font-bold">B</button>
-      <button data-cmd="italic"    onclick="execFmt('italic')"    title="Italic (Ctrl+I)"    class="fs-tool-btn italic">I</button>
-      <button data-cmd="underline" onclick="execFmt('underline')" title="Underline (Ctrl+U)" class="fs-tool-btn underline">U</button>
+      <button data-cmd="bold"      onmousedown="event.preventDefault()" onclick="execFmt('bold')"      title="Bold (Ctrl+B)"      class="fs-tool-btn font-bold">B</button>
+      <button data-cmd="italic"    onmousedown="event.preventDefault()" onclick="execFmt('italic')"    title="Italic (Ctrl+I)"    class="fs-tool-btn italic">I</button>
+      <button data-cmd="underline" onmousedown="event.preventDefault()" onclick="execFmt('underline')" title="Underline (Ctrl+U)" class="fs-tool-btn underline">U</button>
       <div class="w-px h-4 bg-border mx-1.5"></div>
-      <button onclick="document.execCommand('undo')" title="Undo (Ctrl+Z)" class="fs-tool-btn" style="font-size:14px;padding:1px 7px;">↩</button>
-      <button onclick="document.execCommand('redo')" title="Redo (Ctrl+Y)" class="fs-tool-btn" style="font-size:14px;padding:1px 7px;">↪</button>
+      <button onmousedown="event.preventDefault()" onclick="document.execCommand('undo')" title="Undo (Ctrl+Z)" class="fs-tool-btn" style="font-size:14px;padding:1px 7px;">↩</button>
+      <button onmousedown="event.preventDefault()" onclick="document.execCommand('redo')" title="Redo (Ctrl+Y)" class="fs-tool-btn" style="font-size:14px;padding:1px 7px;">↪</button>
       <!-- mobile: word count + draft save -->
       <div class="ml-auto flex items-center gap-2 sm:hidden">
         <span id="fs-word-count-mobile" class="text-muted text-xs tabular-nums">0 words</span>
-        <button onclick="saveFSChapter('draft')" class="px-2.5 py-1 border border-border text-muted text-xs rounded-lg">Draft</button>
+        <button onmousedown="event.preventDefault()" onclick="saveFSChapter('draft')" class="px-2.5 py-1 border border-border text-muted text-xs rounded-lg">Draft</button>
       </div>
     </div>
     <div id="fs-error-bar" class="hidden flex-shrink-0 px-4 py-2 bg-red-400/10 border-b border-red-400/20 text-xs text-red-400"></div>
@@ -1075,7 +1078,7 @@
         <div id="fs-content" contenteditable="true" spellcheck="true"
              class="min-h-[65vh] outline-none"
              data-placeholder="Begin writing your chapter here…"
-             style="font-family:'Poppins',system-ui,sans-serif;font-size:16px;font-weight:300;line-height:1.9;color:rgba(255,255,255,0.88);caret-color:#C9A84C;letter-spacing:0.01em;"></div>
+             style="caret-color:#C9A84C;"></div>
       </div>
     </div>
   </div>
@@ -2615,14 +2618,34 @@
       }, 60);
     }
 
+    let _fsOpenedDirectly = false;
+
+    function openFSDirectly() {
+      // Skip the inline editor entirely — open the fullscreen writer immediately
+      editingChapter          = null;
+      _originalChapterContent = '';
+      _hasExistingSnapshot    = false;
+      _writerEditModeActive   = false;
+      _fsOpenedDirectly       = true;
+      // Keep chapters list visible behind the overlay
+      $('view-books').classList.add('hidden');
+      $('view-chapters').classList.remove('hidden');
+      $('view-editor').classList.add('hidden');
+      openFSEditor();
+    }
+
     function fsClose() {
       $('fullscreen-editor').classList.add('hidden');
       document.body.style.overflow = '';
+      if (_fsOpenedDirectly) {
+        _fsOpenedDirectly = false;
+        showChaptersView();
+      }
     }
 
     function execFmt(cmd) {
+      // focus stays in editor because toolbar buttons use onmousedown preventDefault
       document.execCommand(cmd, false, null);
-      $('fs-content').focus();
       updateFSToolbar();
     }
 
