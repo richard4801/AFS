@@ -3041,7 +3041,7 @@
       title: 'Your Story Assignment',
       body: 'Your editor assigns a project brief here — genre, characters, and plot direction. Read it carefully before writing your first chapter.',
       target: 'brief-card',
-      optional: true,
+      fallback: 'brief-placeholder',
     },
     {
       label: 'Editor Chat',
@@ -3128,9 +3128,13 @@
     prevBtn.classList.toggle('invisible', _tourStep === 0);
     nextBtn.textContent = step.isLast ? 'Got it →' : 'Next →';
 
-    // Resolve target — skip optional hidden elements
+    // Resolve target — use fallback if primary is hidden
     let targetEl = step.target ? document.getElementById(step.target) : null;
-    if (targetEl && step.optional && targetEl.classList.contains('hidden')) {
+    if (targetEl && targetEl.classList.contains('hidden') && step.fallback) {
+      targetEl = document.getElementById(step.fallback);
+    }
+    // If still hidden (both primary and fallback hidden), show centred card
+    if (targetEl && targetEl.classList.contains('hidden')) {
       targetEl = null;
     }
 
