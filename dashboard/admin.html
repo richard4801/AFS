@@ -324,16 +324,13 @@
 
       <!-- Logo -->
       <div class="px-6 pt-6 pb-5 border-b border-border/40 flex-shrink-0">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 130" height="42" aria-label="AFS Publishing">
-          <g stroke="#EEECE9" stroke-width="7" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
-            <polyline points="57,84 81,14 105,84"/>
-            <line x1="123" y1="14" x2="123" y2="84"/>
-            <line x1="123" y1="14" x2="159" y2="14"/>
-            <path stroke-linecap="round" d="M 219,21 C 222,13 215,13 202,13 C 183,13 177,24 177,34 C 177,43 186,47 200,49 C 214,51 223,57 223,67 C 223,77 215,85 201,85 C 186,85 177,76 177,67"/>
-            <line x1="57" y1="49" x2="223" y2="49"/>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="15 18 110 52" height="30"
+             style="clip-path:path('M0 0 H200 V14 H0 Z M0 17 H200 V36 H0 Z')"
+             aria-label="AFS Publishing">
+          <g transform="translate(20,15)">
+            <text font-family="'Cinzel',Georgia,serif" font-weight="400" fill="#EEECE9" font-size="38" letter-spacing="4" x="0" y="35">AFS</text>
+            <text font-family="'Montserrat',system-ui,sans-serif" font-weight="400" fill="rgba(238,236,233,0.42)" font-size="9" letter-spacing="5" x="2" y="52">Publishing</text>
           </g>
-          <line x1="57" y1="97" x2="223" y2="97" stroke="#EEECE9" stroke-width="0.8"/>
-          <text x="140" y="115" text-anchor="middle" font-family="'Futura','Century Gothic','Trebuchet MS',Arial,sans-serif" font-size="7.5" fill="#EEECE9" textLength="166" lengthAdjust="spacing">PUBLISHING</text>
         </svg>
         <p class="text-[9px] font-bold tracking-[0.3em] uppercase text-crimson-light mt-3">Admin Console</p>
       </div>
@@ -475,7 +472,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                 Record Payout
               </button>
-              <button onclick="selectedWriter && sendContractToWriter(selectedWriter.id, selectedWriter.full_name || selectedWriter.name, selectedWriter.email)"
+              <button onclick="selectedWriter && sendContractToWriter(selectedWriter.id, selectedWriter.name, selectedWriter.email)"
                       class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-crimson hover:bg-crimson-light border border-crimson/60 hover:border-crimson text-white text-xs font-semibold rounded-lg transition-all duration-200 shadow-md shadow-crimson/20">
                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                 Send Contract
@@ -2753,9 +2750,9 @@
 
       const { data: writers } = await db
         .from('profiles')
-        .select('id,full_name,email')
+        .select('id,name,email')
         .eq('role', 'writer')
-        .order('full_name');
+        .order('name');
 
       // Build sidebar list
       const sidebarEl = $('contract-writer-list');
@@ -2770,7 +2767,7 @@
           : '<span class="text-[9px] font-bold text-muted bg-border/30 border border-border rounded-full px-1.5 py-0.5">Not sent</span>';
         const li = document.createElement('button');
         li.className = 'w-full text-left px-3 py-2.5 rounded-xl hover:bg-surface/60 transition-colors group';
-        li.innerHTML = '<div class="flex items-center justify-between gap-2"><span class="text-sm text-white/80 group-hover:text-white truncate">' + escHtml(w.full_name || w.email) + '</span>' + badge + '</div>';
+        li.innerHTML = '<div class="flex items-center justify-between gap-2"><span class="text-sm text-white/80 group-hover:text-white truncate">' + escHtml(w.name || w.email) + '</span>' + badge + '</div>';
         li.onclick = () => showContractDetail(w, c);
         sidebarEl.appendChild(li);
       });
@@ -2791,7 +2788,7 @@
       $('contracts-empty').classList.add('hidden');
       listEl.innerHTML = (contracts || []).map(c => {
         const w = (writers || []).find(x => x.id === c.writer_id);
-        const name = w?.full_name || w?.email || 'Unknown';
+        const name = w?.name || w?.email || 'Unknown';
         const statusColor = c.status === 'signed'  ? 'text-green-400 bg-green-400/10 border-green-400/20'
                           : c.status === 'pending' ? 'text-gold bg-gold/10 border-gold/20'
                           : 'text-muted bg-border/30 border-border';
@@ -2826,9 +2823,9 @@
         // Show send option in main area
         $('contracts-list').innerHTML =
           '<div class="rounded-xl border border-border bg-surface p-6">'
-          + '<h3 class="text-white font-medium mb-1">' + escHtml(writer.full_name || writer.email) + '</h3>'
+          + '<h3 class="text-white font-medium mb-1">' + escHtml(writer.name || writer.email) + '</h3>'
           + '<p class="text-muted text-sm mb-4">No contract sent yet.</p>'
-          + '<button onclick="sendContractToWriter(\'' + writer.id + '\',\'' + escHtml(writer.full_name || '') + '\',\'' + writer.email + '\')"'
+          + '<button onclick="sendContractToWriter(\'' + writer.id + '\',\'' + escHtml(writer.name || '') + '\',\'' + writer.email + '\')"'
           + ' class="inline-flex items-center gap-2 px-4 py-2 bg-gold/10 hover:bg-gold/20 border border-gold/30 hover:border-gold/60 text-gold text-xs font-semibold rounded-full transition-all duration-200">'
           + 'Send Contract'
           + '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 3 3.5 9-3.5 9 19-9Z"/></svg>'
@@ -2847,15 +2844,45 @@
         : '<p class="text-gold text-xs mt-3">Pending signature &mdash; writer has not yet signed.</p>';
       $('contracts-list').innerHTML =
         '<div class="rounded-xl border border-border bg-surface p-6">'
-        + '<h3 class="text-white font-medium mb-0.5">' + escHtml(writer.full_name || writer.email) + '</h3>'
+        + '<h3 class="text-white font-medium mb-0.5">' + escHtml(writer.name || writer.email) + '</h3>'
         + '<p class="text-muted text-xs">' + escHtml(writer.email) + '</p>'
         + signedHtml
         + '</div>';
       $('contracts-empty').classList.add('hidden');
     }
 
-    function viewSignedContract(contractId) {
-      showToast('Contract ' + contractId + ' &mdash; records held by AFS.');
+    async function viewSignedContract(contractId) {
+      // Find contract + writer from already-loaded data
+      const contractsRaw = await db.rpc('admin_get_contracts');
+      const contracts = contractsRaw.data || [];
+      const c = contracts.find(x => x.id === contractId);
+      if (!c) { showToast('Contract not found.'); return; }
+
+      const { data: writer } = await db.from('profiles')
+        .select('id,name,email,country,payoneer,bank_details,payment_info')
+        .eq('id', c.writer_id).single();
+
+      const html = await (await fetch('../assets/contract-v1.html')).text();
+      const wName    = writer?.name     || '';
+      const wEmail   = writer?.email    || '';
+      const wCountry = writer?.country  || '';
+      const wPayment = writer?.payoneer || writer?.bank_details || writer?.payment_info || '';
+      const sigDate  = c.signed_at
+        ? new Date(c.signed_at).toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })
+        : new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
+      const filled = html
+        .replace(/\{\{WRITER_NAME\}\}/g,      escHtml(wName))
+        .replace(/\{\{WRITER_EMAIL\}\}/g,     escHtml(wEmail))
+        .replace(/\{\{WRITER_COUNTRY\}\}/g,   escHtml(wCountry))
+        .replace(/\{\{WRITER_PAYMENT\}\}/g,   escHtml(wPayment))
+        .replace(/\{\{EFFECTIVE_DATE\}\}/g,   sigDate)
+        .replace(/\{\{WRITER_SIGNATURE\}\}/g, escHtml(c.name_signed || ''));
+
+      const blob = new Blob([filled], { type: 'text/html' });
+      const url  = URL.createObjectURL(blob);
+      const win  = window.open(url, '_blank');
+      // Revoke after the window loads
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
     }
   </script>
 
