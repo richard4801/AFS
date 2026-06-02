@@ -81,13 +81,9 @@
       display: flex; align-items: center; justify-content: center;
       pointer-events: none; z-index: 0; overflow: hidden;
     }
-    .chat-watermark svg { width: 148px; color: #C9A84C; opacity: 0.06; animation: chatLogoBreath 6s ease-in-out infinite; }
+    .chat-watermark svg { width: 190px; height: auto; opacity: 0.11; }
     #chat-messages { position: relative; z-index: 1; }
     #chat-typing, #chat-panel > div:last-child { position: relative; z-index: 1; }
-    @keyframes chatLogoBreath {
-      0%,100% { opacity: 0.04; transform: scale(0.93) rotate(-3deg); }
-      50%      { opacity: 0.09; transform: scale(1.05) rotate(3deg); }
-    }
 
     /* ── Writer Dashboard — Light Mode (Warm Cream Editorial) ─────────── */
     html.light body { background-color: #F3ECE0 !important; color: #1C1814 !important; }
@@ -184,7 +180,7 @@
     html.light #chat-panel textarea { background-color: #E0D4C0 !important; border-color: #C8BDAD !important; color: #1C1814 !important; }
     html.light #chat-panel textarea::placeholder { color: #9E8F82 !important; }
     html.light #chat-panel textarea:focus { border-color: rgba(143,101,18,0.5) !important; }
-    html.light .chat-watermark svg { color: #A31621 !important; opacity: 0.09 !important; }
+    html.light .chat-watermark svg { opacity: 0.08 !important; }
     /* Chat message bubbles */
     html.light .typing-dot { background: rgba(110,97,88,0.5) !important; }
 
@@ -774,15 +770,27 @@
 
   <!-- CHAT PANEL -->
   <div id="chat-panel" class="hidden fixed z-[80] flex flex-col rounded-2xl border border-border bg-surface shadow-2xl shadow-black/70 overflow-hidden" style="right:24px;bottom:96px;width:340px;height:520px;transition:all 0.2s ease;">
-    <!-- Animated logo watermark -->
+    <!-- Logo watermark — exact website logo with metallic gold finish -->
     <div class="chat-watermark" aria-hidden="true">
-      <svg viewBox="0 0 280 130" xmlns="http://www.w3.org/2000/svg" fill="none">
-        <g stroke="currentColor" stroke-width="7" stroke-linecap="butt" stroke-linejoin="miter">
-          <polyline points="57,84 81,14 105,84"/>
-          <line x1="123" y1="14" x2="123" y2="84"/>
-          <line x1="123" y1="14" x2="159" y2="14"/>
-          <path stroke-linecap="round" d="M 219,21 C 222,13 215,13 202,13 C 183,13 177,24 177,34 C 177,43 186,47 200,49 C 214,51 223,57 223,67 C 223,77 215,85 201,85 C 186,85 177,76 177,67"/>
-          <line x1="57" y1="49" x2="223" y2="49"/>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="15 18 110 52">
+        <defs>
+          <linearGradient id="wm-gold" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%"   stop-color="#F2E0A0"/>
+            <stop offset="30%"  stop-color="#D4AF37"/>
+            <stop offset="65%"  stop-color="#8A6018"/>
+            <stop offset="100%" stop-color="#C9A84C"/>
+          </linearGradient>
+          <!-- SVG-internal clip mirrors the CSS clip-path bands (y=0-38.9% and y=47.2-100% of viewBox height 52) -->
+          <clipPath id="wm-slash">
+            <rect x="15" y="18"   width="110" height="20.2"/>
+            <rect x="15" y="42.6" width="110" height="27.4"/>
+          </clipPath>
+        </defs>
+        <g clip-path="url(#wm-slash)">
+          <g transform="translate(20,15)">
+            <text font-family="'Cinzel',Georgia,serif" font-weight="400" fill="url(#wm-gold)" font-size="38" letter-spacing="4" x="0" y="35">AFS</text>
+            <text font-family="'Montserrat',system-ui,sans-serif" font-weight="400" fill="rgba(212,175,55,0.55)" font-size="9" letter-spacing="5" x="2" y="52">Publishing</text>
+          </g>
         </g>
       </svg>
     </div>

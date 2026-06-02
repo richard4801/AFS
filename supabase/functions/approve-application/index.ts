@@ -5,6 +5,57 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+function escHtml(s: unknown): string {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#x27;')
+}
+
+function acceptanceEmailHtml(name: string, email: string): string {
+  const n = escHtml(name)
+  const e = escHtml(email)
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"/></head>
+<body style="margin:0;padding:0;background:#0D0B09;">
+<div style="background:#0D0B09;font-family:Georgia,'Times New Roman',serif;max-width:560px;margin:0 auto;padding:52px 40px;">
+
+  <!-- Wordmark -->
+  <div style="margin-bottom:44px;">
+    <span style="font-size:26px;color:#C9A84C;letter-spacing:0.18em;font-weight:normal;">AFS</span><br/>
+    <span style="font-size:8px;color:rgba(201,168,76,0.45);letter-spacing:0.45em;text-transform:uppercase;display:block;margin-top:3px;">Publishing</span>
+    <div style="height:1px;background:linear-gradient(90deg,rgba(201,168,76,0.5),transparent);margin-top:18px;"></div>
+  </div>
+
+  <!-- Headline -->
+  <h1 style="font-size:34px;color:#F0ECE6;margin:0 0 6px;font-weight:normal;line-height:1.15;">You've been selected.</h1>
+  <p style="font-size:11px;color:#C9A84C;letter-spacing:0.22em;margin:0 0 36px;text-transform:uppercase;">Apex Fiction Studio</p>
+
+  <!-- Body -->
+  <p style="font-size:16px;color:#9A8A78;line-height:1.85;margin:0 0 18px;">Dear ${n},</p>
+  <p style="font-size:16px;color:#9A8A78;line-height:1.85;margin:0 0 18px;">We received hundreds of applications. Yours stood out.</p>
+  <p style="font-size:16px;color:#9A8A78;line-height:1.85;margin:0 0 36px;">After careful review, we are delighted to welcome you to Apex Fiction Studio as a commissioned writer. The work you create here will reach readers around the world — and you will be compensated for every word you deliver.</p>
+
+  <div style="height:1px;background:rgba(201,168,76,0.12);margin-bottom:32px;"></div>
+
+  <p style="font-size:14px;color:#6A5A4A;line-height:1.75;margin:0 0 30px;">A separate email from our platform has been sent to this address with your secure login link. Use it to set up your account and access your writer dashboard where your assignments and earnings will live.</p>
+
+  <!-- CTA -->
+  <a href="https://apexfictionstudio.com/dashboard/login.html"
+     style="display:inline-block;background:#C9A84C;color:#0D0B09;font-family:Georgia,serif;font-size:12px;font-weight:bold;letter-spacing:0.14em;text-transform:uppercase;padding:14px 34px;border-radius:3px;text-decoration:none;">
+    Access Your Dashboard
+  </a>
+
+  <p style="font-size:13px;color:#3A2F24;margin-top:52px;line-height:1.65;">
+    — The Apex Fiction Studio Editorial Team<br/>
+    <a href="mailto:apexfictionstudio@gmail.com" style="color:#5A4A38;text-decoration:none;">apexfictionstudio@gmail.com</a>
+  </p>
+
+  <div style="height:1px;background:rgba(201,168,76,0.08);margin-top:44px;"></div>
+  <p style="font-size:10px;color:#2A1F14;margin-top:14px;">© 2026 Apex Fiction Studio &nbsp;·&nbsp; Sent to ${e}</p>
+</div>
+</body></html>`
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -77,6 +128,21 @@ Deno.serve(async (req) => {
         reviewed_by: user.id,
       })
       .eq('id', applicationId)
+
+    // Send premium acceptance email via Resend (non-fatal if unconfigured)
+    const resendKey = Deno.env.get('RESEND_API_KEY')
+    if (resendKey) {
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: 'Apex Fiction Studio <notifications@apexfictionstudio.com>',
+          to: [app.email],
+          subject: `You've been selected — Apex Fiction Studio`,
+          html: acceptanceEmailHtml(app.name, app.email),
+        }),
+      })
+    }
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
