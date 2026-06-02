@@ -6,7 +6,7 @@
   <title>AFS Independent Contractor Agreement</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Plus+Jakarta+Sans:wght@400;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Plus+Jakarta+Sans:wght@400;600&display=swap" rel="stylesheet"/>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -169,6 +169,29 @@
       color: #2A2724;
       font-style: italic;
       margin-bottom: 4px;
+    }
+
+    #live-sig {
+      display: block;
+      font-family: 'Dancing Script', cursive;
+      font-size: 22pt;
+      font-weight: 600;
+      font-style: normal;
+      color: #1a1814;
+      letter-spacing: 0.02em;
+      min-height: 30px;
+      border-bottom: 1px solid rgba(42,39,36,0.25);
+      padding-bottom: 2px;
+      margin-bottom: 6px;
+      transition: all 0.1s;
+    }
+    #live-sig:empty::after {
+      content: attr(data-placeholder);
+      font-family: 'EB Garamond', serif;
+      font-size: 10pt;
+      font-weight: 400;
+      font-style: italic;
+      color: rgba(138,125,106,0.6);
     }
 
     .sig-method {
@@ -514,8 +537,8 @@
       <!-- Writer Column -->
       <div>
         <div class="sig-party-label">The Writer</div>
-        <div class="sig-line"></div>
-        <div class="sig-value">Signed: <span class="tpl-field">{{WRITER_NAME}}</span></div>
+        <span id="live-sig" data-placeholder="Signature will appear here as you type…">{{WRITER_SIGNATURE}}</span>
+        <div class="sig-field-label">Full name: <span class="tpl-field">{{WRITER_NAME}}</span></div>
         <div class="sig-field-label">Date: <span class="tpl-field">{{EFFECTIVE_DATE}}</span></div>
         <div class="sig-method">Method: Electronic signature via AFS dashboard</div>
       </div>
