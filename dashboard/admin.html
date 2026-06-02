@@ -2689,7 +2689,10 @@
             'Content-Type': 'application/json',
             'Authorization': 'Bearer ' + session.access_token,
           },
-          body: JSON.stringify({ applicationId: id }),
+          body: JSON.stringify({
+            applicationId: id,
+            redirectTo: window.location.href.replace(/\/[^/]+(\?.*)?$/, '/login.html'),
+          }),
         });
         result = await res.json();
         if (!res.ok) throw new Error(result.error || 'Unknown error');
@@ -2729,24 +2732,22 @@
       btn.disabled = true;
       lbl.textContent = 'Sending…';
 
+      // Derive login URL from current page so it always matches the actual host
+      const loginUrl = window.location.href.replace(/\/[^/]+(\?.*)?$/, '/login.html');
+
       const { error } = await db.auth.resetPasswordForEmail(writerEmail, {
-        redirectTo: 'https://apexfictionstudio.com/dashboard/login.html',
+        redirectTo: loginUrl,
       });
 
+      btn.disabled = false;
       if (error) {
-        btn.disabled = false;
         lbl.textContent = 'Send Password Reset';
         showToast('Error: ' + error.message);
         return;
       }
 
       showToast('Password reset sent to ' + writerName);
-      lbl.textContent = 'Sent (expires in 30m)';
-
-      setTimeout(() => {
-        btn.disabled = false;
-        lbl.textContent = 'Send Password Reset';
-      }, 30 * 60 * 1000);
+      lbl.textContent = 'Send Password Reset';
     }
 
     async function deleteWriter(writerId, writerName) {

@@ -474,7 +474,7 @@
       spin.classList.remove('hidden');
 
       const { error } = await db.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + '/dashboard/login.html',
+        redirectTo: window.location.href.replace(/(\?.*)?$/, ''),
       });
 
       btn.disabled = false;
