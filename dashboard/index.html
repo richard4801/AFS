@@ -555,7 +555,7 @@
 
     <!-- PROJECT BRIEF -->
     <!-- BRIEF PREVIEW CARD -->
-    <button id="brief-card" onclick="openBriefFullscreen()" class="hidden w-full text-left rounded-2xl border border-border hover:border-gold/30 bg-surface p-5 sm:p-6 mb-8 relative overflow-hidden transition-colors duration-200 group">
+    <div id="brief-card" class="hidden rounded-2xl border border-border bg-surface p-5 sm:p-6 mb-8 relative overflow-hidden">
       <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent"></div>
       <div class="flex items-start justify-between gap-3 mb-3">
         <div class="min-w-0">
@@ -565,11 +565,18 @@
         <span id="brief-genre" class="flex-shrink-0 text-[10px] font-medium tracking-widest uppercase text-gold border border-gold/20 bg-gold/5 rounded-full px-3 py-1 mt-1"></span>
       </div>
       <p id="brief-preview" class="text-white/55 text-sm leading-relaxed line-clamp-3 mb-4"></p>
-      <div class="flex items-center gap-1.5 text-gold/70 group-hover:text-gold text-xs font-medium tracking-wide transition-colors">
-        <span>Read full brief</span>
-        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      <div class="flex items-center justify-between gap-3">
+        <button onclick="openBriefFullscreen()" class="flex items-center gap-1.5 text-gold/70 hover:text-gold text-xs font-medium tracking-wide transition-colors">
+          <span>Read full brief</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+        <button onclick="deleteBrief()" id="delete-brief-btn"
+                class="flex items-center gap-1.5 text-xs text-red-400/50 hover:text-red-400 transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          <span>Delete</span>
+        </button>
       </div>
-    </button>
+    </div>
     <!-- BRIEF PLACEHOLDER (shown when no brief assigned) -->
     <div id="brief-placeholder" class="hidden rounded-2xl border border-dashed border-border bg-charcoal/30 p-4 sm:p-6 mb-8 text-center">
       <p class="text-muted text-sm">Your project brief hasn't been assigned yet.</p>
@@ -775,14 +782,6 @@
     <!-- Body -->
     <div class="flex-1 overflow-y-auto thin-scroll">
       <div id="brief-full-body" class="max-w-2xl mx-auto px-5 sm:px-8 py-8 space-y-8"></div>
-    </div>
-    <!-- Delete brief footer -->
-    <div class="flex-shrink-0 border-t border-border/30 px-5 sm:px-8 py-4 flex justify-end" style="background:#0D0B09;">
-      <button onclick="deleteBrief()" id="delete-brief-btn"
-              class="inline-flex items-center gap-2 text-xs text-red-400/60 hover:text-red-400 transition-colors">
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-        Delete this brief
-      </button>
     </div>
   </div>
 
@@ -2775,11 +2774,9 @@
       if (!confirm('Remove this brief from your dashboard?\n\nYou won\'t be able to undo this.')) return;
       const btn = $('delete-brief-btn');
       btn.disabled = true;
-      btn.textContent = 'Deleting…';
       const { error } = await db.from('briefs').update({ status: 'archived' }).eq('id', _briefData.id);
-      if (error) { btn.disabled = false; btn.textContent = 'Delete this brief'; showToast('Error: ' + error.message); return; }
+      if (error) { btn.disabled = false; showToast('Error: ' + error.message); return; }
       _briefData = null;
-      closeBriefFullscreen();
       $('brief-card').classList.add('hidden');
       $('brief-placeholder').classList.remove('hidden');
       showToast('Brief removed.');
