@@ -660,8 +660,7 @@
               <span class="inline-block text-[10px] font-semibold tracking-widest2 uppercase text-gold border border-gold/20 bg-gold/5 rounded-full px-3 py-0.5 mb-3">Audition</span>
               <h3 class="font-serif text-2xl sm:text-3xl text-white mb-3">Prove Your Voice</h3>
               <p class="text-muted text-sm sm:text-base leading-relaxed max-w-lg">
-                Submit your <span class="text-white font-medium">3-chapter plot outline</span> and a
-                <span class="text-white font-medium">500-word test scene</span>. We read everything.
+                Upload <span class="text-white font-medium">Chapters 1–3 from any previous work</span>. We read everything.
                 We're not looking for perfection — we're looking for commercial instinct and emotional pull.
               </p>
             </div>
@@ -921,7 +920,7 @@
             <svg class="faq-chevron flex-shrink-0 w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
           </button>
           <div class="faq-body px-6 pb-5">
-            <p class="text-muted text-sm leading-relaxed">Yes. We evaluate writing quality and commercial instinct, not credentials. New writers who can tell a gripping, emotionally-driven story are just as welcome as published authors. What we're looking for is in your test scene — not your CV.</p>
+            <p class="text-muted text-sm leading-relaxed">Yes. We evaluate writing quality and commercial instinct, not credentials. New writers who can tell a gripping, emotionally-driven story are just as welcome as published authors. What we're looking for is in your first three chapters — not your CV.</p>
           </div>
         </div>
 
@@ -1072,20 +1071,25 @@
             <p class="text-muted text-[11px] mt-1.5">One sentence. Hook us like you'd hook a reader scrolling at 1 AM.</p>
           </div>
 
-          <!-- Test scene -->
+          <!-- Writing sample upload -->
           <div>
-            <label class="block text-xs font-medium text-white/70 tracking-wide mb-2" for="testScene">
-              500-Word Test Scene
-              <span class="ml-2 text-gold/70 font-normal normal-case tracking-normal">— paste your audition piece below</span>
+            <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">
+              Writing Sample — Chapters 1–3
+              <span class="ml-2 text-gold/70 font-normal normal-case tracking-normal">— from any previous work</span>
             </label>
-            <textarea
-              id="testScene"
-              name="testScene"
-              rows="10"
-              placeholder="Paste your 500-word scene here. Show us tension, voice, and pacing. This is your audition — make it count."
-              class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 leading-relaxed resize-y transition-all duration-200 focus:ring-0"
-              required></textarea>
-            <p class="text-muted text-[11px] mt-1.5">Any scene from your proposed book. We prioritize emotional hooks, pacing, and character desire.</p>
+            <div id="chapter-dropzone"
+                 onclick="document.getElementById('sampleChapters').click()"
+                 class="border-2 border-dashed border-border hover:border-gold/40 rounded-lg p-6 text-center cursor-pointer transition-colors duration-200 group">
+              <svg class="w-8 h-8 mx-auto mb-2 text-muted group-hover:text-gold/70 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m6.75 12-3-3m0 0-3 3m3-3v6m-1.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9z"/>
+              </svg>
+              <p id="chapter-filename" class="text-sm text-muted group-hover:text-white/70 transition-colors">
+                Click to upload or drag &amp; drop your file
+              </p>
+              <p class="text-xs text-muted/60 mt-1">Accepts .docx or .pdf · Max 10 MB</p>
+              <input type="file" id="sampleChapters" name="sampleChapters" accept=".docx,.pdf" class="hidden" required/>
+            </div>
+            <p class="text-muted text-[11px] mt-1.5">Your first three chapters tell us everything — your hook, your voice, and whether readers would stay.</p>
           </div>
 
           <!-- Honeypot — must stay empty for valid submissions -->
@@ -1168,6 +1172,37 @@
   <!-- Supabase + Application form handler -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
+    // File upload dropzone behaviour
+    (function () {
+      const input     = document.getElementById('sampleChapters');
+      const dropzone  = document.getElementById('chapter-dropzone');
+      const label     = document.getElementById('chapter-filename');
+
+      function setFile(file) {
+        if (!file) return;
+        label.textContent = '✓ ' + file.name;
+        label.classList.add('text-gold');
+        label.classList.remove('text-muted');
+        dropzone.classList.add('border-gold/40');
+        dropzone.classList.remove('border-border');
+      }
+
+      input.addEventListener('change', () => setFile(input.files[0]));
+
+      dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('border-gold/40'); });
+      dropzone.addEventListener('dragleave', () => { if (!input.files[0]) dropzone.classList.remove('border-gold/40'); });
+      dropzone.addEventListener('drop', e => {
+        e.preventDefault();
+        const file = e.dataTransfer.files[0];
+        if (!file) return;
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        input.files = dt.files;
+        setFile(file);
+      });
+    })();
+  </script>
+  <script>
     (function () {
       const SUPABASE_URL      = 'https://qbqsbdswcqmrxoizgfrw.supabase.co';
       const SUPABASE_ANON_KEY = 'sb_publishable_v0fbhx8NkRNxYYVw8VGz_g_7Eqja11K';
@@ -1218,27 +1253,47 @@
         const email      = form.email.value.trim().toLowerCase();
         const experience = form.experience.value.trim() || null;
         const logline    = form.logline.value.trim();
-        const test_scene = form.testScene.value.trim();
+        const file       = form.sampleChapters.files[0];
 
         // ── Field length caps ─────────────────────────────────────────────
-        if (
-          name.length > 120 ||
-          email.length > 200 ||
-          logline.length > 300 ||
-          (experience && experience.length > 2000) ||
-          test_scene.length > 8000
-        ) {
+        if (name.length > 120 || email.length > 200 || logline.length > 300 || (experience && experience.length > 2000)) {
           errBox.textContent = 'Your submission exceeds allowed length limits.';
+          errBox.classList.remove('hidden');
+          return;
+        }
+        if (!file) {
+          errBox.textContent = 'Please upload your writing sample (Chapters 1–3).';
+          errBox.classList.remove('hidden');
+          return;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+          errBox.textContent = 'File is too large. Maximum size is 10 MB.';
           errBox.classList.remove('hidden');
           return;
         }
 
         btn.disabled = true;
-        btnLbl.textContent = 'Submitting…';
+        btnLbl.textContent = 'Uploading…';
         btnArr.classList.add('hidden');
         spinner.classList.remove('hidden');
 
-        const payload = { name, email, experience, logline, test_scene };
+        // Upload file to Supabase Storage
+        const ext  = file.name.split('.').pop().toLowerCase();
+        const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error: uploadErr } = await db.storage.from('applications').upload(path, file, { cacheControl: '3600', upsert: false });
+        if (uploadErr) {
+          btn.disabled = false;
+          btnLbl.textContent = 'Submit My Application';
+          btnArr.classList.remove('hidden');
+          spinner.classList.add('hidden');
+          errBox.textContent = 'File upload failed — please try again.';
+          errBox.classList.remove('hidden');
+          return;
+        }
+        const { data: { publicUrl } } = db.storage.from('applications').getPublicUrl(path);
+
+        btnLbl.textContent = 'Submitting…';
+        const payload = { name, email, experience, logline, sample_chapters_url: publicUrl };
 
         const { error } = await db.from('applications').insert(payload);
 
