@@ -906,55 +906,78 @@
     <div class="relative w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-2xl shadow-black/60 max-h-[90vh] overflow-y-auto thin-scroll">
       <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent"></div>
       <h3 class="font-serif text-xl text-white mb-1">Your Profile</h3>
-      <p class="text-muted text-xs mb-5">Update your display name and payment details.</p>
+      <p class="text-muted text-xs mb-5">Manage your payment details.</p>
       <div class="mb-5">
         <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Display Name</label>
         <input id="profile-name-input" type="text"
                class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 transition-all duration-200"/>
+        <p id="name-locked-note" class="hidden text-[11px] mt-1.5" style="color:rgba(255,255,255,0.38)">Name is locked once set. Contact your editor to request a change.</p>
       </div>
       <!-- Payment details section -->
       <div class="border-t border-border/50 pt-5 mb-5">
         <p class="text-[10px] font-semibold tracking-[0.16em] uppercase text-gold mb-1">Payment Details</p>
-        <p class="text-muted text-[11px] mb-4">Used by AFS to send your monthly payout. Fill in whichever applies.</p>
-        <div class="space-y-3">
+        <p class="text-muted text-[11px] mb-4">Used by AFS to send your monthly payout. Choose what works best for you.</p>
+        <div class="space-y-4">
+
+          <!-- Option A: GeegPay — best for Nigerian/African writers -->
           <div>
-            <label class="block text-[11px] font-medium text-white/60 tracking-wide mb-1.5">Payoneer Email</label>
-            <input id="pay-payoneer" type="email" placeholder="your@payoneer.com"
+            <div class="flex items-center gap-2 mb-1.5">
+              <label class="block text-[11px] font-medium text-white/60 tracking-wide">GeegPay Email</label>
+              <span class="text-[9px] font-bold tracking-widest uppercase px-1.5 py-0.5 rounded" style="background:rgba(80,200,120,0.15);color:#50C878;">Best for African Writers</span>
+            </div>
+            <input id="pay-payoneer" type="email" placeholder="your@geegpay.africa or geegpay email"
                    class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-3 py-2.5 transition-all duration-200"/>
+            <p class="text-[11px] mt-1.5 leading-relaxed" style="color:rgba(255,255,255,0.45)">Sending directly to your GeegPay account keeps fees significantly lower on your end — you receive closer to your full payout. Create a free account at <strong style="color:rgba(255,255,255,0.7)">geegpay.africa</strong> if you haven't already.</p>
           </div>
-          <div class="rounded-lg px-3 py-2.5" style="background:rgba(201,168,76,0.07);border:1px solid rgba(201,168,76,0.2)">
-            <p class="text-[10px] font-semibold tracking-widest uppercase text-gold mb-1">Nigerian / African Writer?</p>
-            <p class="text-[11px] leading-relaxed" style="color:rgba(255,255,255,0.55)">Use <strong style="color:rgba(255,255,255,0.8)">GeegPay</strong> instead of Payoneer — much lower withdrawal fees and better USD→NGN rates. Create a free account at <strong style="color:rgba(255,255,255,0.8)">geegpay.africa</strong>, then enter your GeegPay email above.</p>
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-[11px] font-medium text-white/60 tracking-wide mb-1.5">Bank Name</label>
-              <input id="pay-bank" type="text" placeholder="e.g. Chase, Barclays"
-                     class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-3 py-2.5 transition-all duration-200"/>
-            </div>
-            <div>
-              <label class="block text-[11px] font-medium text-white/60 tracking-wide mb-1.5">Account Holder</label>
-              <input id="pay-holder" type="text" placeholder="Full legal name"
-                     class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-3 py-2.5 transition-all duration-200"/>
-            </div>
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-[11px] font-medium text-white/60 tracking-wide mb-1.5">Account Number</label>
-              <input id="pay-account" type="text" placeholder="Account / IBAN"
-                     class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-3 py-2.5 transition-all duration-200"/>
-            </div>
-            <div>
-              <label class="block text-[11px] font-medium text-white/60 tracking-wide mb-1.5">Sort / Routing #</label>
-              <input id="pay-routing" type="text" placeholder="Sort code or routing"
-                     class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-3 py-2.5 transition-all duration-200"/>
-            </div>
-          </div>
+
+          <!-- Option B: Payoneer — best for international writers -->
           <div>
-            <label class="block text-[11px] font-medium text-white/60 tracking-wide mb-1.5">Country</label>
-            <input id="pay-country" type="text" placeholder="e.g. United States, United Kingdom"
+            <div class="flex items-center gap-2 mb-1.5">
+              <label class="block text-[11px] font-medium text-white/60 tracking-wide">Payoneer Email</label>
+              <span class="text-[9px] font-bold tracking-widest uppercase px-1.5 py-0.5 rounded" style="background:rgba(100,140,255,0.15);color:#8AACFF;">Best for International Writers</span>
+            </div>
+            <input id="pay-payoneer-intl" type="email" placeholder="your@payoneer.com"
                    class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-3 py-2.5 transition-all duration-200"/>
+            <p class="text-[11px] mt-1.5 leading-relaxed" style="color:rgba(255,255,255,0.45)">Good option for writers outside Africa. Note that <strong style="color:rgba(255,200,80,0.8)">Payoneer charges a fee when you withdraw</strong> to your local bank — you won't receive the full amount. Need help setting up? <strong style="color:rgba(255,255,255,0.7)">Contact your editor.</strong></p>
           </div>
+
+          <!-- Bank transfer — last resort -->
+          <div class="border-t border-border/30 pt-3">
+            <p class="text-[10px] font-semibold tracking-[0.16em] uppercase mb-2" style="color:rgba(255,255,255,0.35)">Direct Bank Transfer (Last Resort)</p>
+            <div class="rounded-lg px-3 py-2 mb-3" style="background:rgba(255,100,80,0.06);border:1px solid rgba(255,100,80,0.18)">
+              <p class="text-[11px] leading-relaxed" style="color:rgba(255,160,140,0.85)">Bank wire transfers carry the highest fees. Only use this if neither option above is available to you.</p>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[11px] font-medium text-white/60 tracking-wide mb-1.5">Bank Name</label>
+                <input id="pay-bank" type="text" placeholder="e.g. Chase, Barclays"
+                       class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-3 py-2.5 transition-all duration-200"/>
+              </div>
+              <div>
+                <label class="block text-[11px] font-medium text-white/60 tracking-wide mb-1.5">Account Holder</label>
+                <input id="pay-holder" type="text" placeholder="Full legal name"
+                       class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-3 py-2.5 transition-all duration-200"/>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mt-3">
+              <div>
+                <label class="block text-[11px] font-medium text-white/60 tracking-wide mb-1.5">Account Number</label>
+                <input id="pay-account" type="text" placeholder="Account / IBAN"
+                       class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-3 py-2.5 transition-all duration-200"/>
+              </div>
+              <div>
+                <label class="block text-[11px] font-medium text-white/60 tracking-wide mb-1.5">Sort / Routing #</label>
+                <input id="pay-routing" type="text" placeholder="Sort code or routing"
+                       class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-3 py-2.5 transition-all duration-200"/>
+              </div>
+            </div>
+            <div class="mt-3">
+              <label class="block text-[11px] font-medium text-white/60 tracking-wide mb-1.5">Country</label>
+              <input id="pay-country" type="text" placeholder="e.g. United States, United Kingdom"
+                     class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-3 py-2.5 transition-all duration-200"/>
+            </div>
+          </div>
+
         </div>
       </div>
       <div class="flex gap-3">
@@ -2673,43 +2696,59 @@
     }
 
     function openProfileModal() {
-      $('profile-name-input').value = ($('nav-name-text')?.textContent || '').trim();
+      const existingName = ($('nav-name-text')?.textContent || '').trim();
+      const nameInput = $('profile-name-input');
+      nameInput.value = existingName;
+      // Lock name once set — names cannot be changed by the writer
+      const nameLocked = !!existingName;
+      nameInput.disabled = nameLocked;
+      nameInput.style.opacity = nameLocked ? '0.45' : '1';
+      nameInput.style.cursor  = nameLocked ? 'not-allowed' : '';
+      const lockedNote = $('name-locked-note');
+      if (lockedNote) nameLocked ? lockedNote.classList.remove('hidden') : lockedNote.classList.add('hidden');
       const p = _parsePaymentInfo(_currentPaymentInfo);
-      $('pay-payoneer').value = p.payoneer || p.paypal || '';
-      $('pay-bank').value     = p.bank     || '';
-      $('pay-holder').value   = p.holder   || '';
-      $('pay-account').value  = p.account  || '';
-      $('pay-routing').value  = p.routing  || '';
-      $('pay-country').value  = p.country  || '';
+      $('pay-payoneer').value      = p.geegpay  || '';
+      $('pay-payoneer-intl').value = p.payoneer || p.paypal || '';
+      $('pay-bank').value          = p.bank     || '';
+      $('pay-holder').value        = p.holder   || '';
+      $('pay-account').value       = p.account  || '';
+      $('pay-routing').value       = p.routing  || '';
+      $('pay-country').value       = p.country  || '';
       $('profile-modal').classList.remove('hidden');
-      setTimeout(() => $('profile-name-input').focus(), 50);
+      setTimeout(() => { if (!nameLocked) $('profile-name-input').focus(); else $('pay-payoneer').focus(); }, 50);
     }
     function closeProfileModal() { $('profile-modal').classList.add('hidden'); }
     $('profile-modal').addEventListener('click', e => { if (e.target === $('profile-modal')) closeProfileModal(); });
 
     async function saveProfile() {
-      const name = $('profile-name-input').value.trim();
+      const nameInput = $('profile-name-input');
+      const nameLocked = nameInput.disabled;
+      const name = nameLocked
+        ? ($('nav-name-text')?.textContent || '').trim()
+        : nameInput.value.trim();
       if (!name) return;
       const payObj = {
-        payoneer: $('pay-payoneer').value.trim() || undefined,
-        bank:     $('pay-bank').value.trim()     || undefined,
-        holder:   $('pay-holder').value.trim()   || undefined,
-        account:  $('pay-account').value.trim()  || undefined,
-        routing:  $('pay-routing').value.trim()  || undefined,
-        country:  $('pay-country').value.trim()  || undefined,
+        geegpay:  $('pay-payoneer').value.trim()      || undefined,
+        payoneer: $('pay-payoneer-intl').value.trim() || undefined,
+        bank:     $('pay-bank').value.trim()          || undefined,
+        holder:   $('pay-holder').value.trim()        || undefined,
+        account:  $('pay-account').value.trim()       || undefined,
+        routing:  $('pay-routing').value.trim()       || undefined,
+        country:  $('pay-country').value.trim()       || undefined,
       };
-      // Remove undefined keys so we don't store empty strings
       Object.keys(payObj).forEach(k => payObj[k] === undefined && delete payObj[k]);
       const paymentInfo = Object.keys(payObj).length ? JSON.stringify(payObj) : null;
-      const { error } = await db.from('profiles').update({ name, payment_info: paymentInfo }).eq('id', currentUserId);
+      const updatePayload = nameLocked ? { payment_info: paymentInfo } : { name, payment_info: paymentInfo };
+      const { error } = await db.from('profiles').update(updatePayload).eq('id', currentUserId);
       if (error) { showToast('Error: ' + error.message); return; }
       _currentPaymentInfo = paymentInfo;
-      const _navTxt = $('nav-name-text');
-      if (_navTxt) _navTxt.textContent = name;
-      $('greeting-name').textContent = name.split(' ')[0];
-      // Update avatar initials after name change
-      const _initials = name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
-      const _av = $('nav-avatar-initials'); if (_av) _av.textContent = _initials;
+      if (!nameLocked) {
+        const _navTxt = $('nav-name-text');
+        if (_navTxt) _navTxt.textContent = name;
+        $('greeting-name').textContent = name.split(' ')[0];
+        const _initials = name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+        const _av = $('nav-avatar-initials'); if (_av) _av.textContent = _initials;
+      }
       closeProfileModal();
       showToast('Profile updated!');
     }
@@ -3306,9 +3345,9 @@
       target: 'notif-btn',
     },
     {
-      label: 'Payment Details',
-      title: 'Set Up Your Payout',
-      body: 'Click your name to open your profile. Add your Payoneer email or bank details so we can send your monthly payout. Nigerian writers — we recommend GeegPay for the lowest fees.',
+      label: 'Your Rank & Profile',
+      title: 'You\'re Currently Unranked',
+      body: 'All writers start as <strong style="color:#E8B488">Unranked</strong> before signing their contract. Once you sign, you\'ll be promoted to <strong style="color:#E8B488">Bronze Novelist</strong> and unlock your $100 monthly milestone bonus. Click your profile to add your payment details so your first payout can be processed the moment you\'re signed.',
       target: 'nav-profile-btn',
     },
     {
