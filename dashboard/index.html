@@ -301,9 +301,15 @@
         </svg>
       </div>
       <div class="flex items-center gap-3">
-        <button id="nav-name-btn" onclick="openProfileModal()"
-                class="hidden sm:block text-muted hover:text-white text-sm truncate max-w-[160px] transition-colors cursor-pointer"
-                title="Edit profile"></button>
+        <button id="nav-profile-btn" onclick="openProfileModal()"
+                class="hidden sm:flex items-center gap-2 group cursor-pointer"
+                title="Edit profile">
+          <div class="relative flex-shrink-0">
+            <div id="nav-avatar" class="w-8 h-8 rounded-full bg-surface border-2 border-border group-hover:border-white/25 flex items-center justify-center text-xs font-semibold text-white/70 group-hover:text-white transition-all duration-200 select-none"></div>
+            <div id="nav-rank-badge" class="hidden absolute -bottom-1 -right-1 pointer-events-none"></div>
+          </div>
+          <span id="nav-name-text" class="text-muted group-hover:text-white text-sm truncate max-w-[120px] transition-colors"></span>
+        </button>
         <button id="theme-toggle-btn" onclick="toggleTheme()"
                 class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-white hover:bg-surface border border-border hover:border-white/20 transition-all duration-200"
                 title="Toggle theme" aria-label="Toggle light/dark mode">
@@ -420,9 +426,9 @@
         <p id="stat-words" class="font-serif text-2xl sm:text-3xl text-white"><span class="skeleton inline-block w-20 h-8">&nbsp;</span></p>
         <p class="text-muted text-xs mt-1">across all chapters</p>
       </div>
-      <div class="rounded-2xl border border-border bg-surface p-4 sm:p-5 relative overflow-hidden">
+      <div id="stats-milestone-card" class="rounded-2xl border border-border bg-surface p-4 sm:p-5 relative overflow-hidden transition-opacity duration-300">
         <div class="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent"></div>
-        <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-3">$120 Bonus</p>
+        <p id="stat-bonus-header" class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-3">Rank Bonus</p>
         <p id="stat-milestone-label" class="font-serif text-2xl sm:text-3xl text-white"><span class="skeleton inline-block w-16 h-8">&nbsp;</span></p>
         <div class="mt-2 h-1 bg-charcoal rounded-full overflow-hidden">
           <div id="milestone-bar" class="h-full bg-gold rounded-full transition-all duration-700" style="width:0%"></div>
@@ -434,7 +440,16 @@
     <!-- PAYOUT THRESHOLD NOTICE -->
     <div class="flex items-start gap-3 rounded-xl mb-6 px-4 py-3" style="background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.15);">
       <svg class="flex-shrink-0 w-4 h-4 text-gold mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      <p class="text-xs leading-relaxed" style="color:rgba(255,255,255,0.5);"><strong style="color:rgba(255,255,255,0.8);">Monthly payouts release when your balance reaches $100.</strong> Earnings below that roll forward and pay out the month your balance crosses the threshold. Your <strong style="color:rgba(255,255,255,0.8);">$120 milestone bonus</strong> pays within 14 days of hitting 30,000 words — no $100 minimum applies to it.</p>
+      <p class="text-xs leading-relaxed" style="color:rgba(255,255,255,0.5);"><strong style="color:rgba(255,255,255,0.8);">Monthly payouts release when your balance reaches $100.</strong> Earnings below that roll forward and pay out the month your balance crosses the threshold. Your <strong style="color:rgba(255,255,255,0.8);"><span id="payout-bonus-amount">$100</span> milestone bonus</strong> pays within 14 days of hitting 30,000 words — no $100 minimum applies to it.</p>
+    </div>
+
+    <!-- RANK UNCONTRACTED NOTE (shown for unranked writers, closeable) -->
+    <div id="rank-uncontracted-note" class="hidden flex items-start gap-3 rounded-xl mb-6 px-4 py-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+      <svg class="flex-shrink-0 w-4 h-4 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="color:rgba(255,255,255,0.3);"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
+      <p class="text-xs leading-relaxed flex-1" style="color:rgba(255,255,255,0.4);"><strong style="color:rgba(255,255,255,0.6);">Your milestone bonus activates when you sign your contract.</strong> Once contracted, you become a Bronze AFS Novelist and your $100 bonus unlocks. Hit $500/month consistently to reach Gold ($120), and $1,000/month for Platinum ($140).</p>
+      <button onclick="$('rank-uncontracted-note').classList.add('hidden')" class="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center transition-colors hover:bg-white/10" style="color:rgba(255,255,255,0.3);" title="Dismiss">
+        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
     </div>
 
     <!-- PAYOUT HISTORY (only shown when payouts exist) -->
@@ -1123,8 +1138,76 @@
 
     // ── STATS DATA ─────────────────────────────────────────────
     async function fetchProfile(userId) {
-      const { data } = await db.from('profiles').select('name, email, onboarded, payment_info').eq('id', userId).single();
+      const { data } = await db.from('profiles').select('name, email, onboarded, payment_info, rank').eq('id', userId).single();
       return data;
+    }
+
+    // ── RANK SYSTEM ────────────────────────────────────────────
+    const RANK_CONFIG = {
+      unranked: { label: 'Unranked',          bonus: 0,   gem: null },
+      bronze:   { label: 'Bronze Novelist',   bonus: 100, gem: { top: '#E8A96C', mid: '#CD7F32', bot: '#7B3F00' } },
+      gold:     { label: 'Gold Novelist',     bonus: 120, gem: { top: '#F0D870', mid: '#C9A84C', bot: '#8B6914' } },
+      platinum: { label: 'Platinum Novelist', bonus: 140, gem: { top: '#F5F5FF', mid: '#D0D0E8', bot: '#8888A8' } },
+    };
+
+    function _gemBadgeSVG(colors, size) {
+      const id = 'grd_' + Math.random().toString(36).slice(2, 7);
+      return `<svg width="${size}" height="${size}" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 1px 2px rgba(0,0,0,0.5))">
+        <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stop-color="${colors.top}"/>
+          <stop offset="50%"  stop-color="${colors.mid}"/>
+          <stop offset="100%" stop-color="${colors.bot}"/>
+        </linearGradient></defs>
+        <polygon points="10,1 18,6 18,14 10,19 2,14 2,6" fill="url(#${id})" stroke="rgba(0,0,0,0.25)" stroke-width="0.75"/>
+      </svg>`;
+    }
+
+    let _writerRank = 'unranked';
+
+    function initRankProfile(profile) {
+      const rank = profile?.rank || 'unranked';
+      _writerRank = rank;
+      const cfg = RANK_CONFIG[rank];
+      const name = profile?.name || profile?.email || '?';
+      const initials = name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?';
+
+      // Nav avatar initials
+      const avatar = $('nav-avatar');
+      if (avatar) avatar.textContent = initials;
+
+      // Nav rank badge
+      const badge = $('nav-rank-badge');
+      if (badge) {
+        if (rank !== 'unranked' && cfg.gem) {
+          badge.innerHTML = _gemBadgeSVG(cfg.gem, 14);
+          badge.classList.remove('hidden');
+        } else {
+          badge.classList.add('hidden');
+        }
+      }
+
+      // Bonus stat card header
+      const bonusHeader = $('stat-bonus-header');
+      if (bonusHeader) {
+        bonusHeader.textContent = rank === 'unranked' ? 'Rank Bonus' : '$' + cfg.bonus + ' Bonus';
+      }
+
+      // Payout notice bonus amount
+      const payoutAmt = $('payout-bonus-amount');
+      if (payoutAmt) {
+        payoutAmt.textContent = rank === 'unranked' ? '$100' : '$' + cfg.bonus;
+      }
+
+      // Grey out milestone card for unranked; show note
+      const milestoneCard = $('stats-milestone-card');
+      const rankNote = $('rank-uncontracted-note');
+      if (rank === 'unranked') {
+        if (milestoneCard) milestoneCard.style.opacity = '0.45';
+        if (rankNote) rankNote.classList.remove('hidden');
+      } else {
+        if (milestoneCard) milestoneCard.style.opacity = '1';
+        if (rankNote) rankNote.classList.add('hidden');
+      }
     }
 
     async function fetchEarnings30Days(userId) {
@@ -2544,7 +2627,7 @@
     }
 
     function openProfileModal() {
-      $('profile-name-input').value = $('nav-name-btn').textContent.trim();
+      $('profile-name-input').value = ($('nav-name-text')?.textContent || '').trim();
       const p = _parsePaymentInfo(_currentPaymentInfo);
       $('pay-payoneer').value = p.payoneer || p.paypal || '';
       $('pay-bank').value     = p.bank     || '';
@@ -2575,8 +2658,12 @@
       const { error } = await db.from('profiles').update({ name, payment_info: paymentInfo }).eq('id', currentUserId);
       if (error) { showToast('Error: ' + error.message); return; }
       _currentPaymentInfo = paymentInfo;
-      $('nav-name-btn').textContent  = name;
+      const _navTxt = $('nav-name-text');
+      if (_navTxt) _navTxt.textContent = name;
       $('greeting-name').textContent = name.split(' ')[0];
+      // Update avatar initials after name change
+      const _initials = name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+      const _av = $('nav-avatar'); if (_av) _av.textContent = _initials;
       closeProfileModal();
       showToast('Profile updated!');
     }
@@ -2856,9 +2943,12 @@
 
       const firstName = (profile?.name || 'Writer').split(' ')[0];
       $('greeting-name').textContent    = firstName;
-      $('nav-name-btn').textContent     = profile?.name || profile?.email || '';
-      $('nav-name-btn').classList.remove('hidden');
+      const _navNameEl = $('nav-name-text');
+      if (_navNameEl) _navNameEl.textContent = profile?.name || profile?.email || '';
+      const _navProfileBtn = $('nav-profile-btn');
+      if (_navProfileBtn) _navProfileBtn.classList.remove('hidden');
       _currentPaymentInfo = profile?.payment_info || '';
+      initRankProfile(profile);
       if (!profile?.onboarded) showOnboardingCard(firstName);
       loadNotifications();
       initChat(currentUserId);
@@ -3173,7 +3263,7 @@
       label: 'Payment Details',
       title: 'Set Up Your Payout',
       body: 'Click your name to open your profile. Add your Payoneer email or bank details so we can send your monthly payout. Nigerian writers — we recommend GeegPay for the lowest fees.',
-      target: 'nav-name-btn',
+      target: 'nav-profile-btn',
     },
     {
       label: "All Set!",

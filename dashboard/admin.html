@@ -469,7 +469,10 @@
             <div>
               <p class="text-[10px] font-bold tracking-[0.22em] uppercase text-crimson-light mb-1.5">Writer Profile</p>
               <h2 id="writer-name-heading" class="font-serif text-3xl text-white leading-tight mb-1"></h2>
-              <span id="writer-email-heading" class="inline-block text-[11px] text-muted/80 bg-charcoal border border-border rounded-full px-3 py-0.5 mt-0.5"></span>
+              <div class="flex items-center gap-2 mt-0.5 flex-wrap">
+                <span id="writer-email-heading" class="inline-block text-[11px] text-muted/80 bg-charcoal border border-border rounded-full px-3 py-0.5"></span>
+                <span id="admin-rank-pill" class="hidden inline-flex items-center gap-1.5 text-[11px] font-medium border rounded-full px-2.5 py-0.5"></span>
+              </div>
             </div>
             <!-- Action buttons row — Brief, Payout, Send Contract all visible -->
             <div class="flex items-center gap-2 flex-shrink-0 flex-wrap">
@@ -500,6 +503,53 @@
               </button>
             </div>
           </div>
+          <!-- RANK TRACKER CARD -->
+          <div id="rank-tracker-card" class="hidden rounded-xl border border-border bg-surface p-4 mb-5">
+            <div class="flex items-center justify-between gap-3 flex-wrap">
+              <div class="flex items-center gap-3">
+                <div id="admin-rank-gem"></div>
+                <div>
+                  <p class="text-[10px] font-semibold tracking-widest uppercase text-muted">Novelist Rank</p>
+                  <p id="admin-rank-label" class="text-white text-sm font-medium mt-0.5"></p>
+                </div>
+                <div class="ml-2">
+                  <p class="text-[10px] text-muted">This month</p>
+                  <p id="rank-monthly-total" class="text-white text-sm font-semibold mt-0.5">—</p>
+                </div>
+              </div>
+              <!-- Rank management dropdown -->
+              <div class="relative">
+                <button onclick="_toggleRankMenu(event)"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface hover:bg-charcoal border border-border hover:border-white/20 text-white/70 hover:text-white text-xs font-medium rounded-lg transition-all duration-200">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 15a4 4 0 0 0 7.584 1.585"/><path d="M5.5 9A4 4 0 0 1 13.084 7.415"/><path d="M3 3l18 18"/></svg>
+                  Set Rank
+                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+                <div id="rank-menu" class="hidden absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-xl border border-border bg-surface shadow-xl overflow-hidden py-1">
+                  <button onclick="setWriterRank('bronze')" class="w-full text-left px-4 py-2 text-xs hover:bg-charcoal flex items-center gap-2"><span style="color:#CD7F32">⬡</span> Bronze</button>
+                  <button onclick="setWriterRank('gold')"   class="w-full text-left px-4 py-2 text-xs hover:bg-charcoal flex items-center gap-2"><span style="color:#C9A84C">⬡</span> Gold</button>
+                  <button onclick="setWriterRank('platinum')" class="w-full text-left px-4 py-2 text-xs hover:bg-charcoal flex items-center gap-2"><span style="color:#D0D0E8">⬡</span> Platinum</button>
+                  <div class="border-t border-border/50 my-1"></div>
+                  <button onclick="setWriterRank('unranked')" class="w-full text-left px-4 py-2 text-xs hover:bg-charcoal text-muted/60 hover:text-muted">Remove Rank</button>
+                </div>
+              </div>
+            </div>
+            <!-- Next tier progress -->
+            <div id="rank-next-tier-row" class="hidden mt-4 pt-4 border-t border-border/50">
+              <div class="flex items-center justify-between text-[10px] text-muted mb-1.5">
+                <span>Progress toward <span id="rank-next-label" class="text-white/70"></span></span>
+                <span id="rank-next-pct" class="text-white/60 font-medium"></span>
+              </div>
+              <div class="h-1.5 bg-charcoal rounded-full overflow-hidden">
+                <div id="rank-progress-bar" class="h-full rounded-full transition-all duration-700 bg-gold" style="width:0%"></div>
+              </div>
+              <div class="flex justify-between text-[10px] text-muted/50 mt-1">
+                <span>$0 / month</span>
+                <span id="rank-next-threshold" class="font-medium"></span>
+              </div>
+            </div>
+          </div>
+
           <div id="writer-books-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
         </div>
 
@@ -1341,7 +1391,7 @@
     // ── WRITERS SIDEBAR ─────────────────────────────────────────────
     async function loadWritersList() {
       const [{ data: writers }, { data: submittedChapters }, { data: unreadMsgs }] = await Promise.all([
-        db.from('profiles').select('id, name, email').order('name'),
+        db.from('profiles').select('id, name, email, rank').order('name'),
         db.from('chapters').select('books!inner(author_id)').eq('status', 'submitted'),
         db.from('messages').select('sender_id').eq('recipient_id', currentUserId).is('read_at', null),
       ]);
@@ -1395,6 +1445,7 @@
       // Close any open chat panel when switching writers
       if (_adminChatOpen) { _adminChatOpen = false; $('admin-chat-panel').classList.add('hidden'); }
       $('writer-books-grid').innerHTML = '<div class="skeleton h-64 rounded-2xl col-span-full"></div>';
+      updateRankTracker(writer.id);
       const { data: books } = await db.from('books')
         .select('id, title, description, cover_url, status, is_signed, admin_notes, created_at, views, likes, library_count, locked_from_chapter')
         .eq('author_id', writer.id)
@@ -1402,6 +1453,94 @@
       renderWriterBooks(books ?? []);
       openAdminChatFor(writer.id);
     }
+
+    // ── RANK MANAGEMENT ─────────────────────────────────────────
+    const _ADMIN_RANK_CFG = {
+      unranked: { label: 'Uncontracted',       bonus: 0,   gem: null,                                              next: 'bronze', nextThreshold: null,  nextLabel: 'Bronze' },
+      bronze:   { label: 'Bronze Novelist',    bonus: 100, gem: { top:'#E8A96C', mid:'#CD7F32', bot:'#7B3F00' }, next: 'gold',   nextThreshold: 500,   nextLabel: 'Gold ($500/mo)' },
+      gold:     { label: 'Gold Novelist',      bonus: 120, gem: { top:'#F0D870', mid:'#C9A84C', bot:'#8B6914' }, next: 'platinum',nextThreshold: 1000,  nextLabel: 'Platinum ($1k/mo)' },
+      platinum: { label: 'Platinum Novelist',  bonus: 140, gem: { top:'#F5F5FF', mid:'#D0D0E8', bot:'#8888A8' }, next: null,     nextThreshold: null,  nextLabel: '' },
+    };
+
+    function _adminGemSVG(colors, size) {
+      const id = 'agrd_' + Math.random().toString(36).slice(2, 7);
+      return `<svg width="${size}" height="${size}" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5))">
+        <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stop-color="${colors.top}"/>
+          <stop offset="50%"  stop-color="${colors.mid}"/>
+          <stop offset="100%" stop-color="${colors.bot}"/>
+        </linearGradient></defs>
+        <polygon points="10,1 18,6 18,14 10,19 2,14 2,6" fill="url(#${id})" stroke="rgba(0,0,0,0.25)" stroke-width="0.75"/>
+      </svg>`;
+    }
+
+    async function updateRankTracker(writerId) {
+      const card = $('rank-tracker-card');
+      if (!card || !writerId) return;
+      const writer = _writerReg.get(writerId);
+      const rank   = writer?.rank || 'unranked';
+      const cfg    = _ADMIN_RANK_CFG[rank];
+
+      // Rank gem
+      const gemEl = $('admin-rank-gem');
+      if (gemEl) gemEl.innerHTML = cfg.gem ? _adminGemSVG(cfg.gem, 28) : '<div style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);"></div>';
+
+      $('admin-rank-label').textContent = cfg.label;
+
+      // Rank pill in header
+      const pill = $('admin-rank-pill');
+      if (pill) {
+        if (rank !== 'unranked') {
+          pill.innerHTML = (cfg.gem ? _adminGemSVG(cfg.gem, 12) : '') + cfg.label;
+          pill.style.cssText = `color:${cfg.gem?.mid || 'rgba(255,255,255,0.5)'};border-color:${cfg.gem?.mid || 'rgba(255,255,255,0.15)'}30;background:${cfg.gem?.mid || 'rgba(255,255,255,0.03)'}18;`;
+          pill.classList.remove('hidden');
+        } else {
+          pill.classList.add('hidden');
+        }
+      }
+
+      // Fetch this month's earnings
+      const thisMonth = new Date().toISOString().slice(0, 7);
+      const { data: earnings } = await db.from('earnings').select('amount_earned').eq('author_id', writerId).like('date', `${thisMonth}%`);
+      const monthTotal = (earnings || []).reduce((s, r) => s + parseFloat(r.amount_earned || 0), 0);
+      $('rank-monthly-total').textContent = '$' + monthTotal.toFixed(2);
+
+      // Next tier progress
+      const nextRow = $('rank-next-tier-row');
+      if (cfg.nextThreshold && nextRow) {
+        const pct = Math.min(100, Math.round((monthTotal / cfg.nextThreshold) * 100));
+        $('rank-next-label').textContent     = cfg.nextLabel;
+        $('rank-next-pct').textContent       = pct + '%';
+        $('rank-next-threshold').textContent = '$' + cfg.nextThreshold + '/mo';
+        const bar = $('rank-progress-bar');
+        bar.style.width      = pct + '%';
+        bar.style.background = rank === 'bronze' ? '#C9A84C' : '#D0D0E8';
+        nextRow.classList.remove('hidden');
+      } else if (nextRow) {
+        nextRow.classList.add('hidden');
+      }
+
+      card.classList.remove('hidden');
+    }
+
+    async function setWriterRank(newRank) {
+      $('rank-menu').classList.add('hidden');
+      if (!selectedWriter) return;
+      const { error } = await db.rpc('admin_set_writer_rank', { p_user_id: selectedWriter.id, p_rank: newRank });
+      if (error) { showToast('Error: ' + error.message); return; }
+      const w = _writerReg.get(selectedWriter.id);
+      if (w) w.rank = newRank;
+      selectedWriter.rank = newRank;
+      await updateRankTracker(selectedWriter.id);
+      showToast('Rank set to ' + newRank);
+    }
+
+    function _toggleRankMenu(e) {
+      e.stopPropagation();
+      $('rank-menu').classList.toggle('hidden');
+    }
+
+    document.addEventListener('click', () => $('rank-menu')?.classList.add('hidden'));
 
     function renderWriterBooks(books) {
       const grid = $('writer-books-grid');
@@ -2276,7 +2415,7 @@
     let allProfiles = [];
 
     async function loadWriters() {
-      const { data } = await db.from('profiles').select('id, name, email').order('name');
+      const { data } = await db.from('profiles').select('id, name, email, rank').order('name');
       allProfiles = data || [];
       const select = $('income-writer'), container = $('writer-list');
       if (!data?.length) { container.innerHTML = `<p class="text-muted text-xs px-2 pt-2">No writers found.</p>`; return; }
@@ -2368,7 +2507,7 @@
     async function loadPayoutWriterList() {
       _payoutWritersLoaded = true;
       const container = $('payout-writer-list');
-      const writers = allProfiles.length ? allProfiles : (await db.from('profiles').select('id, name, email').order('name')).data || [];
+      const writers = allProfiles.length ? allProfiles : (await db.from('profiles').select('id, name, email, rank').order('name')).data || [];
       if (!writers.length) { container.innerHTML = `<p class="text-muted text-xs px-2 pt-2">No writers yet.</p>`; return; }
       container.innerHTML = writers.map(w => `
         <button onclick="selectPayoutWriter('${w.id}')" data-pwid="${w.id}"
