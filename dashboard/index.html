@@ -302,11 +302,12 @@
       </div>
       <div class="flex items-center gap-3">
         <button id="nav-profile-btn" onclick="openProfileModal()"
-                class="hidden sm:flex items-center gap-2 group cursor-pointer"
+                class="hidden sm:flex items-center gap-2.5 group cursor-pointer"
                 title="Edit profile">
-          <div class="relative flex-shrink-0">
-            <div id="nav-avatar" class="w-8 h-8 rounded-full bg-surface border-2 border-border group-hover:border-white/25 flex items-center justify-center text-xs font-semibold text-white/70 group-hover:text-white transition-all duration-200 select-none"></div>
-            <div id="nav-rank-badge" class="hidden absolute -bottom-1 -right-1 pointer-events-none"></div>
+          <!-- Avatar circle with gem sitting on top -->
+          <div class="relative flex-shrink-0" style="padding-top:11px;">
+            <div id="nav-rank-gem" class="absolute top-0 left-1/2 -translate-x-1/2 z-10 pointer-events-none" style="line-height:0;"></div>
+            <div id="nav-avatar" class="w-9 h-9 rounded-full bg-surface border-2 border-transparent flex items-center justify-center text-xs font-semibold text-white/75 group-hover:text-white transition-all duration-200 select-none" style="border-color:rgba(255,255,255,0.12);"></div>
           </div>
           <span id="nav-name-text" class="text-muted group-hover:text-white text-sm truncate max-w-[120px] transition-colors"></span>
         </button>
@@ -341,17 +342,11 @@
 
     <!-- Page header -->
     <div class="mb-10">
-      <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
-        <div>
-          <p class="text-[11px] font-medium tracking-[0.22em] uppercase text-gold mb-2">Writer Dashboard</p>
-          <h1 class="font-serif text-3xl sm:text-4xl text-white leading-tight">
-            Good to see you, <span id="greeting-name" class="italic">Writer</span>.
-          </h1>
-          <p class="text-muted text-sm mt-1" id="today-date"></p>
-        </div>
-        <!-- Profile Badge -->
-        <div id="profile-badge" class="flex-shrink-0 self-start hidden" style="padding-top:28px; padding-bottom:20px;"></div>
-      </div>
+      <p class="text-[11px] font-medium tracking-[0.22em] uppercase text-gold mb-2">Writer Dashboard</p>
+      <h1 class="font-serif text-3xl sm:text-4xl text-white leading-tight">
+        Good to see you, <span id="greeting-name" class="italic">Writer</span>.
+      </h1>
+      <p class="text-muted text-sm mt-1" id="today-date"></p>
     </div>
 
     <!-- CONTRACT SIGNING BANNER -->
@@ -1150,10 +1145,10 @@
 
     // ── RANK SYSTEM ────────────────────────────────────────────
     const RANK_CONFIG = {
-      unranked: { label: 'Uncontracted', bonus: 0,   ringColor: '#3a3a3a', labelBg: 'rgba(55,55,55,0.9)', labelColor: 'rgba(180,180,180,0.7)', circleBg: 'rgba(18,18,18,0.95)' },
-      bronze:   { label: 'Bronze Novelist', bonus: 100, ringColor: '#9A4C1E', labelBg: 'linear-gradient(135deg,#C8956A,#8B3A12)', labelColor: 'rgba(255,240,225,0.92)', circleBg: 'rgba(20,10,4,0.95)' },
-      gold:     { label: 'Gold Novelist',   bonus: 120, ringColor: '#C9A84C', labelBg: 'linear-gradient(135deg,#FFD700,#E08C00)', labelColor: 'rgba(25,18,0,0.95)',    circleBg: 'rgba(14,11,0,0.95)' },
-      platinum: { label: 'Platinum Novelist', bonus: 140, ringColor: '#90A4AE', labelBg: 'linear-gradient(135deg,#ECF0F1,#90A4AE)', labelColor: 'rgba(20,28,35,0.95)', circleBg: 'rgba(6,9,14,0.95)'  },
+      unranked: { bonus: 0,   ringColor: 'rgba(255,255,255,0.12)' },
+      bronze:   { bonus: 100, ringColor: '#9A4C1E' },
+      gold:     { bonus: 120, ringColor: '#C9A84C' },
+      platinum: { bonus: 140, ringColor: '#90A4AE' },
     };
 
     function _gemSVG(rank, w, h) {
@@ -1237,38 +1232,19 @@
       const name = profile?.name || profile?.email || '?';
       const initials = name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?';
 
-      // ── Nav avatar: initials + rank-colored ring ──────────────
+      // ── Nav avatar circle ─────────────────────────────────────
       const avatar = $('nav-avatar');
       if (avatar) {
         avatar.textContent = initials;
         avatar.style.borderColor = cfg.ringColor;
-        avatar.style.borderWidth  = '2px';
-        avatar.style.borderStyle  = 'solid';
       }
-      // Hide the old small nav badge slot (not used in new design)
-      const navBadge = $('nav-rank-badge');
-      if (navBadge) navBadge.classList.add('hidden');
 
-      // ── Full profile badge on the dashboard page ──────────────
-      const badgeWrap = $('profile-badge');
-      if (badgeWrap) {
-        const gemSVG = _gemSVG(rank, 44, 46);
-        const ringStyle = rank === 'gold' || rank === 'platinum'
-          ? `border:4px solid ${cfg.ringColor}; box-shadow:0 0 14px ${cfg.ringColor}55;`
-          : `border:4px solid ${cfg.ringColor};`;
-        badgeWrap.innerHTML = `
-          <div style="position:relative; width:88px; display:inline-block;">
-            <div style="position:absolute; top:0; left:50%; transform:translateX(-50%); z-index:10; line-height:0; drop-shadow(0 2px 6px rgba(0,0,0,0.6));">
-              ${gemSVG}
-            </div>
-            <div style="width:88px; height:88px; border-radius:50%; ${ringStyle} background:${cfg.circleBg}; display:flex; align-items:center; justify-content:center;">
-              <span style="font-family:'Cinzel',Georgia,serif; font-size:1.35rem; font-weight:600; color:rgba(255,255,255,0.82); letter-spacing:0.06em; user-select:none;">${initials}</span>
-            </div>
-            <div style="position:absolute; bottom:-15px; left:50%; transform:translateX(-50%); white-space:nowrap; padding:4px 13px; border-radius:20px; font-size:9.5px; font-weight:700; letter-spacing:0.09em; text-transform:uppercase; background:${cfg.labelBg}; color:${cfg.labelColor}; box-shadow:0 2px 10px rgba(0,0,0,0.55); text-align:center;">
-              ${cfg.label}
-            </div>
-          </div>`;
-        badgeWrap.classList.remove('hidden');
+      // ── Gem sitting on top of the nav avatar circle ───────────
+      const gemSlot = $('nav-rank-gem');
+      if (gemSlot) {
+        // gem is 20px wide × 21px tall; container has padding-top:11px
+        // so the gem's bottom (y=21) overlaps the circle top (y=11) by 10px
+        gemSlot.innerHTML = _gemSVG(rank, 20, 21);
       }
 
       // ── Bonus stat card ───────────────────────────────────────
