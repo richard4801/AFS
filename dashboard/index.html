@@ -1151,76 +1151,54 @@
       platinum: { bonus: 140, ringColor: '#90A4AE' },
     };
 
+    // Faceted pentagon gem. Each facet is a separately-shaded polygon so the
+    // stone reads as a real cut gem (light from upper-left). Gold/platinum get
+    // high facet contrast + a glint = glossy; bronze/unranked are low-contrast = dull.
     function _gemSVG(rank, w, h) {
-      const gid = 'gm' + Math.random().toString(36).slice(2, 7);
-      // Pentagon: apex at top, flat bottom — sits atop the circle like a crown gem
-      const outer = '22,2 42,16 36,44 8,44 2,16';
-      const inner = '22,8 36,18 32,38 12,38 8,18';
-
-      const tiers = {
-        unranked: {
-          grad: [['0%','#585858'],['100%','#1e1e1e']],
-          stroke: '#303030', iFill: 'rgba(70,70,70,0.18)', iStroke: 'rgba(70,70,70,0.22)',
-          hl: 'rgba(110,110,110,0.18)', glow: null, sparkle: false,
-        },
-        bronze: {
-          grad: [['0%','#D4A07A'],['45%','#9A4C1E'],['100%','#3D1700']],
-          stroke: '#5C2508', iFill: 'rgba(150,75,30,0.28)', iStroke: 'rgba(190,105,55,0.38)',
-          hl: 'rgba(215,155,95,0.32)', glow: null, sparkle: false,
-        },
-        gold: {
-          grad: [['0%','#FFF9C4'],['25%','#FFD600'],['65%','#FF8F00'],['100%','#BF3C00']],
-          stroke: '#C94800', iFill: 'rgba(255,215,0,0.32)', iStroke: 'rgba(255,195,0,0.5)',
-          hl: 'rgba(255,255,255,0.62)', glow: '#FFD600', sparkle: true,
-        },
-        platinum: {
-          grad: [['0%','#FFFFFF'],['28%','#E8EAF6'],['65%','#8FA8B4'],['100%','#3F5560']],
-          stroke: '#4A6470', iFill: 'rgba(195,215,240,0.28)', iStroke: 'rgba(170,200,225,0.48)',
-          hl: 'rgba(255,255,255,0.82)', glow: '#9BB8C8', sparkle: true,
-        },
+      const P = {
+        // table, [EA, AB, DE, BC, CD], stroke, glossy
+        unranked: { t:'#454545', f:['#525252','#3E3E3E','#363636','#2C2C2C','#242424'], s:'#1A1A1A', gloss:false },
+        bronze:   { t:'#B57A4C', f:['#CC9168','#A86E42','#965C34','#7C461E','#623818'], s:'#3E2410', gloss:false },
+        gold:     { t:'#FFD84D', f:['#FFF4C0','#FFCE2E','#F5B400','#D98A00','#AE6600'], s:'#7A4600', gloss:true },
+        platinum: { t:'#E6EDF4', f:['#FFFFFF','#D2DCE8','#BAC8D6','#90A4B4','#6C8290'], s:'#445E6C', gloss:true },
       };
+      const c = P[rank] || P.unranked;
 
-      const t = tiers[rank] || tiers.unranked;
-      const stops = t.grad.map(([p,c]) => `<stop offset="${p}" stop-color="${c}"/>`).join('');
+      // Regular pentagon, apex up, in a 40×40 viewBox
+      const A='20,2', B='37.1,14.4', C='30.6,34.6', D='9.4,34.6', E='2.9,14.4';   // outer
+      const a='20,11', b='28.6,17.2', c2='26.1,27.3', d='13.9,27.3', e='11.4,17.2'; // table
 
-      const glowFilter = t.glow ? `<filter id="${gid}_f" x="-40%" y="-40%" width="180%" height="180%">
-        <feGaussianBlur stdDeviation="3" result="b"/>
-        <feFlood flood-color="${t.glow}" flood-opacity="0.45" result="c"/>
-        <feComposite in="c" in2="b" operator="in" result="g"/>
-        <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
-      </filter>` : '';
+      // 5 bezel facets (between an outer edge and its inner edge)
+      const bezels =
+        `<polygon points="${E} ${A} ${a} ${e}" fill="${c.f[0]}"/>` +  // top-left  (brightest)
+        `<polygon points="${A} ${B} ${b} ${a}" fill="${c.f[1]}"/>` +  // top-right
+        `<polygon points="${D} ${E} ${e} ${d}" fill="${c.f[2]}"/>` +  // left
+        `<polygon points="${B} ${C} ${c2} ${b}" fill="${c.f[3]}"/>` + // right
+        `<polygon points="${C} ${D} ${d} ${c2}" fill="${c.f[4]}"/>`;  // bottom (darkest)
 
-      const glowRing = t.glow
-        ? `<polygon points="${outer}" fill="none" stroke="${t.glow}" stroke-width="2.5" stroke-opacity="0.35" filter="url(#${gid}_f)"/>`
+      const table = `<polygon points="${a} ${b} ${c2} ${d} ${e}" fill="${c.t}"/>`;
+
+      // Bright glint on the upper-left of the table for glossy stones
+      const glint = c.gloss
+        ? `<polygon points="14.5,15 18.5,13.8 17.5,17.5 15.5,18" fill="rgba(255,255,255,0.6)"/>`
         : '';
 
-      // Facet lines from outer vertices to inner (give 3-D cut-gem look)
-      const facets = `
-        <line x1="22" y1="2"  x2="22" y2="8"  stroke="rgba(255,255,255,0.12)" stroke-width="0.6"/>
-        <line x1="42" y1="16" x2="36" y2="18" stroke="rgba(255,255,255,0.10)" stroke-width="0.6"/>
-        <line x1="2"  y1="16" x2="8"  y2="18" stroke="rgba(255,255,255,0.10)" stroke-width="0.6"/>
-        <line x1="36" y1="44" x2="32" y2="38" stroke="rgba(0,0,0,0.14)"       stroke-width="0.6"/>
-        <line x1="8"  y1="44" x2="12" y2="38" stroke="rgba(0,0,0,0.14)"       stroke-width="0.6"/>`;
+      // Crisp facet edges
+      const edges =
+        `<g stroke="${c.s}" stroke-opacity="0.45" stroke-width="0.5">` +
+          `<line x1="20" y1="2" x2="20" y2="11"/>` +
+          `<line x1="37.1" y1="14.4" x2="28.6" y2="17.2"/>` +
+          `<line x1="30.6" y1="34.6" x2="26.1" y2="27.3"/>` +
+          `<line x1="9.4" y1="34.6" x2="13.9" y2="27.3"/>` +
+          `<line x1="2.9" y1="14.4" x2="11.4" y2="17.2"/>` +
+        `</g>` +
+        `<polygon points="${a} ${b} ${c2} ${d} ${e}" fill="none" stroke="${c.s}" stroke-opacity="0.4" stroke-width="0.5"/>`;
 
-      const sparkle = t.sparkle ? `
-        <line x1="22" y1="-2" x2="22" y2="5"  stroke="white" stroke-width="2.2" stroke-linecap="round" opacity="0.92"/>
-        <line x1="18" y1="2"  x2="26" y2="2"  stroke="white" stroke-width="2.2" stroke-linecap="round" opacity="0.92"/>
-        <line x1="37" y1="7"  x2="37" y2="11" stroke="white" stroke-width="1.3" stroke-linecap="round" opacity="0.7"/>
-        <line x1="35" y1="9"  x2="39" y2="9"  stroke="white" stroke-width="1.3" stroke-linecap="round" opacity="0.7"/>
-        <circle cx="6" cy="21" r="1.2" fill="white" opacity="0.45"/>` : '';
+      const outline = `<polygon points="${A} ${B} ${C} ${D} ${E}" fill="none" stroke="${c.s}" stroke-width="1.1" stroke-linejoin="round"/>`;
 
-      return `<svg viewBox="0 0 44 46" width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="${gid}" x1="0.25" y1="0" x2="0.5" y2="1">${stops}</linearGradient>
-          ${glowFilter}
-        </defs>
-        ${glowRing}
-        <polygon points="${outer}" fill="url(#${gid})" stroke="${t.stroke}" stroke-width="1.5"/>
-        ${facets}
-        <polygon points="${inner}" fill="${t.iFill}" stroke="${t.iStroke}" stroke-width="0.8"/>
-        <ellipse cx="15" cy="11" rx="7" ry="4.5" fill="${t.hl}" transform="rotate(-18,15,11)"/>
-        ${sparkle}
-      </svg>`;
+      return `<svg viewBox="0 0 40 40" width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 1px 2px rgba(0,0,0,0.45))">`
+        + bezels + table + glint + edges + outline +
+      `</svg>`;
     }
 
     let _writerRank = 'unranked';
@@ -1242,9 +1220,8 @@
       // ── Gem sitting on top of the nav avatar circle ───────────
       const gemSlot = $('nav-rank-gem');
       if (gemSlot) {
-        // gem is 20px wide × 21px tall; container has padding-top:11px
-        // so the gem's bottom (y=21) overlaps the circle top (y=11) by 10px
-        gemSlot.innerHTML = _gemSVG(rank, 20, 21);
+        // 22px square gem; sits atop the circle, bottom tip overlapping it
+        gemSlot.innerHTML = _gemSVG(rank, 22, 22);
       }
 
       // ── Bonus stat card ───────────────────────────────────────
