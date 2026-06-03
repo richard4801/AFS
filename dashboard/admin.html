@@ -537,7 +537,7 @@
             <!-- Next tier progress -->
             <div id="rank-next-tier-row" class="hidden mt-4 pt-4 border-t border-border/50">
               <div class="flex items-center justify-between text-[10px] text-muted mb-1.5">
-                <span>Progress toward <span id="rank-next-label" class="text-white/70"></span></span>
+                <span>This month toward <span id="rank-next-label" class="text-white/70"></span></span>
                 <span id="rank-next-pct" class="text-white/60 font-medium"></span>
               </div>
               <div class="h-1.5 bg-charcoal rounded-full overflow-hidden">
@@ -547,6 +547,15 @@
                 <span>$0 / month</span>
                 <span id="rank-next-threshold" class="font-medium"></span>
               </div>
+            </div>
+            <!-- Consistency tracker: last 3 months vs threshold -->
+            <div id="rank-consistency-row" class="hidden mt-4 pt-4 border-t border-border/50">
+              <div class="flex items-center justify-between mb-2">
+                <p class="text-[10px] font-semibold tracking-widest uppercase text-muted">3-Month Consistency</p>
+                <p id="rank-consistency-summary" class="text-[10px] text-white/50"></p>
+              </div>
+              <div id="rank-consistency-months" class="flex gap-2"></div>
+              <p class="text-[10px] text-muted/40 mt-2">Promotion recommended after 3 consecutive months above threshold.</p>
             </div>
           </div>
 
@@ -1516,16 +1525,29 @@
         }
       }
 
-      // Fetch this month's earnings
-      const thisMonth = new Date().toISOString().slice(0, 7);
-      const { data: earnings } = await db.from('earnings').select('amount_earned').eq('author_id', writerId).like('date', `${thisMonth}%`);
-      const monthTotal = (earnings || []).reduce((s, r) => s + parseFloat(r.amount_earned || 0), 0);
-      $('rank-monthly-total').textContent = '$' + monthTotal.toFixed(2);
+      // Fetch last 3 months of earnings in one query
+      const months = [0, 1, 2].map(i => {
+        const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i);
+        return d.toISOString().slice(0, 7);
+      }).reverse(); // oldest → newest
 
-      // Next tier progress
+      const since = months[0] + '-01';
+      const { data: earningsHistory } = await db.from('earnings')
+        .select('date, amount_earned').eq('author_id', writerId).gte('date', since);
+
+      const monthTotals = months.map(m => ({
+        month: m,
+        total: (earningsHistory || []).filter(r => r.date.startsWith(m))
+          .reduce((s, r) => s + parseFloat(r.amount_earned || 0), 0),
+      }));
+
+      const thisMonthTotal = monthTotals[2].total;
+      $('rank-monthly-total').textContent = '$' + thisMonthTotal.toFixed(2);
+
+      // Next tier progress bar
       const nextRow = $('rank-next-tier-row');
       if (cfg.nextThreshold && nextRow) {
-        const pct = Math.min(100, Math.round((monthTotal / cfg.nextThreshold) * 100));
+        const pct = Math.min(100, Math.round((thisMonthTotal / cfg.nextThreshold) * 100));
         $('rank-next-label').textContent     = cfg.nextLabel;
         $('rank-next-pct').textContent       = pct + '%';
         $('rank-next-threshold').textContent = '$' + cfg.nextThreshold + '/mo';
@@ -1533,8 +1555,31 @@
         bar.style.width      = pct + '%';
         bar.style.background = rank === 'bronze' ? '#C9A84C' : '#D0D0E8';
         nextRow.classList.remove('hidden');
+
+        // 3-month consistency tracker
+        const conRow = $('rank-consistency-row');
+        if (conRow) {
+          const monthNames = months.map(m => {
+            const [y, mo] = m.split('-');
+            return new Date(+y, +mo - 1, 1).toLocaleString('en', { month: 'short' });
+          });
+          const hitCount = monthTotals.filter(m => m.total >= cfg.nextThreshold).length;
+          $('rank-consistency-summary').textContent = `${hitCount}/3 months above threshold`;
+
+          const accentColor = rank === 'bronze' ? '#C9A84C' : '#D0D0E8';
+          $('rank-consistency-months').innerHTML = monthTotals.map((m, i) => {
+            const hit = m.total >= cfg.nextThreshold;
+            return `<div class="flex-1 rounded-lg p-2 text-center" style="background:${hit ? accentColor + '18' : 'rgba(255,255,255,0.04)'};border:1px solid ${hit ? accentColor + '50' : 'rgba(255,255,255,0.08)'};">
+              <p class="text-[9px] uppercase tracking-widest font-medium" style="color:${hit ? accentColor : 'rgba(255,255,255,0.3)'};">${monthNames[i]}</p>
+              <p class="text-[11px] font-semibold mt-0.5" style="color:${hit ? accentColor : 'rgba(255,255,255,0.5)'};">$${m.total.toFixed(0)}</p>
+              <p style="font-size:10px; margin-top:2px;">${hit ? '✓' : '·'}</p>
+            </div>`;
+          }).join('');
+          conRow.classList.remove('hidden');
+        }
       } else if (nextRow) {
         nextRow.classList.add('hidden');
+        $('rank-consistency-row')?.classList.add('hidden');
       }
 
       card.classList.remove('hidden');
