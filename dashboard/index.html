@@ -919,15 +919,15 @@
         <p class="text-muted text-[11px] mb-4">Used by AFS to send your monthly payout. Choose what works best for you.</p>
         <div class="space-y-4">
 
-          <!-- Option A: GeegPay — best for Nigerian/African writers -->
+          <!-- Option A: Raenest — best for Nigerian/African writers -->
           <div>
             <div class="flex items-center gap-2 mb-1.5">
-              <label class="block text-[11px] font-medium text-white/60 tracking-wide">GeegPay Email</label>
+              <label class="block text-[11px] font-medium text-white/60 tracking-wide">Raenest Tag</label>
               <span class="text-[9px] font-bold tracking-widest uppercase px-1.5 py-0.5 rounded" style="background:rgba(80,200,120,0.15);color:#50C878;">Best for African Writers</span>
             </div>
-            <input id="pay-payoneer" type="email" placeholder="your@geegpay.africa or geegpay email"
+            <input id="pay-payoneer" type="text" placeholder="e.g. writerpro2847"
                    class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-3 py-2.5 transition-all duration-200"/>
-            <p class="text-[11px] mt-1.5 leading-relaxed" style="color:rgba(255,255,255,0.45)">Sending directly to your GeegPay account keeps fees significantly lower on your end — you receive closer to your full payout. Create a free account at <strong style="color:rgba(255,255,255,0.7)">geegpay.africa</strong> if you haven't already.</p>
+            <p class="text-[11px] mt-1.5 leading-relaxed" style="color:rgba(255,255,255,0.45)">Sending directly to your Raenest tag keeps fees significantly lower on your end — you receive closer to your full payout. Create a free account at <strong style="color:rgba(255,255,255,0.7)">raenest.com</strong> if you haven't already.</p>
           </div>
 
           <!-- Option B: Payoneer — best for international writers -->
@@ -2707,7 +2707,7 @@
       const lockedNote = $('name-locked-note');
       if (lockedNote) nameLocked ? lockedNote.classList.remove('hidden') : lockedNote.classList.add('hidden');
       const p = _parsePaymentInfo(_currentPaymentInfo);
-      $('pay-payoneer').value      = p.geegpay  || '';
+      $('pay-payoneer').value      = p.raenest || p.geegpay || '';
       $('pay-payoneer-intl').value = p.payoneer || p.paypal || '';
       $('pay-bank').value          = p.bank     || '';
       $('pay-holder').value        = p.holder   || '';
@@ -2728,7 +2728,7 @@
         : nameInput.value.trim();
       if (!name) return;
       const payObj = {
-        geegpay:  $('pay-payoneer').value.trim()      || undefined,
+        raenest:  $('pay-payoneer').value.trim()      || undefined,
         payoneer: $('pay-payoneer-intl').value.trim() || undefined,
         bank:     $('pay-bank').value.trim()          || undefined,
         holder:   $('pay-holder').value.trim()        || undefined,
@@ -3410,7 +3410,7 @@
 
     document.getElementById('tour-step-label').textContent = `Step ${_tourStep + 1} of ${total}`;
     document.getElementById('tour-title').textContent      = step.title;
-    document.getElementById('tour-body').textContent       = step.body;
+    document.getElementById('tour-body').innerHTML        = step.body;
 
     const prevBtn = document.getElementById('tour-prev-btn');
     const nextBtn = document.getElementById('tour-next-btn');
