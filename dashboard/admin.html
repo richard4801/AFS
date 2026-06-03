@@ -1456,22 +1456,29 @@
 
     // ── RANK MANAGEMENT ─────────────────────────────────────────
     const _ADMIN_RANK_CFG = {
-      unranked: { label: 'Uncontracted',       bonus: 0,   gem: null,                                              next: 'bronze', nextThreshold: null,  nextLabel: 'Bronze' },
-      bronze:   { label: 'Bronze Novelist',    bonus: 100, gem: { top:'#E8A96C', mid:'#CD7F32', bot:'#7B3F00' }, next: 'gold',   nextThreshold: 500,   nextLabel: 'Gold ($500/mo)' },
-      gold:     { label: 'Gold Novelist',      bonus: 120, gem: { top:'#F0D870', mid:'#C9A84C', bot:'#8B6914' }, next: 'platinum',nextThreshold: 1000,  nextLabel: 'Platinum ($1k/mo)' },
-      platinum: { label: 'Platinum Novelist',  bonus: 140, gem: { top:'#F5F5FF', mid:'#D0D0E8', bot:'#8888A8' }, next: null,     nextThreshold: null,  nextLabel: '' },
+      unranked: { label: 'Uncontracted',      ringColor: '#3a3a3a', pillColor: 'rgba(160,160,160,0.7)', next: 'bronze', nextThreshold: null,  nextLabel: 'Bronze' },
+      bronze:   { label: 'Bronze Novelist',   ringColor: '#9A4C1E', pillColor: '#C8956A',               next: 'gold',   nextThreshold: 500,   nextLabel: 'Gold ($500/mo)' },
+      gold:     { label: 'Gold Novelist',     ringColor: '#C9A84C', pillColor: '#FFD700',               next: 'platinum',nextThreshold: 1000, nextLabel: 'Platinum ($1k/mo)' },
+      platinum: { label: 'Platinum Novelist', ringColor: '#90A4AE', pillColor: '#E8EAF6',               next: null,     nextThreshold: null,  nextLabel: '' },
     };
 
-    function _adminGemSVG(colors, size) {
-      const id = 'agrd_' + Math.random().toString(36).slice(2, 7);
-      return `<svg width="${size}" height="${size}" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5))">
-        <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stop-color="${colors.top}"/>
-          <stop offset="50%"  stop-color="${colors.mid}"/>
-          <stop offset="100%" stop-color="${colors.bot}"/>
-        </linearGradient></defs>
-        <polygon points="10,1 18,6 18,14 10,19 2,14 2,6" fill="url(#${id})" stroke="rgba(0,0,0,0.25)" stroke-width="0.75"/>
-      </svg>`;
+    function _adminGemSVG(rank, w, h) {
+      const gid = 'ag' + Math.random().toString(36).slice(2, 6);
+      const outer = '22,2 42,16 36,44 8,44 2,16';
+      const inner = '22,8 36,18 32,38 12,38 8,18';
+      const tiers = {
+        unranked: { grad:[['0%','#525252'],['100%','#1c1c1c']], stroke:'#2e2e2e', iFill:'rgba(65,65,65,0.18)', iStroke:'rgba(65,65,65,0.2)', hl:'rgba(100,100,100,0.15)', glow:null, sp:false },
+        bronze:   { grad:[['0%','#D4A07A'],['45%','#9A4C1E'],['100%','#3D1700']], stroke:'#5C2508', iFill:'rgba(150,75,30,0.28)', iStroke:'rgba(190,105,55,0.38)', hl:'rgba(215,155,95,0.32)', glow:null, sp:false },
+        gold:     { grad:[['0%','#FFF9C4'],['25%','#FFD600'],['65%','#FF8F00'],['100%','#BF3C00']], stroke:'#C94800', iFill:'rgba(255,215,0,0.32)', iStroke:'rgba(255,195,0,0.5)', hl:'rgba(255,255,255,0.62)', glow:'#FFD600', sp:true },
+        platinum: { grad:[['0%','#FFFFFF'],['28%','#E8EAF6'],['65%','#8FA8B4'],['100%','#3F5560']], stroke:'#4A6470', iFill:'rgba(195,215,240,0.28)', iStroke:'rgba(170,200,225,0.48)', hl:'rgba(255,255,255,0.82)', glow:'#9BB8C8', sp:true },
+      };
+      const t = tiers[rank] || tiers.unranked;
+      const stops = t.grad.map(([p,c]) => `<stop offset="${p}" stop-color="${c}"/>`).join('');
+      const glowF = t.glow ? `<filter id="${gid}_f" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="2.5" result="b"/><feFlood flood-color="${t.glow}" flood-opacity="0.4" result="c"/><feComposite in="c" in2="b" operator="in" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter>` : '';
+      const glowRing = t.glow ? `<polygon points="${outer}" fill="none" stroke="${t.glow}" stroke-width="2.5" stroke-opacity="0.3" filter="url(#${gid}_f)"/>` : '';
+      const facets = `<line x1="22" y1="2" x2="22" y2="8" stroke="rgba(255,255,255,0.12)" stroke-width="0.6"/><line x1="42" y1="16" x2="36" y2="18" stroke="rgba(255,255,255,0.1)" stroke-width="0.6"/><line x1="2" y1="16" x2="8" y2="18" stroke="rgba(255,255,255,0.1)" stroke-width="0.6"/><line x1="36" y1="44" x2="32" y2="38" stroke="rgba(0,0,0,0.14)" stroke-width="0.6"/><line x1="8" y1="44" x2="12" y2="38" stroke="rgba(0,0,0,0.14)" stroke-width="0.6"/>`;
+      const sp = t.sp ? `<line x1="22" y1="-2" x2="22" y2="5" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.9"/><line x1="18" y1="2" x2="26" y2="2" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.9"/><line x1="37" y1="7" x2="37" y2="11" stroke="white" stroke-width="1.2" stroke-linecap="round" opacity="0.65"/><line x1="35" y1="9" x2="39" y2="9" stroke="white" stroke-width="1.2" stroke-linecap="round" opacity="0.65"/>` : '';
+      return `<svg viewBox="0 0 44 46" width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="${gid}" x1="0.25" y1="0" x2="0.5" y2="1">${stops}</linearGradient>${glowF}</defs>${glowRing}<polygon points="${outer}" fill="url(#${gid})" stroke="${t.stroke}" stroke-width="1.5"/>${facets}<polygon points="${inner}" fill="${t.iFill}" stroke="${t.iStroke}" stroke-width="0.8"/><ellipse cx="15" cy="11" rx="7" ry="4.5" fill="${t.hl}" transform="rotate(-18,15,11)"/>${sp}</svg>`;
     }
 
     async function updateRankTracker(writerId) {
@@ -1481,9 +1488,9 @@
       const rank   = writer?.rank || 'unranked';
       const cfg    = _ADMIN_RANK_CFG[rank];
 
-      // Rank gem
+      // Rank gem in tracker card
       const gemEl = $('admin-rank-gem');
-      if (gemEl) gemEl.innerHTML = cfg.gem ? _adminGemSVG(cfg.gem, 28) : '<div style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);"></div>';
+      if (gemEl) gemEl.innerHTML = _adminGemSVG(rank, 28, 29);
 
       $('admin-rank-label').textContent = cfg.label;
 
@@ -1491,8 +1498,8 @@
       const pill = $('admin-rank-pill');
       if (pill) {
         if (rank !== 'unranked') {
-          pill.innerHTML = (cfg.gem ? _adminGemSVG(cfg.gem, 12) : '') + cfg.label;
-          pill.style.cssText = `color:${cfg.gem?.mid || 'rgba(255,255,255,0.5)'};border-color:${cfg.gem?.mid || 'rgba(255,255,255,0.15)'}30;background:${cfg.gem?.mid || 'rgba(255,255,255,0.03)'}18;`;
+          pill.innerHTML = _adminGemSVG(rank, 11, 12) + ' ' + cfg.label;
+          pill.style.cssText = `color:${cfg.pillColor};border-color:${cfg.pillColor}40;background:${cfg.pillColor}15;gap:4px;`;
           pill.classList.remove('hidden');
         } else {
           pill.classList.add('hidden');
