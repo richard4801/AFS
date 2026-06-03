@@ -309,7 +309,10 @@
             <div id="nav-rank-gem" class="absolute top-0 left-1/2 -translate-x-1/2 z-10 pointer-events-none" style="line-height:0;"></div>
             <div id="nav-avatar" class="w-9 h-9 rounded-full bg-surface border-2 border-transparent flex items-center justify-center text-xs font-semibold text-white/75 group-hover:text-white transition-all duration-200 select-none" style="border-color:rgba(255,255,255,0.12);"></div>
           </div>
-          <span id="nav-name-text" class="text-muted group-hover:text-white text-sm truncate max-w-[120px] transition-colors"></span>
+          <span class="flex flex-col items-start leading-tight" style="padding-top:11px;">
+            <span id="nav-name-text" class="text-muted group-hover:text-white text-sm truncate max-w-[120px] transition-colors"></span>
+            <span id="nav-rank-text" class="text-[10px] font-semibold tracking-wide uppercase truncate max-w-[120px]"></span>
+          </span>
         </button>
         <button id="theme-toggle-btn" onclick="toggleTheme()"
                 class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-white hover:bg-surface border border-border hover:border-white/20 transition-all duration-200"
@@ -1145,10 +1148,10 @@
 
     // ── RANK SYSTEM ────────────────────────────────────────────
     const RANK_CONFIG = {
-      unranked: { bonus: 0,   ringColor: 'rgba(255,255,255,0.12)' },
-      bronze:   { bonus: 100, ringColor: '#9A4C1E' },
-      gold:     { bonus: 120, ringColor: '#C9A84C' },
-      platinum: { bonus: 140, ringColor: '#90A4AE' },
+      unranked: { label: 'Uncontracted',      bonus: 0,   ringColor: 'rgba(255,255,255,0.12)', textColor: 'rgba(255,255,255,0.35)' },
+      bronze:   { label: 'Bronze Novelist',   bonus: 100, ringColor: '#9A4C1E',                textColor: '#C8956A' },
+      gold:     { label: 'Gold Novelist',     bonus: 120, ringColor: '#C9A84C',                textColor: '#E5B94B' },
+      platinum: { label: 'Platinum Novelist', bonus: 140, ringColor: '#90A4AE',                textColor: '#B8C6D2' },
     };
 
     // Faceted pentagon gem. Each facet is a separately-shaded polygon so the
@@ -1222,6 +1225,13 @@
       if (gemSlot) {
         // 22px square gem; sits atop the circle, bottom tip overlapping it
         gemSlot.innerHTML = _gemSVG(rank, 22, 22);
+      }
+
+      // ── Rank label text (e.g. "Bronze Novelist" / "Uncontracted") ──
+      const rankText = $('nav-rank-text');
+      if (rankText) {
+        rankText.textContent = cfg.label;
+        rankText.style.color = cfg.textColor;
       }
 
       // ── Bonus stat card ───────────────────────────────────────
