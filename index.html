@@ -1282,11 +1282,12 @@
         const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         const { error: uploadErr } = await db.storage.from('applications').upload(path, file, { cacheControl: '3600', upsert: false });
         if (uploadErr) {
+          console.error('Storage upload error:', uploadErr);
           btn.disabled = false;
           btnLbl.textContent = 'Submit My Application';
           btnArr.classList.remove('hidden');
           spinner.classList.add('hidden');
-          errBox.textContent = 'File upload failed — please try again.';
+          errBox.textContent = 'File upload failed — ' + (uploadErr.message || 'please try again.');
           errBox.classList.remove('hidden');
           return;
         }
