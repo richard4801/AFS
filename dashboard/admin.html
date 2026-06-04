@@ -1759,60 +1759,91 @@
         } catch { showToast('Failed to load zip library — check your connection.'); return; }
       }
 
-      // Helpers
       function xe(s) {
         return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
                       .replace(/"/g,'&quot;').replace(/'/g,'&apos;');
       }
-      function pt(html) { const d=document.createElement('div'); d.innerHTML=html; return d.textContent||''; }
 
-      // Build a <w:p> with inline formatting (no style dependencies)
-      function wp(text, { center=false, bold=false, italic=false, fi=false, dbl=false, sz=24 }={}) {
-        const jc = center ? '<w:jc w:val="center"/>' : '<w:jc w:val="both"/>';
-        const ind = fi  ? '<w:ind w:firstLine="720"/>' : '';
-        const spc = dbl ? '<w:spacing w:line="480" w:lineRule="auto" w:before="0" w:after="0"/>' : '';
-        const b   = bold   ? '<w:b/>'   : '';
-        const i   = italic ? '<w:i/>'   : '';
-        return `<w:p><w:pPr>${jc}${ind}${spc}</w:pPr>`
-             + `<w:r><w:rPr>${b}${i}<w:sz w:val="${sz}"/><w:szCs w:val="${sz}"/></w:rPr>`
-             + `<w:t xml:space="preserve">${xe(text)}</w:t></w:r></w:p>`;
+      // Walk DOM and collect runs with bold/italic preserved
+      function nodeToRuns(node, fmt = {}) {
+        const runs = [];
+        if (node.nodeType === 3) {
+          if (node.textContent) runs.push({ text: node.textContent, ...fmt });
+        } else if (node.nodeType === 1) {
+          const tag = node.tagName.toLowerCase();
+          if (tag === 'br') { runs.push({ br: true }); return runs; }
+          const f2 = { ...fmt };
+          if (tag === 'strong' || tag === 'b') f2.bold = true;
+          if (tag === 'em' || tag === 'i') f2.italic = true;
+          for (const c of node.childNodes) runs.push(...nodeToRuns(c, f2));
+        }
+        return runs;
       }
+
+      function wRun(r, sz = 24) {
+        if (r.br) return '<w:r><w:br/></w:r>';
+        let rPr = `<w:sz w:val="${sz}"/><w:szCs w:val="${sz}"/>`;
+        if (r.bold)  rPr += '<w:b/>';
+        if (r.italic) rPr += '<w:i/>';
+        if (r.color) rPr += `<w:color w:val="${r.color}"/>`;
+        return `<w:r><w:rPr>${rPr}</w:rPr><w:t xml:space="preserve">${xe(r.text)}</w:t></w:r>`;
+      }
+
+      // Block-style paragraph: no indent, space between paragraphs, 1.15 line height
+      function wPara(runs, { center=false, sz=24 }={}) {
+        const jc = center ? '<w:jc w:val="center"/>' : '<w:jc w:val="both"/>';
+        return `<w:p><w:pPr>${jc}<w:spacing w:after="200" w:line="276" w:lineRule="auto"/></w:pPr>`
+             + runs.map(r => wRun(r, sz)).join('') + `</w:p>`;
+      }
+
+      function wParaText(text, { center=false, bold=false, italic=false, sz=24, color='' }={}) {
+        return wPara([{ text, bold, italic, color }], { center, sz });
+      }
+
       const pb = () => '<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
 
-      // Build document body
       let body = '';
 
       // Title page
-      body += wp(selectedBook.title || 'Untitled', { center:true, bold:true, sz:52 });
-      body += wp('by ' + (selectedWriter.name || 'Unknown'), { center:true, italic:true, sz:28 });
+      body += wParaText(selectedBook.title || 'Untitled', { center:true, bold:true, sz:52 });
+      body += wParaText('by ' + (selectedWriter.name || 'Unknown'), { center:true, italic:true, sz:28 });
       body += pb();
 
       chapters.forEach((ch, idx) => {
         if (idx > 0) body += pb();
-        body += wp('Chapter ' + ch.chapter_number, { center:true, bold:true, sz:36 });
-        if (ch.title?.trim()) body += wp(ch.title, { center:true, italic:true, sz:28 });
+
+        // "Chapter N - Title" combined, gray, normal weight
+        const heading = ch.title?.trim()
+          ? `Chapter ${ch.chapter_number} - ${ch.title}`
+          : `Chapter ${ch.chapter_number}`;
+        body += wParaText(heading, { sz:36, color:'808080' });
 
         const raw = ch.content || '';
-        const isHtml = /<p[\s>]/i.test(raw);
-        let blocks = [];
+        const isHtml = /<[a-z][\s\S]*>/i.test(raw);
+
         if (isHtml) {
           const tmp = document.createElement('div');
           tmp.innerHTML = raw;
-          blocks = Array.from(tmp.querySelectorAll('p')).map(p => ({ type:'para', text:p.textContent||'' }));
+          const pTags = tmp.querySelectorAll('p');
+          // Walk each <p> preserving bold/italic runs
+          (pTags.length ? Array.from(pTags) : [tmp]).forEach(p => {
+            const runs = Array.from(p.childNodes).flatMap(c => nodeToRuns(c));
+            if (!runs.some(r => r.text?.trim() || r.br)) return;
+            body += wPara(runs);
+          });
         } else {
-          blocks = formatContent(raw);
+          const blocks = formatContent(raw);
+          blocks.forEach(block => {
+            if (block.type === 'break') {
+              body += wParaText('* * *', { center:true });
+            } else if (block.type === 'title') {
+              body += wParaText(block.text||'', { bold:true });
+            } else {
+              if (!block.text?.trim()) return;
+              body += wParaText(block.text);
+            }
+          });
         }
-        blocks.forEach(block => {
-          if (block.type === 'break') {
-            body += wp('* * *', { center:true, sz:24 });
-          } else if (block.type === 'title') {
-            body += wp(block.text||'', { center:true, bold:true, sz:26 });
-          } else {
-            const text = block.text || pt(block.html||'');
-            if (!text.trim()) return;
-            body += wp(text, { fi:true, dbl:true, sz:24 });
-          }
-        });
       });
 
       // Assemble DOCX (Open XML ZIP package)
