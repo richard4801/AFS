@@ -922,7 +922,6 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/docx@8/build/index.js"></script>
   <script>
     const SUPABASE_URL      = 'https://qbqsbdswcqmrxoizgfrw.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_v0fbhx8NkRNxYYVw8VGz_g_7Eqja11K';
@@ -1736,9 +1735,23 @@
     function backToBookChapters() { selectedChapter = null; showView('view-book-chapters'); }
 
     // ── DOWNLOAD FULL BOOK AS DOCX ───────────────────────────────────
+    function _loadDocxLib() {
+      if (typeof window.docx !== 'undefined') return Promise.resolve(true);
+      return new Promise((resolve) => {
+        const s = document.createElement('script');
+        s.src = 'https://unpkg.com/docx@8.5.0/build/index.js';
+        s.onload  = () => resolve(true);
+        s.onerror = () => resolve(false);
+        document.head.appendChild(s);
+      });
+    }
+
     async function downloadBookAsDocx() {
       if (!selectedBook || !selectedWriter) return;
-      if (typeof docx === 'undefined') { showToast('Document library not loaded yet — try again in a moment.'); return; }
+      showToast('Loading document library…');
+      const loaded = await _loadDocxLib();
+      if (!loaded || typeof window.docx === 'undefined') { showToast('Failed to load document library. Check your connection.'); return; }
+      const docx = window.docx;
 
       showToast('Building document…');
 
