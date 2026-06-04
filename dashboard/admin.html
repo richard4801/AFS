@@ -597,6 +597,11 @@
                 <button id="toggle-signed-btn" onclick="toggleSigned()"
                         class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border transition-all duration-200 mb-3">
                 </button>
+                <button onclick="downloadBookAsDocx()"
+                        class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border border-border hover:border-white/20 text-muted hover:text-white transition-all duration-200 mb-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Download Full Book (.docx)
+                </button>
                 <button onclick="openDeleteBookModal()"
                         class="w-full px-3 py-1.5 bg-transparent hover:bg-red-500/10 border border-transparent hover:border-red-500/25 text-red-400/40 hover:text-red-400 text-xs rounded-lg transition-all duration-200">
                   Delete Book
@@ -917,6 +922,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docx@8/build/index.js"></script>
   <script>
     const SUPABASE_URL      = 'https://qbqsbdswcqmrxoizgfrw.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_v0fbhx8NkRNxYYVw8VGz_g_7Eqja11K';
@@ -1728,6 +1734,138 @@
 
     function backToWriterBooks() { selectedBook = selectedChapter = null; showView('view-writer-books'); }
     function backToBookChapters() { selectedChapter = null; showView('view-book-chapters'); }
+
+    // ── DOWNLOAD FULL BOOK AS DOCX ───────────────────────────────────
+    async function downloadBookAsDocx() {
+      if (!selectedBook || !selectedWriter) return;
+      if (typeof docx === 'undefined') { showToast('Document library not loaded yet — try again in a moment.'); return; }
+
+      showToast('Building document…');
+
+      const { data: chapters, error } = await db
+        .from('chapters')
+        .select('id, chapter_number, title, content')
+        .eq('book_id', selectedBook.id)
+        .order('chapter_number', { ascending: true });
+
+      if (error || !chapters?.length) { showToast('No chapters found.'); return; }
+
+      const { Document, Paragraph, TextRun, HeadingLevel, PageBreak, AlignmentType, Packer, UnderlineType } = docx;
+
+      const FONT  = 'Times New Roman';
+      const SIZE  = 24; // half-points = 12pt
+      const LEAD  = 480; // double-space
+
+      function plainText(html) {
+        const d = document.createElement('div');
+        d.innerHTML = html;
+        return d.textContent || '';
+      }
+
+      function blocksToParagraphs(blocks) {
+        const out = [];
+        blocks.forEach(block => {
+          if (block.type === 'break') {
+            out.push(new Paragraph({
+              children: [new TextRun({ text: '* * *', font: FONT, size: SIZE })],
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 240, after: 240 },
+            }));
+          } else if (block.type === 'title') {
+            out.push(new Paragraph({
+              children: [new TextRun({ text: block.text || '', font: FONT, size: SIZE + 4, bold: true })],
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 280, after: 160 },
+            }));
+          } else {
+            const text = block.text || plainText(block.html || '');
+            if (!text.trim()) return;
+            out.push(new Paragraph({
+              children: [new TextRun({ text, font: FONT, size: SIZE })],
+              indent: { firstLine: 720 },
+              spacing: { line: LEAD, lineRule: 'auto', after: 0 },
+            }));
+          }
+        });
+        return out;
+      }
+
+      const children = [];
+
+      // ── Title page ──────────────────────────────────────────────────
+      children.push(
+        new Paragraph({ text: '', spacing: { before: 2880 } }),
+        new Paragraph({
+          children: [new TextRun({ text: selectedBook.title || 'Untitled', font: FONT, size: 52, bold: true })],
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 240 },
+        }),
+        new Paragraph({
+          children: [new TextRun({ text: `by ${selectedWriter.name || 'Unknown'}`, font: FONT, size: 28, italics: true })],
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 0 },
+        }),
+        new Paragraph({ children: [new PageBreak()] })
+      );
+
+      // ── Chapters ────────────────────────────────────────────────────
+      chapters.forEach((ch, idx) => {
+        // Chapter label
+        children.push(new Paragraph({
+          children: [new TextRun({ text: `Chapter ${ch.chapter_number}`, font: FONT, size: 36, bold: true })],
+          alignment: AlignmentType.CENTER,
+          spacing: { before: 480, after: ch.title ? 120 : 360 },
+        }));
+
+        // Chapter title (if present and different from generic)
+        if (ch.title && ch.title.trim()) {
+          children.push(new Paragraph({
+            children: [new TextRun({ text: ch.title, font: FONT, size: 28, italics: true })],
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 480 },
+          }));
+        }
+
+        // Parse content
+        const raw = ch.content || '';
+        const isHtml = /<p[\s>]/i.test(raw);
+        let blocks = [];
+        if (isHtml) {
+          const tmp = document.createElement('div');
+          tmp.innerHTML = raw;
+          blocks = Array.from(tmp.querySelectorAll('p')).map(p => ({ type: 'para', text: p.textContent || '' }));
+        } else {
+          blocks = formatContent(raw);
+        }
+
+        blocksToParagraphs(blocks).forEach(p => children.push(p));
+
+        // Page break between chapters
+        if (idx < chapters.length - 1) {
+          children.push(new Paragraph({ children: [new PageBreak()] }));
+        }
+      });
+
+      const doc = new Document({
+        creator: 'AFS Editorial',
+        title: selectedBook.title || 'Book',
+        sections: [{ properties: {}, children }],
+      });
+
+      try {
+        const blob = await Packer.toBlob(doc);
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = `${(selectedBook.title || 'book').replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_')}_by_${(selectedWriter.name || 'author').replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_')}.docx`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('Download ready.');
+      } catch (e) {
+        console.error('DOCX error:', e);
+        showToast('Failed to build document — see console.');
+      }
+    }
 
     // ── INLINE CHAPTER LIST ─────────────────────────────────────────
     function renderInlineChapterList(chapters) {
