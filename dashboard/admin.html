@@ -35,10 +35,8 @@
     .thin-scroll::-webkit-scrollbar { width:4px; }
     .thin-scroll::-webkit-scrollbar-track { background:transparent; }
     .thin-scroll::-webkit-scrollbar-thumb { background:#2A2A2A; border-radius:4px; }
-    .para-wrap { display:flex; gap:0; align-items:flex-start; }
-    .para-wrap:hover .para-btn { opacity:1; transform:scale(1); }
-    .para-btn { opacity:0; transform:scale(0.85); transition:opacity .18s, transform .18s; flex-shrink:0; }
-    .para-gutter { width:36px; flex-shrink:0; display:flex; justify-content:center; padding-top:4px; }
+    .para-wrap:hover .para-btn { opacity:1; }
+    .para-btn { opacity:0; transition:opacity .15s; }
     .form-input:focus { outline:none; border-color:#A31621; box-shadow:0 0 0 2px rgba(163,22,33,0.18); }
     body::after { content:''; position:fixed; inset:0; z-index:0; pointer-events:none; background-image:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.04) 2px,rgba(0,0,0,0.04) 4px); }
     .prose-para { line-height:1.9; margin-bottom:1.25em; text-indent:1.5em; color:rgba(255,255,255,0.85); font-size:15px; letter-spacing:0.01em; }
@@ -2146,20 +2144,11 @@
         }
         const cnt = allComments.filter(c => c.paragraph_ref === idx && !c.resolved).length;
         const changedCls = isChanged ? ' para-changed' : '';
-        const commentBadge = cnt
-          ? '<button class="flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-bold text-white mb-1.5 transition-colors" style="background:rgba(163,22,33,0.75);border:1px solid rgba(163,22,33,0.5);" onclick="openCommentPopover(' + idx + ',this)">' + cnt + '</button>'
-          : '';
-        return '<div class="para-wrap py-2 border-b border-border/20 group' + changedCls + '" data-para="' + idx + '">'
-          + '<div class="flex gap-0 items-start w-full">'
-          + '<p class="prose-para flex-1 min-w-0">' + blockHtml + '</p>'
-          + '<div class="para-gutter">'
-          + commentBadge
-          + '<button class="para-btn w-7 h-7 rounded-full flex items-center justify-center transition-all" style="background:rgba(28,28,28,0.95);border:1px solid rgba(255,255,255,0.12);box-shadow:0 2px 10px rgba(0,0,0,0.5);" onmouseenter="this.style.borderColor=\'rgba(163,22,33,0.55)\';this.style.background=\'rgba(163,22,33,0.18)\';this.querySelector(\'svg\').style.color=\'rgba(220,80,80,0.9)\'" onmouseleave="this.style.borderColor=\'rgba(255,255,255,0.12)\';this.style.background=\'rgba(28,28,28,0.95)\';this.querySelector(\'svg\').style.color=\'rgba(255,255,255,0.45)\'" onclick="openCommentForm(' + idx + ',this)">'
-          + '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:rgba(255,255,255,0.45);transition:color .18s"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'
-          + '</button>'
-          + '</div>'
-          + '</div>'
-          + '<div id="cf-' + idx + '" class="hidden mt-2 bg-charcoal border border-border rounded-lg p-3">'
+        return '<div class="para-wrap relative py-2 border-b border-border/20 group' + changedCls + '" data-para="' + idx + '">'
+          + '<p class="prose-para pr-14">' + blockHtml + '</p>'
+          + (cnt ? '<button class="para-comment-badge absolute right-10 top-3 text-[10px] font-semibold text-crimson-light bg-crimson/10 hover:bg-crimson/20 border border-crimson/20 rounded-full px-1.5 py-0.5 leading-none transition-colors" onclick="openCommentPopover(' + idx + ',this)">' + cnt + '</button>' : '')
+          + '<button class="para-btn absolute right-2 top-3 w-6 h-6 rounded-full bg-surface border border-border hover:border-crimson/50 flex items-center justify-center text-muted hover:text-crimson-light text-sm leading-none transition-all" onclick="openCommentForm(' + idx + ',this)">+</button>'
+          + '<div id="cf-' + idx + '" class="hidden mt-3 bg-charcoal border border-border rounded-lg p-3">'
           + '<textarea id="ct-' + idx + '" rows="3" placeholder="Comment on paragraph ' + (idx+1) + '\u2026" class="form-input w-full bg-obsidian border border-border text-white placeholder-muted text-xs rounded-md px-3 py-2 resize-none transition-all"></textarea>'
           + '<div class="flex gap-2 mt-2">'
           + '<button onclick="submitParagraphComment(' + idx + ')" class="px-3 py-1.5 bg-crimson/10 hover:bg-crimson/20 border border-crimson/30 text-crimson-light text-xs font-semibold rounded-lg transition-all">Post</button>'
