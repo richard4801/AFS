@@ -1735,24 +1735,9 @@
     function backToBookChapters() { selectedChapter = null; showView('view-book-chapters'); }
 
     // ── DOWNLOAD FULL BOOK AS DOCX ───────────────────────────────────
-    function _loadDocxLib() {
-      if (typeof window.docx !== 'undefined') return Promise.resolve(true);
-      return new Promise((resolve) => {
-        const s = document.createElement('script');
-        s.src = 'https://unpkg.com/docx@8.5.0/build/index.js';
-        s.onload  = () => resolve(true);
-        s.onerror = () => resolve(false);
-        document.head.appendChild(s);
-      });
-    }
-
+    // ── DOWNLOAD FULL BOOK AS RTF (no external library needed) ──────
     async function downloadBookAsDocx() {
       if (!selectedBook || !selectedWriter) return;
-      showToast('Loading document library…');
-      const loaded = await _loadDocxLib();
-      if (!loaded || typeof window.docx === 'undefined') { showToast('Failed to load document library. Check your connection.'); return; }
-      const docx = window.docx;
-
       showToast('Building document…');
 
       const { data: chapters, error } = await db
@@ -1763,11 +1748,16 @@
 
       if (error || !chapters?.length) { showToast('No chapters found.'); return; }
 
-      const { Document, Paragraph, TextRun, HeadingLevel, PageBreak, AlignmentType, Packer, UnderlineType } = docx;
-
-      const FONT  = 'Times New Roman';
-      const SIZE  = 24; // half-points = 12pt
-      const LEAD  = 480; // double-space
+      function esc(str) {
+        return (str || '')
+          .replace(/\\/g, '\\\\')
+          .replace(/\{/g, '\\{')
+          .replace(/\}/g, '\\}')
+          .replace(/[^\x00-\x7F]/g, c => {
+            const n = c.charCodeAt(0);
+            return n < 256 ? `\\'${n.toString(16).padStart(2,'0')}` : `\\u${n}?`;
+          });
+      }
 
       function plainText(html) {
         const d = document.createElement('div');
@@ -1775,71 +1765,27 @@
         return d.textContent || '';
       }
 
-      function blocksToParagraphs(blocks) {
-        const out = [];
-        blocks.forEach(block => {
-          if (block.type === 'break') {
-            out.push(new Paragraph({
-              children: [new TextRun({ text: '* * *', font: FONT, size: SIZE })],
-              alignment: AlignmentType.CENTER,
-              spacing: { before: 240, after: 240 },
-            }));
-          } else if (block.type === 'title') {
-            out.push(new Paragraph({
-              children: [new TextRun({ text: block.text || '', font: FONT, size: SIZE + 4, bold: true })],
-              alignment: AlignmentType.CENTER,
-              spacing: { before: 280, after: 160 },
-            }));
-          } else {
-            const text = block.text || plainText(block.html || '');
-            if (!text.trim()) return;
-            out.push(new Paragraph({
-              children: [new TextRun({ text, font: FONT, size: SIZE })],
-              indent: { firstLine: 720 },
-              spacing: { line: LEAD, lineRule: 'auto', after: 0 },
-            }));
-          }
-        });
-        return out;
-      }
+      let r = '{\\rtf1\\ansi\\ansicpg1252\\deff0\n';
+      r += '{\\fonttbl{\\f0\\froman\\fcharset0 Times New Roman;}}\n';
+      // 1-inch margins (1440 twips), letter paper
+      r += '\\paperw12240\\paperh15840\\margl1440\\margr1440\\margt1440\\margb1440\n';
 
-      const children = [];
+      // ── Title page ────────────────────────────────────────────────
+      r += '\\pard\\qc\\sb2880\\f0\\b\\fs52 ' + esc(selectedBook.title || 'Untitled') + '\\b0\\par\n';
+      r += '\\pard\\qc\\sb160\\f0\\i\\fs28 by ' + esc(selectedWriter.name || 'Unknown') + '\\i0\\par\n';
+      r += '\\page\n';
 
-      // ── Title page ──────────────────────────────────────────────────
-      children.push(
-        new Paragraph({ text: '', spacing: { before: 2880 } }),
-        new Paragraph({
-          children: [new TextRun({ text: selectedBook.title || 'Untitled', font: FONT, size: 52, bold: true })],
-          alignment: AlignmentType.CENTER,
-          spacing: { after: 240 },
-        }),
-        new Paragraph({
-          children: [new TextRun({ text: `by ${selectedWriter.name || 'Unknown'}`, font: FONT, size: 28, italics: true })],
-          alignment: AlignmentType.CENTER,
-          spacing: { after: 0 },
-        }),
-        new Paragraph({ children: [new PageBreak()] })
-      );
-
-      // ── Chapters ────────────────────────────────────────────────────
+      // ── Chapters ─────────────────────────────────────────────────
       chapters.forEach((ch, idx) => {
-        // Chapter label
-        children.push(new Paragraph({
-          children: [new TextRun({ text: `Chapter ${ch.chapter_number}`, font: FONT, size: 36, bold: true })],
-          alignment: AlignmentType.CENTER,
-          spacing: { before: 480, after: ch.title ? 120 : 360 },
-        }));
+        // "Chapter N" heading
+        r += '\\pard\\qc\\sb720\\f0\\b\\fs36 Chapter ' + ch.chapter_number + '\\b0\\par\n';
 
-        // Chapter title (if present and different from generic)
+        // Chapter title
         if (ch.title && ch.title.trim()) {
-          children.push(new Paragraph({
-            children: [new TextRun({ text: ch.title, font: FONT, size: 28, italics: true })],
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 480 },
-          }));
+          r += '\\pard\\qc\\sb120\\f0\\i\\fs28 ' + esc(ch.title) + '\\i0\\par\n';
         }
 
-        // Parse content
+        // Parse content blocks
         const raw = ch.content || '';
         const isHtml = /<p[\s>]/i.test(raw);
         let blocks = [];
@@ -1851,33 +1797,33 @@
           blocks = formatContent(raw);
         }
 
-        blocksToParagraphs(blocks).forEach(p => children.push(p));
+        blocks.forEach(block => {
+          if (block.type === 'break') {
+            r += '\\pard\\qc\\sb240\\sa240\\f0\\fs24 * * *\\par\n';
+          } else if (block.type === 'title') {
+            r += '\\pard\\qc\\sb200\\f0\\b\\fs26 ' + esc(block.text || '') + '\\b0\\par\n';
+          } else {
+            const text = block.text || plainText(block.html || '');
+            if (!text.trim()) return;
+            // Double-spaced, first-line indent 0.5"
+            r += '\\pard\\qj\\fi720\\sl480\\slmult1\\sb0\\sa0\\f0\\fs24 ' + esc(text) + '\\par\n';
+          }
+        });
 
-        // Page break between chapters
-        if (idx < chapters.length - 1) {
-          children.push(new Paragraph({ children: [new PageBreak()] }));
-        }
+        if (idx < chapters.length - 1) r += '\\page\n';
       });
 
-      const doc = new Document({
-        creator: 'AFS Editorial',
-        title: selectedBook.title || 'Book',
-        sections: [{ properties: {}, children }],
-      });
+      r += '}';
 
-      try {
-        const blob = await Packer.toBlob(doc);
-        const url  = URL.createObjectURL(blob);
-        const a    = document.createElement('a');
-        a.href     = url;
-        a.download = `${(selectedBook.title || 'book').replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_')}_by_${(selectedWriter.name || 'author').replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_')}.docx`;
-        a.click();
-        URL.revokeObjectURL(url);
-        showToast('Download ready.');
-      } catch (e) {
-        console.error('DOCX error:', e);
-        showToast('Failed to build document — see console.');
-      }
+      const blob = new Blob([r], { type: 'application/rtf' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      const safe = s => (s || '').replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_');
+      a.download = `${safe(selectedBook.title || 'book')}_by_${safe(selectedWriter.name || 'author')}.rtf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('Download ready.');
     }
 
     // ── INLINE CHAPTER LIST ─────────────────────────────────────────
