@@ -1734,8 +1734,7 @@
     function backToWriterBooks() { selectedBook = selectedChapter = null; showView('view-writer-books'); }
     function backToBookChapters() { selectedChapter = null; showView('view-book-chapters'); }
 
-    // ── DOWNLOAD FULL BOOK AS DOCX ───────────────────────────────────
-    // ── DOWNLOAD FULL BOOK AS RTF (no external library needed) ──────
+    // ── DOWNLOAD FULL BOOK AS DOCX ────────────────────────────────────
     async function downloadBookAsDocx() {
       if (!selectedBook || !selectedWriter) return;
       showToast('Building document…');
@@ -1748,79 +1747,110 @@
 
       if (error || !chapters?.length) { showToast('No chapters found.'); return; }
 
-      function esc(str) {
-        return (str || '')
-          .replace(/\\/g, '\\\\')
-          .replace(/\{/g, '\\{')
-          .replace(/\}/g, '\\}')
-          .replace(/[^\x00-\x7F]/g, c => {
-            const n = c.charCodeAt(0);
-            return n < 256 ? `\\'${n.toString(16).padStart(2,'0')}` : `\\u${n}?`;
+      // Load JSZip on demand
+      if (!window.JSZip) {
+        try {
+          await new Promise((res, rej) => {
+            const s = document.createElement('script');
+            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+            s.onload = res; s.onerror = rej;
+            document.head.appendChild(s);
           });
+        } catch { showToast('Failed to load zip library — check your connection.'); return; }
       }
 
-      function plainText(html) {
-        const d = document.createElement('div');
-        d.innerHTML = html;
-        return d.textContent || '';
+      // Helpers
+      function xe(s) {
+        return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                      .replace(/"/g,'&quot;').replace(/'/g,'&apos;');
       }
+      function pt(html) { const d=document.createElement('div'); d.innerHTML=html; return d.textContent||''; }
 
-      let r = '{\\rtf1\\ansi\\ansicpg1252\\deff0\n';
-      r += '{\\fonttbl{\\f0\\froman\\fcharset0 Times New Roman;}}\n';
-      // 1-inch margins (1440 twips), letter paper
-      r += '\\paperw12240\\paperh15840\\margl1440\\margr1440\\margt1440\\margb1440\n';
+      // Build a <w:p> with inline formatting (no style dependencies)
+      function wp(text, { center=false, bold=false, italic=false, fi=false, dbl=false, sz=24 }={}) {
+        const jc = center ? '<w:jc w:val="center"/>' : '<w:jc w:val="both"/>';
+        const ind = fi  ? '<w:ind w:firstLine="720"/>' : '';
+        const spc = dbl ? '<w:spacing w:line="480" w:lineRule="auto" w:before="0" w:after="0"/>' : '';
+        const b   = bold   ? '<w:b/>'   : '';
+        const i   = italic ? '<w:i/>'   : '';
+        return `<w:p><w:pPr>${jc}${ind}${spc}</w:pPr>`
+             + `<w:r><w:rPr>${b}${i}<w:sz w:val="${sz}"/><w:szCs w:val="${sz}"/></w:rPr>`
+             + `<w:t xml:space="preserve">${xe(text)}</w:t></w:r></w:p>`;
+      }
+      const pb = () => '<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
 
-      // ── Title page ────────────────────────────────────────────────
-      r += '\\pard\\qc\\sb2880\\f0\\b\\fs52 ' + esc(selectedBook.title || 'Untitled') + '\\b0\\par\n';
-      r += '\\pard\\qc\\sb160\\f0\\i\\fs28 by ' + esc(selectedWriter.name || 'Unknown') + '\\i0\\par\n';
-      r += '\\page\n';
+      // Build document body
+      let body = '';
 
-      // ── Chapters ─────────────────────────────────────────────────
+      // Title page
+      body += wp(selectedBook.title || 'Untitled', { center:true, bold:true, sz:52 });
+      body += wp('by ' + (selectedWriter.name || 'Unknown'), { center:true, italic:true, sz:28 });
+      body += pb();
+
       chapters.forEach((ch, idx) => {
-        // "Chapter N" heading
-        r += '\\pard\\qc\\sb720\\f0\\b\\fs36 Chapter ' + ch.chapter_number + '\\b0\\par\n';
+        if (idx > 0) body += pb();
+        body += wp('Chapter ' + ch.chapter_number, { center:true, bold:true, sz:36 });
+        if (ch.title?.trim()) body += wp(ch.title, { center:true, italic:true, sz:28 });
 
-        // Chapter title
-        if (ch.title && ch.title.trim()) {
-          r += '\\pard\\qc\\sb120\\f0\\i\\fs28 ' + esc(ch.title) + '\\i0\\par\n';
-        }
-
-        // Parse content blocks
         const raw = ch.content || '';
         const isHtml = /<p[\s>]/i.test(raw);
         let blocks = [];
         if (isHtml) {
           const tmp = document.createElement('div');
           tmp.innerHTML = raw;
-          blocks = Array.from(tmp.querySelectorAll('p')).map(p => ({ type: 'para', text: p.textContent || '' }));
+          blocks = Array.from(tmp.querySelectorAll('p')).map(p => ({ type:'para', text:p.textContent||'' }));
         } else {
           blocks = formatContent(raw);
         }
-
         blocks.forEach(block => {
           if (block.type === 'break') {
-            r += '\\pard\\qc\\sb240\\sa240\\f0\\fs24 * * *\\par\n';
+            body += wp('* * *', { center:true, sz:24 });
           } else if (block.type === 'title') {
-            r += '\\pard\\qc\\sb200\\f0\\b\\fs26 ' + esc(block.text || '') + '\\b0\\par\n';
+            body += wp(block.text||'', { center:true, bold:true, sz:26 });
           } else {
-            const text = block.text || plainText(block.html || '');
+            const text = block.text || pt(block.html||'');
             if (!text.trim()) return;
-            // Double-spaced, first-line indent 0.5"
-            r += '\\pard\\qj\\fi720\\sl480\\slmult1\\sb0\\sa0\\f0\\fs24 ' + esc(text) + '\\par\n';
+            body += wp(text, { fi:true, dbl:true, sz:24 });
           }
         });
-
-        if (idx < chapters.length - 1) r += '\\page\n';
       });
 
-      r += '}';
+      // Assemble DOCX (Open XML ZIP package)
+      const docXml =
+        `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+        `<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">` +
+        `<w:body>${body}` +
+        `<w:sectPr><w:pgSz w:w="12240" w:h="15840"/>` +
+        `<w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/></w:sectPr>` +
+        `</w:body></w:document>`;
 
-      const blob = new Blob([r], { type: 'application/rtf' });
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement('a');
-      a.href     = url;
-      const safe = s => (s || '').replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_');
-      a.download = `${safe(selectedBook.title || 'book')}_by_${safe(selectedWriter.name || 'author')}.rtf`;
+      const zip = new JSZip();
+      zip.file('[Content_Types].xml',
+        `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+        `<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">` +
+        `<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>` +
+        `<Default Extension="xml" ContentType="application/xml"/>` +
+        `<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>` +
+        `</Types>`);
+      zip.file('_rels/.rels',
+        `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+        `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+        `<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>` +
+        `</Relationships>`);
+      zip.file('word/_rels/document.xml.rels',
+        `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+        `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`);
+      zip.file('word/document.xml', docXml);
+
+      const blob = await zip.generateAsync({
+        type: 'blob',
+        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const safe = s => (s||'').replace(/[^\w\s-]/g,'').trim().replace(/\s+/g,'_');
+      a.download = `${safe(selectedBook.title||'book')}_by_${safe(selectedWriter.name||'author')}.docx`;
       a.click();
       URL.revokeObjectURL(url);
       showToast('Download ready.');
