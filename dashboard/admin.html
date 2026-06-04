@@ -2231,7 +2231,7 @@
             ? '<span class="text-[10px] text-emerald-400/50 font-medium">✓ Done</span>'
             : '<button onclick="resolveComment(\'' + c.id + '\')" class="text-[10px] text-muted hover:text-emerald-400 transition-colors font-medium">Resolve</button>')
           + '</div>'
-          + '<p class="text-white/75 text-xs leading-relaxed">' + escHtml(c.body) + '</p>'
+          + '<p class="text-white/75 text-xs leading-relaxed" style="white-space:pre-wrap">' + escHtml(c.body) + '</p>'
           + '</div>';
       }).join('');
     }
