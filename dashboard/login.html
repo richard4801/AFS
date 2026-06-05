@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <link rel="icon" type="image/svg+xml" href="../assets/afs-favicon.svg"/>
   <title>Sign In — Apex Fiction Studio</title>
-  <script>(function(){if(localStorage.getItem('afs-theme')==='light')document.documentElement.classList.add('light')})()</script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -43,31 +42,6 @@
     .digit-box:focus { outline:none; border-color:#C9A84C; box-shadow:0 0 0 2px rgba(201,168,76,0.15); }
     .digit-box.filled { border-color:rgba(201,168,76,0.4); }
     #verify-step { display:none; }
-
-    /* ── LIGHT MODE — Eye Care (Warm Amber, Low Blue, WCAG AA) ─────────── */
-    html.light{background-color:#F6EFE4!important}
-    html.light body{background-color:#F6EFE4!important;color:#2E2926!important}
-    html.light .bg-obsidian{background-color:#F6EFE4!important}
-    html.light .bg-charcoal{background-color:#EAE0CF!important}
-    html.light .bg-surface{background-color:#EDE5D8!important}
-    html.light .text-white{color:#2E2926!important}
-    html.light .text-muted{color:#7A6B61!important}
-    html.light .text-white\/80{color:rgba(46,41,38,.82)!important}
-    html.light .text-white\/70{color:rgba(46,41,38,.72)!important}
-    html.light .text-white\/60{color:rgba(46,41,38,.62)!important}
-    html.light .border-border{border-color:#CFC5B8!important}
-    html.light .border-white\/10{border-color:rgba(46,41,38,.1)!important}
-    html.light .border-white\/20{border-color:rgba(46,41,38,.18)!important}
-    html.light .afs-logo-main{fill:#2E2926!important}
-    html.light .afs-logo-sub{fill:rgba(46,41,38,.42)!important}
-    html.light .form-input{background-color:#EAE0CF!important;color:#2E2926!important;border-color:#CFC5B8!important}
-    html.light .form-input::placeholder,html.light input::placeholder,html.light textarea::placeholder{color:rgba(122,107,97,.55)!important}
-    html.light input:focus{box-shadow:0 0 0 2px rgba(155,111,10,.18)!important;border-color:#9B6F0A!important}
-    html.light #afs-grid{opacity:.08!important}
-    html.light #afs-glow{opacity:0!important}
-    html.light .digit-box{background:#EAE0CF!important;border-color:#CFC5B8!important;color:#2E2926!important}
-    html.light .digit-box.filled{border-color:rgba(155,111,10,.5)!important}
-    html.light #theme-float-btn{background-color:rgba(237,229,216,.95)!important;border-color:#CFC5B8!important;color:#7A6B61!important;box-shadow:0 4px 20px rgba(46,41,38,.12)!important}
   </style>
 </head>
 <body class="bg-obsidian text-white font-sans antialiased min-h-screen flex items-center justify-center px-4">
@@ -662,30 +636,8 @@
         if (!raf) raf = requestAnimationFrame(paint);
       });
     }
-
-    function toggleTheme(){
-      const l=document.documentElement.classList.toggle('light');
-      localStorage.setItem('afs-theme',l?'light':'dark');
-      _syncThemeIcons();
-    }
-    function _syncThemeIcons(){
-      const l=document.documentElement.classList.contains('light');
-      const s=document.getElementById('icon-sun'),m=document.getElementById('icon-moon');
-      if(s)s.classList.toggle('hidden',l);
-      if(m)m.classList.toggle('hidden',!l);
-    }
-    document.addEventListener('DOMContentLoaded',_syncThemeIcons);
-
+  
 </script>
-
-  <!-- Eye Care Mode Toggle -->
-  <button id="theme-float-btn" onclick="toggleTheme()" title="Eye Care Mode"
-          class="fixed bottom-6 right-6 z-50 w-11 h-11 rounded-full flex items-center justify-center
-                 bg-charcoal/80 backdrop-blur-md border border-border text-muted hover:text-white
-                 shadow-xl shadow-black/30 transition-all duration-200">
-    <svg id="icon-sun" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-    <svg id="icon-moon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-  </button>
 
 </body>
 </html>
