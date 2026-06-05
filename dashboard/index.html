@@ -8,7 +8,6 @@
   <meta http-equiv="Expires" content="0">
   <link rel="icon" type="image/svg+xml" href="../assets/afs-favicon.svg"/>
   <title>Dashboard — Apex Fiction Studio</title>
-  <script>if(localStorage.getItem('afs-theme')==='light')document.documentElement.classList.add('light');</script>
     <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -91,135 +90,6 @@
     .chat-watermark svg { width: 190px; height: auto; opacity: 0.11; }
     #chat-messages { position: relative; z-index: 1; }
     #chat-typing, #chat-panel > div:last-child { position: relative; z-index: 1; }
-
-    /* ── Writer Dashboard — Light Mode (Warm Cream Editorial) ─────────── */
-    html.light body { background-color: #F3ECE0 !important; color: #1C1814 !important; }
-    html.light #afs-grid { opacity: 0.2 !important; background-image: linear-gradient(rgba(163,22,33,0.07) 1px,transparent 1px),linear-gradient(90deg,rgba(163,22,33,0.07) 1px,transparent 1px) !important; }
-    html.light #afs-glow { opacity: 0.12 !important; }
-    html.light body::after { display: none !important; }
-
-    /* Backgrounds */
-    html.light .bg-obsidian { background-color: #F3ECE0 !important; }
-    html.light .bg-charcoal { background-color: #EAE0D2 !important; }
-    html.light .bg-surface  { background-color: #E0D5C4 !important; }
-    html.light .bg-obsidian\/70 { background-color: rgba(243,236,224,0.88) !important; }
-    html.light .bg-charcoal\/40 { background-color: rgba(234,224,210,0.92) !important; }
-    html.light .bg-charcoal\/30 { background-color: rgba(234,224,210,0.75) !important; }
-    html.light .bg-surface\/60  { background-color: rgba(224,213,196,0.6) !important; }
-    html.light .bg-white\/10 { background-color: rgba(28,24,20,0.05) !important; }
-    html.light .bg-\[\#252525\] { background-color: #E0D5C4 !important; }
-
-    /* Borders */
-    html.light .border-border     { border-color: #C8BDAD !important; }
-    html.light .border-white\/10  { border-color: rgba(200,189,173,0.5) !important; }
-    html.light .border-white\/20  { border-color: rgba(180,168,152,0.6) !important; }
-    html.light .border-border\/50 { border-color: rgba(200,189,173,0.5) !important; }
-    html.light .border-border\/30 { border-color: rgba(200,189,173,0.3) !important; }
-    html.light .border-border\/40 { border-color: rgba(200,189,173,0.4) !important; }
-
-    /* Text */
-    html.light .text-white     { color: #1C1814 !important; }
-    html.light .text-white\/80 { color: rgba(28,24,20,0.82) !important; }
-    html.light .text-white\/70 { color: rgba(28,24,20,0.72) !important; }
-    html.light .text-white\/60 { color: rgba(28,24,20,0.62) !important; }
-    html.light .text-white\/55 { color: rgba(28,24,20,0.58) !important; }
-    html.light .text-white\/50 { color: rgba(28,24,20,0.52) !important; }
-    html.light .text-white\/88 { color: rgba(28,24,20,0.88) !important; }
-    html.light .text-muted     { color: #6E6158 !important; }
-    html.light .text-muted\/70 { color: rgba(110,97,88,0.7) !important; }
-    html.light .text-muted\/60 { color: rgba(110,97,88,0.6) !important; }
-
-    /* Gold — deeper for cream contrast */
-    html.light .text-gold        { color: #8F6512 !important; }
-    html.light .text-gold-light  { color: #8F6512 !important; }
-    html.light .bg-gold          { background-color: #C9A84C !important; }
-    html.light .bg-gold\/10      { background-color: rgba(143,101,18,0.08) !important; }
-    html.light .bg-gold\/15      { background-color: rgba(143,101,18,0.12) !important; }
-    html.light .bg-gold\/20      { background-color: rgba(143,101,18,0.16) !important; }
-    html.light .border-gold\/30  { border-color: rgba(143,101,18,0.30) !important; }
-    html.light .border-gold\/40  { border-color: rgba(143,101,18,0.40) !important; }
-    html.light .border-gold\/50  { border-color: rgba(143,101,18,0.50) !important; }
-    html.light .border-gold\/60  { border-color: rgba(143,101,18,0.60) !important; }
-    html.light .hover\:bg-gold\/20:hover { background-color: rgba(143,101,18,0.16) !important; }
-    html.light .hover\:border-gold\/60:hover { border-color: rgba(143,101,18,0.6) !important; }
-
-    /* Crimson — good contrast on cream already */
-    html.light .bg-crimson\/12 { background-color: rgba(163,22,33,0.09) !important; }
-    html.light .bg-crimson\/15 { background-color: rgba(163,22,33,0.11) !important; }
-    html.light .bg-crimson\/8  { background-color: rgba(163,22,33,0.06) !important; }
-
-    /* Nav */
-    html.light nav.pointer-events-auto {
-      background-color: rgba(243,236,224,0.92) !important;
-      border-color: rgba(200,189,173,0.65) !important;
-      box-shadow: 0 4px 24px rgba(28,24,20,0.09), 0 1px 4px rgba(28,24,20,0.05) !important;
-    }
-    html.light #sign-out-btn { color: #6E6158 !important; border-color: rgba(200,189,173,0.8) !important; }
-    html.light #notif-btn    { color: #6E6158 !important; border-color: rgba(200,189,173,0.8) !important; }
-    html.light #theme-toggle-btn { color: #6E6158 !important; border-color: rgba(200,189,173,0.8) !important; }
-
-    /* Skeleton */
-    html.light .skeleton { background: linear-gradient(90deg,#EAE0D2 25%,#D5C9B8 50%,#EAE0D2 75%) !important; background-size: 800px 100% !important; }
-
-    /* Scrollbar */
-    html.light .thin-scroll::-webkit-scrollbar-thumb { background: #C8BDAD !important; }
-
-    /* Forms */
-    html.light input:not([type=checkbox]):not([type=radio]):not([type=range]),
-    html.light textarea,
-    html.light select { background-color: #EAE0D2 !important; border-color: #C8BDAD !important; color: #1C1814 !important; }
-    html.light input::placeholder, html.light textarea::placeholder { color: #9E8F82 !important; }
-    html.light .form-input:focus,
-    html.light input:focus { box-shadow: 0 0 0 2px rgba(143,101,18,0.18) !important; border-color: #8F6512 !important; }
-
-    /* AFS Logo SVG text on light bg */
-    html.light .afs-logo-main { fill: #1C1814 !important; }
-    html.light .afs-logo-sub  { fill: rgba(28,24,20,0.38) !important; }
-
-    /* Chat panel */
-    html.light #chat-panel { background-color: #EDE3D4 !important; border-color: rgba(200,189,173,0.8) !important; box-shadow: 0 8px 40px rgba(28,24,20,0.14), 0 2px 8px rgba(28,24,20,0.08) !important; }
-    html.light #chat-messages { background-color: #F1E8DA !important; }
-    html.light #chat-panel .bg-charcoal { background-color: #E0D5C4 !important; }
-    html.light #chat-panel .bg-charcoal\/40 { background-color: rgba(224,213,196,0.95) !important; }
-    html.light #chat-panel .bg-charcoal\/30 { background-color: rgba(224,213,196,0.8) !important; }
-    html.light #chat-panel .border-border\/50 { border-color: rgba(200,189,173,0.6) !important; }
-    html.light #chat-panel .border-border { border-color: #C8BDAD !important; }
-    html.light #chat-panel textarea { background-color: #E0D4C0 !important; border-color: #C8BDAD !important; color: #1C1814 !important; }
-    html.light #chat-panel textarea::placeholder { color: #9E8F82 !important; }
-    html.light #chat-panel textarea:focus { border-color: rgba(143,101,18,0.5) !important; }
-    html.light .chat-watermark svg { opacity: 0.08 !important; }
-    /* Chat message bubbles */
-    html.light .typing-dot { background: rgba(110,97,88,0.5) !important; }
-
-    /* Hover helpers */
-    html.light .hover\:bg-surface:hover  { background-color: #D8CEBC !important; }
-    html.light .hover\:bg-charcoal:hover { background-color: #DDD3C4 !important; }
-    html.light .hover\:text-white:hover  { color: #1C1814 !important; }
-    html.light .hover\:border-white\/20:hover { border-color: rgba(200,189,173,0.7) !important; }
-
-    /* Prose editor */
-    html.light .prose-editor { color: rgba(28,24,20,0.88) !important; caret-color: #8F6512 !important; }
-    html.light .prose-editor::placeholder { color: rgba(110,97,88,0.4) !important; }
-    html.light .prose-title-input { color: rgba(28,24,20,0.9) !important; border-bottom-color: rgba(200,189,173,0.9) !important; }
-    html.light .prose-title-input:focus { border-bottom-color: rgba(143,101,18,0.5) !important; }
-    html.light .prose-title-input::placeholder { color: rgba(110,97,88,0.35) !important; }
-    html.light .wp-para { color: rgba(28,24,20,0.82) !important; }
-    html.light .wp-para.first-para { color: rgba(28,24,20,0.82) !important; }
-    html.light #fs-content p { color: rgba(28,24,20,0.88) !important; }
-    html.light .fs-tool-btn { color: rgba(28,24,20,0.52) !important; }
-    html.light .fs-tool-btn:hover { background: rgba(28,24,20,0.06) !important; border-color: rgba(28,24,20,0.12) !important; color: #1C1814 !important; }
-    html.light .fs-tool-btn.active { background: rgba(143,101,18,0.12) !important; border-color: rgba(143,101,18,0.3) !important; color: #8F6512 !important; }
-    html.light .wp-scene-break { color: #9E8F82 !important; }
-    html.light .wp-cbadge { color: #8F6512 !important; background: rgba(143,101,18,0.10) !important; border-color: rgba(143,101,18,0.28) !important; }
-
-    /* Modal backdrops */
-    html.light #contract-modal[style*="rgba(0,0,0,0.92)"] { background: rgba(28,24,20,0.65) !important; }
-
-    /* Calendar dropdown */
-    html.light #cdd-menu { background-color: #EAE0D2 !important; border-color: #C8BDAD !important; }
-
-    /* Notif panel */
-    html.light #notif-panel { background-color: #EAE0D2 !important; border-color: #C8BDAD !important; }
   </style>
 </head>
 
@@ -3545,23 +3415,6 @@
   }, { passive: true });
   
 
-    function _updateChartTheme(){
-      if(!_earningsChart)return;
-      const l=document.documentElement.classList.contains('light');
-      const tc=l?'#6B6560':'#7A7A7A', gc=l?'rgba(26,24,22,.05)':'rgba(255,255,255,.04)';
-      const tb=l?'#FFFFFF':'#242424', tbc=l?'#D4CFC7':'#2E2E2E';
-      const ttc=l?'#6B6560':'#7A7A7A', tbc2=l?'#1A1816':'#ffffff';
-      _earningsChart.options.scales.x.grid.color=gc;
-      _earningsChart.options.scales.x.ticks.color=tc;
-      _earningsChart.options.scales.y.grid.color=gc;
-      _earningsChart.options.scales.y.ticks.color=tc;
-      _earningsChart.options.plugins.tooltip.backgroundColor=tb;
-      _earningsChart.options.plugins.tooltip.borderColor=tbc;
-      _earningsChart.options.plugins.tooltip.titleColor=ttc;
-      _earningsChart.options.plugins.tooltip.bodyColor=tbc2;
-      _earningsChart.data.datasets[0].pointBorderColor=l?'#F5F3EE':'#121212';
-      _earningsChart.update('none');
-    }
 </script>
 
 </body>
