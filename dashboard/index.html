@@ -8,6 +8,7 @@
   <meta http-equiv="Expires" content="0">
   <link rel="icon" type="image/svg+xml" href="../assets/afs-favicon.svg"/>
   <title>Dashboard — Apex Fiction Studio</title>
+  <script>(function(){if(localStorage.getItem('afs-theme')==='light')document.documentElement.classList.add('light')})()</script>
     <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -90,6 +91,93 @@
     .chat-watermark svg { width: 190px; height: auto; opacity: 0.11; }
     #chat-messages { position: relative; z-index: 1; }
     #chat-typing, #chat-panel > div:last-child { position: relative; z-index: 1; }
+
+    /* ── Writer Dashboard — Eye Care Light Mode (Warm Amber, WCAG AA) ───── */
+    html.light body{background-color:#F6EFE4!important;color:#2E2926!important}
+    html.light #afs-grid{opacity:.12!important;background-image:linear-gradient(rgba(155,111,10,0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(155,111,10,0.06) 1px,transparent 1px)!important}
+    html.light #afs-glow{opacity:0!important}
+    html.light body::after{display:none!important}
+    html.light .bg-obsidian{background-color:#F6EFE4!important}
+    html.light .bg-charcoal{background-color:#EAE0CF!important}
+    html.light .bg-surface{background-color:#EDE5D8!important}
+    html.light .bg-obsidian\/70{background-color:rgba(246,239,228,0.88)!important}
+    html.light .bg-charcoal\/40{background-color:rgba(234,224,207,0.92)!important}
+    html.light .bg-charcoal\/30{background-color:rgba(234,224,207,0.75)!important}
+    html.light .bg-surface\/60{background-color:rgba(237,229,216,0.6)!important}
+    html.light .bg-white\/10{background-color:rgba(46,41,38,0.05)!important}
+    html.light .bg-\[\#252525\]{background-color:#EDE5D8!important}
+    html.light .border-border{border-color:#CFC5B8!important}
+    html.light .border-white\/10{border-color:rgba(207,197,184,0.5)!important}
+    html.light .border-white\/20{border-color:rgba(185,174,160,0.6)!important}
+    html.light .border-border\/50{border-color:rgba(207,197,184,0.5)!important}
+    html.light .border-border\/30{border-color:rgba(207,197,184,0.3)!important}
+    html.light .border-border\/40{border-color:rgba(207,197,184,0.4)!important}
+    html.light .text-white{color:#2E2926!important}
+    html.light .text-white\/80{color:rgba(46,41,38,.82)!important}
+    html.light .text-white\/70{color:rgba(46,41,38,.72)!important}
+    html.light .text-white\/60{color:rgba(46,41,38,.62)!important}
+    html.light .text-white\/55{color:rgba(46,41,38,.58)!important}
+    html.light .text-white\/50{color:rgba(46,41,38,.52)!important}
+    html.light .text-white\/88{color:rgba(46,41,38,.9)!important}
+    html.light .text-muted{color:#7A6B61!important}
+    html.light .text-muted\/70{color:rgba(122,107,97,.7)!important}
+    html.light .text-muted\/60{color:rgba(122,107,97,.6)!important}
+    html.light .text-gold{color:#9B6F0A!important}
+    html.light .text-gold-light{color:#9B6F0A!important}
+    html.light .bg-gold{background-color:#C9A84C!important}
+    html.light .bg-gold\/10{background-color:rgba(155,111,10,.08)!important}
+    html.light .bg-gold\/15{background-color:rgba(155,111,10,.12)!important}
+    html.light .bg-gold\/20{background-color:rgba(155,111,10,.16)!important}
+    html.light .border-gold\/30{border-color:rgba(155,111,10,.30)!important}
+    html.light .border-gold\/40{border-color:rgba(155,111,10,.40)!important}
+    html.light .border-gold\/50{border-color:rgba(155,111,10,.50)!important}
+    html.light .border-gold\/60{border-color:rgba(155,111,10,.60)!important}
+    html.light .hover\:bg-gold\/20:hover{background-color:rgba(155,111,10,.16)!important}
+    html.light .hover\:border-gold\/60:hover{border-color:rgba(155,111,10,.6)!important}
+    html.light .bg-crimson\/12{background-color:rgba(163,22,33,.09)!important}
+    html.light .bg-crimson\/15{background-color:rgba(163,22,33,.11)!important}
+    html.light .bg-crimson\/8{background-color:rgba(163,22,33,.06)!important}
+    html.light nav.pointer-events-auto{background-color:rgba(246,239,228,.94)!important;border-color:rgba(207,197,184,.7)!important;box-shadow:0 4px 24px rgba(46,41,38,.09),0 1px 4px rgba(46,41,38,.05)!important}
+    html.light #sign-out-btn{color:#7A6B61!important;border-color:rgba(207,197,184,.8)!important}
+    html.light #notif-btn{color:#7A6B61!important;border-color:rgba(207,197,184,.8)!important}
+    html.light .skeleton{background:linear-gradient(90deg,#EAE0CF 25%,#DDD3C1 50%,#EAE0CF 75%)!important;background-size:800px 100%!important}
+    html.light .thin-scroll::-webkit-scrollbar-thumb{background:#CFC5B8!important}
+    html.light input:not([type=checkbox]):not([type=radio]):not([type=range]),html.light textarea,html.light select{background-color:#EAE0CF!important;border-color:#CFC5B8!important;color:#2E2926!important}
+    html.light input::placeholder,html.light textarea::placeholder{color:#9A8A80!important}
+    html.light .form-input:focus,html.light input:focus{box-shadow:0 0 0 2px rgba(155,111,10,.18)!important;border-color:#9B6F0A!important}
+    html.light .afs-logo-main{fill:#2E2926!important}
+    html.light .afs-logo-sub{fill:rgba(46,41,38,.38)!important}
+    html.light #chat-panel{background-color:#EDE5D8!important;border-color:rgba(207,197,184,.8)!important;box-shadow:0 8px 40px rgba(46,41,38,.14),0 2px 8px rgba(46,41,38,.08)!important}
+    html.light #chat-messages{background-color:#F2EAD8!important}
+    html.light #chat-panel .bg-charcoal{background-color:#EAE0CF!important}
+    html.light #chat-panel .bg-charcoal\/40{background-color:rgba(234,224,207,.95)!important}
+    html.light #chat-panel .bg-charcoal\/30{background-color:rgba(234,224,207,.8)!important}
+    html.light #chat-panel .border-border{border-color:#CFC5B8!important}
+    html.light #chat-panel textarea{background-color:#E4D9C5!important;border-color:#CFC5B8!important;color:#2E2926!important}
+    html.light #chat-panel textarea::placeholder{color:#9A8A80!important}
+    html.light #chat-panel textarea:focus{border-color:rgba(155,111,10,.5)!important}
+    html.light .chat-watermark svg{opacity:.08!important}
+    html.light .typing-dot{background:rgba(122,107,97,.5)!important}
+    html.light .hover\:bg-surface:hover{background-color:#DDD3C1!important}
+    html.light .hover\:bg-charcoal:hover{background-color:#E2D7C5!important}
+    html.light .hover\:text-white:hover{color:#2E2926!important}
+    html.light .hover\:border-white\/20:hover{border-color:rgba(207,197,184,.7)!important}
+    html.light .prose-editor{color:rgba(46,41,38,.9)!important;caret-color:#9B6F0A!important}
+    html.light .prose-editor::placeholder{color:rgba(122,107,97,.4)!important}
+    html.light .prose-title-input{color:rgba(46,41,38,.92)!important;border-bottom-color:rgba(207,197,184,.9)!important}
+    html.light .prose-title-input:focus{border-bottom-color:rgba(155,111,10,.5)!important}
+    html.light .prose-title-input::placeholder{color:rgba(122,107,97,.35)!important}
+    html.light .wp-para{color:rgba(46,41,38,.85)!important}
+    html.light .wp-para.first-para{color:rgba(46,41,38,.85)!important}
+    html.light #fs-content p{color:rgba(46,41,38,.88)!important}
+    html.light .fs-tool-btn{color:rgba(46,41,38,.52)!important}
+    html.light .fs-tool-btn:hover{background:rgba(46,41,38,.06)!important;border-color:rgba(46,41,38,.12)!important;color:#2E2926!important}
+    html.light .fs-tool-btn.active{background:rgba(155,111,10,.12)!important;border-color:rgba(155,111,10,.3)!important;color:#9B6F0A!important}
+    html.light .wp-scene-break{color:#9A8A80!important}
+    html.light .wp-cbadge{color:#9B6F0A!important;background:rgba(155,111,10,.10)!important;border-color:rgba(155,111,10,.28)!important}
+    html.light #cdd-menu{background-color:#EAE0CF!important;border-color:#CFC5B8!important}
+    html.light #notif-panel{background-color:#EAE0CF!important;border-color:#CFC5B8!important}
+    html.light #theme-float-btn{background-color:rgba(237,229,216,.95)!important;border-color:#CFC5B8!important;color:#7A6B61!important;box-shadow:0 4px 20px rgba(46,41,38,.12)!important}
   </style>
 </head>
 
@@ -765,6 +853,16 @@
   </div>
 
   <!-- FLOATING CHAT BUTTON -->
+  <!-- Eye Care Mode Toggle — centered above the chat button -->
+  <button id="theme-float-btn" onclick="toggleTheme()" title="Eye Care Mode"
+          class="w-12 h-12 rounded-full flex items-center justify-center
+                 bg-charcoal/80 backdrop-blur-md border border-border text-muted hover:text-white
+                 shadow-xl shadow-black/30 transition-all duration-200"
+          style="position:fixed;right:28px;bottom:92px;z-index:9999;">
+    <svg id="icon-sun" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    <svg id="icon-moon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+  </button>
+
   <div id="chat-float" style="position:fixed;right:24px;bottom:24px;z-index:9999;touch-action:none;">
     <button id="chat-float-btn" onclick="toggleChat()"
             class="relative w-14 h-14 rounded-full bg-gold text-obsidian shadow-xl shadow-black/50 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform duration-200">
@@ -3413,7 +3511,19 @@
     if (!_tourActive) return;
     _renderTourStep();
   }, { passive: true });
-  
+
+    function toggleTheme(){
+      const l=document.documentElement.classList.toggle('light');
+      localStorage.setItem('afs-theme',l?'light':'dark');
+      _syncThemeIcons();
+    }
+    function _syncThemeIcons(){
+      const l=document.documentElement.classList.contains('light');
+      const s=document.getElementById('icon-sun'),m=document.getElementById('icon-moon');
+      if(s)s.classList.toggle('hidden',l);
+      if(m)m.classList.toggle('hidden',!l);
+    }
+    document.addEventListener('DOMContentLoaded',_syncThemeIcons);
 
 </script>
 
