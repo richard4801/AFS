@@ -323,12 +323,6 @@
       </div>
     </div>
 
-    <!-- PAYOUT THRESHOLD NOTICE -->
-    <div class="flex items-start gap-3 rounded-xl mb-6 px-4 py-3" style="background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.15);">
-      <svg class="flex-shrink-0 w-4 h-4 text-gold mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      <p class="text-xs leading-relaxed" style="color:rgba(255,255,255,0.5);"><strong style="color:rgba(255,255,255,0.8);">Monthly payouts release when your balance reaches $100.</strong> Earnings below that roll forward and pay out the month your balance crosses the threshold. Your <strong style="color:rgba(255,255,255,0.8);"><span id="payout-bonus-amount">$100</span> milestone bonus</strong> pays within 14 days of hitting 30,000 words — no $100 minimum applies to it.</p>
-    </div>
-
     <!-- RANK UNCONTRACTED NOTE (shown for unranked writers, closeable) -->
     <div id="rank-uncontracted-note" class="hidden flex items-start gap-3 rounded-xl mb-6 px-4 py-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
       <svg class="flex-shrink-0 w-4 h-4 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="color:rgba(255,255,255,0.3);"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
@@ -338,22 +332,32 @@
       </button>
     </div>
 
-    <!-- PAYOUT HISTORY (only shown when payouts exist) -->
-    <div id="payout-card" class="hidden rounded-2xl border border-border bg-surface p-5 sm:p-6 mb-8 relative overflow-hidden">
-      <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent"></div>
-      <div class="flex items-center justify-between mb-4">
-        <div>
-          <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-1">Payment History</p>
-          <h2 class="font-serif text-xl text-white">Payouts Received</h2>
-        </div>
-      </div>
-      <div id="payout-list" class="space-y-2"></div>
-    </div>
-
   </div><!-- /section-home -->
 
   <!-- ── SECTION: Earnings ─────────────────────────────────────────── -->
   <div id="section-earnings" class="writer-section">
+
+    <!-- Compact earnings summary — mobile only (duplicates Home stats in context) -->
+    <div class="sm:hidden grid grid-cols-2 gap-3 mb-6">
+      <div class="rounded-2xl border border-border bg-surface p-4 relative overflow-hidden">
+        <div class="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent"></div>
+        <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-2">This Month</p>
+        <p id="earn-stat-monthly" class="font-serif text-2xl text-white"><span class="skeleton inline-block w-20 h-7">&nbsp;</span></p>
+        <p class="text-muted text-xs mt-1">in royalties</p>
+      </div>
+      <div class="rounded-2xl border border-border bg-surface p-4 relative overflow-hidden">
+        <div class="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent"></div>
+        <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-2">All-Time</p>
+        <p id="earn-stat-alltime" class="font-serif text-2xl text-white"><span class="skeleton inline-block w-20 h-7">&nbsp;</span></p>
+        <p class="text-muted text-xs mt-1">total accrued</p>
+      </div>
+    </div>
+
+    <!-- PAYOUT THRESHOLD NOTICE -->
+    <div class="flex items-start gap-3 rounded-xl mb-6 px-4 py-3" style="background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.15);">
+      <svg class="flex-shrink-0 w-4 h-4 text-gold mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <p class="text-xs leading-relaxed" style="color:rgba(255,255,255,0.5);"><strong style="color:rgba(255,255,255,0.8);">Monthly payouts release when your balance reaches $100.</strong> Earnings below that roll forward and pay out the month your balance crosses the threshold. Your <strong style="color:rgba(255,255,255,0.8);"><span id="payout-bonus-amount">$100</span> milestone bonus</strong> pays within 14 days of hitting 30,000 words — no $100 minimum applies to it.</p>
+    </div>
 
     <!-- CHART -->
     <div class="rounded-2xl border border-border bg-surface p-4 sm:p-6 mb-6 sm:mb-8 relative">
@@ -380,6 +384,18 @@
         <div id="chart-skeleton" class="absolute inset-0 flex items-end gap-1.5 pb-6 px-1"></div>
         <canvas id="earnings-chart" class="hidden"></canvas>
       </div>
+    </div>
+
+    <!-- PAYOUT HISTORY (only shown when payouts exist) -->
+    <div id="payout-card" class="hidden rounded-2xl border border-border bg-surface p-5 sm:p-6 mb-8 relative overflow-hidden">
+      <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent"></div>
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-1">Payment History</p>
+          <h2 class="font-serif text-xl text-white">Payouts Received</h2>
+        </div>
+      </div>
+      <div id="payout-list" class="space-y-2"></div>
     </div>
 
   </div><!-- /section-earnings -->
@@ -1398,6 +1414,8 @@
     function renderStats({ monthly, allTime, totalWords }) {
       $('stat-monthly').textContent = fmt(monthly);
       $('stat-alltime').textContent = fmt(allTime);
+      $('earn-stat-monthly').textContent = fmt(monthly);
+      $('earn-stat-alltime').textContent = fmt(allTime);
       $('stat-words').textContent   = fmtK(totalWords);
       const target = 30000;
       const pct = Math.min(100, Math.round((totalWords / target) * 100));
