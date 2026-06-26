@@ -2089,7 +2089,8 @@
       $('editor-word-count').textContent = countWords($('editor-content').value) + ' words';
     }
 
-    $('editor-content').addEventListener('input', updateWordCount);
+    let _inlineWcTimer;
+    $('editor-content').addEventListener('input', () => { clearTimeout(_inlineWcTimer); _inlineWcTimer = setTimeout(updateWordCount, 300); });
 
     // Normalize pasted content automatically
     $('editor-content').addEventListener('paste', e => {
@@ -2770,15 +2771,19 @@
       updateFSToolbar();
     }
 
+    // Cache toolbar buttons once — avoids querySelector on every keystroke
+    const _fsToolBtns = ['bold','italic','underline'].map(cmd =>
+      document.querySelector('#fullscreen-editor .fs-tool-btn[data-cmd="'+cmd+'"]'));
     function updateFSToolbar() {
-      ['bold','italic','underline'].forEach(cmd => {
-        const btn = document.querySelector('#fullscreen-editor .fs-tool-btn[data-cmd="' + cmd + '"]');
-        if (btn) btn.classList.toggle('active', document.queryCommandState(cmd));
+      _fsToolBtns.forEach((btn, i) => {
+        if (btn) btn.classList.toggle('active', document.queryCommandState(['bold','italic','underline'][i]));
       });
     }
 
-    $('fs-content').addEventListener('input', updateFSWordCount);
-    $('fs-content').addEventListener('keyup', updateFSToolbar);
+    // Debounced listeners — word count and toolbar state don't need to fire on every keystroke
+    let _fsWcTimer, _fsTbTimer;
+    $('fs-content').addEventListener('input',   () => { clearTimeout(_fsWcTimer); _fsWcTimer = setTimeout(updateFSWordCount, 300); });
+    $('fs-content').addEventListener('keyup',   () => { clearTimeout(_fsTbTimer); _fsTbTimer = setTimeout(updateFSToolbar,   150); });
     $('fs-content').addEventListener('mouseup', updateFSToolbar);
     $('fs-content').addEventListener('keydown', e => {
       const mod = e.ctrlKey || e.metaKey;
