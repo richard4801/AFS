@@ -1196,7 +1196,20 @@
 
         const payload = { name, email, experience, logline, sample_chapters_url: sampleLink };
 
-        const { error } = await db.from('applications').insert(payload);
+        let error;
+        try {
+          const result = await db.from('applications').insert(payload);
+          error = result.error;
+        } catch (networkErr) {
+          console.error('AFS network error:', networkErr);
+          btn.disabled = false;
+          btnLbl.textContent = 'Submit My Application';
+          btnArr.classList.remove('hidden');
+          spinner.classList.add('hidden');
+          errBox.textContent = 'Network error — please check your connection and try again.';
+          errBox.classList.remove('hidden');
+          return;
+        }
 
         btn.disabled = false;
         btnLbl.textContent = 'Submit My Application';
@@ -1204,7 +1217,18 @@
         spinner.classList.add('hidden');
 
         if (error) {
-          errBox.textContent = 'Something went wrong. Please try again.';
+          console.error('AFS application error:', error);
+          let msg = 'Something went wrong. Please try again.';
+          if (error.code === '23505') {
+            msg = 'An application with this email already exists. Reach out to us directly if you need to update it.';
+          } else if (error.code === '23502') {
+            msg = 'Please fill in all required fields and try again.';
+          } else if (error.code === '42501' || (error.message && error.message.toLowerCase().includes('security'))) {
+            msg = 'Submissions are temporarily unavailable. Please try again in a few minutes or email us directly.';
+          } else if (error.message) {
+            msg = 'Error: ' + error.message;
+          }
+          errBox.textContent = msg;
           errBox.classList.remove('hidden');
           return;
         }
