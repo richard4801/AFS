@@ -1194,7 +1194,8 @@
         btnArr.classList.add('hidden');
         spinner.classList.remove('hidden');
 
-        const payload = { name, email, experience, logline, sample_chapters_url: sampleLink };
+        // test_scene is a legacy NOT NULL column; sample_chapters_url is its replacement
+        const payload = { name, email, experience, logline, sample_chapters_url: sampleLink, test_scene: '' };
 
         let error;
         try {
