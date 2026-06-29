@@ -1194,8 +1194,8 @@
         btnArr.classList.add('hidden');
         spinner.classList.remove('hidden');
 
-        // test_scene is a legacy NOT NULL column; sample_chapters_url is its replacement
-        const payload = { name, email, experience, logline, sample_chapters_url: sampleLink, test_scene: '' };
+        // sample_chapters_url migration not yet run in DB; store link in test_scene (the existing column)
+        const payload = { name, email, experience, logline, test_scene: sampleLink };
 
         let error;
         try {
