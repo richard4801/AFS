@@ -17,7 +17,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-type EventType = 'income_posted' | 'chapter_approved' | 'chapter_rejected' | 'brief_assigned'
+type EventType = 'income_posted' | 'chapter_approved' | 'chapter_rejected' | 'brief_assigned' | 'contract_sent'
 
 interface Payload {
   type: EventType
@@ -93,6 +93,33 @@ const templates: Record<EventType, (p: Payload) => { subject: string; html: stri
           Read Your Brief →
         </a>
         <p style="color:#3A3A3A;font-size:11px;margin-top:40px;">© 2026 Apex Fiction Studio</p>
+      </div>`,
+  }),
+
+  contract_sent: ({ writerName }) => ({
+    subject: `Your AFS Contract Is Ready to Sign`,
+    html: `
+      <div style="background:#0D0B09;font-family:Georgia,'Times New Roman',serif;max-width:560px;margin:0 auto;padding:52px 40px;">
+        <div style="margin-bottom:44px;">
+          <span style="font-size:26px;color:#C9A84C;letter-spacing:0.18em;font-weight:normal;">AFS</span><br/>
+          <span style="font-size:8px;color:rgba(201,168,76,0.45);letter-spacing:0.45em;text-transform:uppercase;display:block;margin-top:3px;">Publishing</span>
+          <div style="height:1px;background:linear-gradient(90deg,rgba(201,168,76,0.5),transparent);margin-top:18px;"></div>
+        </div>
+        <h1 style="font-size:34px;color:#F0ECE6;margin:0 0 6px;font-weight:normal;line-height:1.15;">Your contract is ready.</h1>
+        <p style="font-size:11px;color:#C9A84C;letter-spacing:0.22em;margin:0 0 36px;text-transform:uppercase;">Apex Fiction Studio</p>
+        <p style="font-size:16px;color:#9A8A78;line-height:1.85;margin:0 0 18px;">Dear ${escHtml(writerName)},</p>
+        <p style="font-size:16px;color:#9A8A78;line-height:1.85;margin:0 0 36px;">Your Independent Contractor Agreement with Apex Fiction Studio is ready for your review and signature. Please log in to your dashboard to read and sign it before you begin writing.</p>
+        <div style="height:1px;background:rgba(201,168,76,0.12);margin-bottom:32px;"></div>
+        <a href="https://apexfictionstudio.com/dashboard/index.html"
+           style="display:inline-block;background:#C9A84C;color:#0D0B09;font-family:Georgia,serif;font-size:12px;font-weight:bold;letter-spacing:0.14em;text-transform:uppercase;padding:14px 34px;border-radius:3px;text-decoration:none;">
+          Review &amp; Sign Contract
+        </a>
+        <p style="font-size:13px;color:#7A6A58;margin-top:52px;line-height:1.65;">
+          — The Apex Fiction Studio Editorial Team<br/>
+          <a href="mailto:admin@apexfictionstudio.com" style="color:#C9A84C;text-decoration:none;">admin@apexfictionstudio.com</a>
+        </p>
+        <div style="height:1px;background:rgba(201,168,76,0.08);margin-top:44px;"></div>
+        <p style="font-size:10px;color:#5A4A38;margin-top:14px;">© 2026 Apex Fiction Studio</p>
       </div>`,
   }),
 
