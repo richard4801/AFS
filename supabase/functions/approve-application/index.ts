@@ -101,6 +101,7 @@ Deno.serve(async (req) => {
     // Generate invite link without sending Supabase's own email.
     // This creates the user account and returns the action link so we can
     // embed it directly in our single branded email below.
+    let actionLink: string
     const { data: linkData, error: inviteErr } = await adminClient.auth.admin.generateLink({
       type: 'invite',
       email: app.email,
@@ -109,9 +110,31 @@ Deno.serve(async (req) => {
         redirectTo: loginUrl,
       },
     })
-    if (inviteErr) throw inviteErr
-    const actionLink = linkData?.properties?.action_link
-    if (!actionLink) throw new Error('Failed to generate invite link')
+
+    if (inviteErr) {
+      console.error('generateLink error:', inviteErr.message, inviteErr)
+      // If user already exists, fall back to a recovery (password reset) link
+      if (inviteErr.message?.includes('already') || inviteErr.message?.includes('registered')) {
+        const { data: recData, error: recErr } = await adminClient.auth.admin.generateLink({
+          type: 'recovery',
+          email: app.email,
+          options: { redirectTo: loginUrl },
+        })
+        if (recErr) {
+          console.error('recovery link error:', recErr.message, recErr)
+          throw recErr
+        }
+        const link = recData?.properties?.action_link
+        if (!link) throw new Error('Failed to generate recovery link')
+        actionLink = link
+      } else {
+        throw inviteErr
+      }
+    } else {
+      const link = linkData?.properties?.action_link
+      if (!link) throw new Error('Failed to generate invite link — action_link missing')
+      actionLink = link
+    }
 
     // Ensure a profiles row exists for this writer
     if (linkData?.user?.id) {
@@ -153,7 +176,8 @@ Deno.serve(async (req) => {
     })
   } catch (err: unknown) {
     const raw = err instanceof Error ? err.message : 'Unknown error'
-    const SAFE = ['Unauthorized', 'Forbidden', 'Application not found', 'Application already processed', 'RESEND_API_KEY not configured']
+    console.error('approve-application top-level error:', raw, err)
+    const SAFE = ['Unauthorized', 'Forbidden', 'Application not found', 'Application already processed', 'RESEND_API_KEY not configured', 'Failed to generate']
     const message = SAFE.some(s => raw.includes(s)) ? raw : 'Internal server error'
     return new Response(JSON.stringify({ error: message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
