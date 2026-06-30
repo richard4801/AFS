@@ -11,9 +11,10 @@ function escHtml(s: unknown): string {
     .replace(/"/g, '&quot;').replace(/'/g, '&#x27;')
 }
 
-function acceptanceEmailHtml(name: string, email: string): string {
+function acceptanceEmailHtml(name: string, email: string, actionLink: string): string {
   const n = escHtml(name)
   const e = escHtml(email)
+  const link = escHtml(actionLink)
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"/></head>
 <body style="margin:0;padding:0;background:#0D0B09;">
@@ -37,21 +38,19 @@ function acceptanceEmailHtml(name: string, email: string): string {
 
   <div style="height:1px;background:rgba(201,168,76,0.12);margin-bottom:32px;"></div>
 
-  <p style="font-size:14px;color:#6A5A4A;line-height:1.75;margin:0 0 30px;">A separate email from our platform has been sent to this address with your secure login link. Use it to set up your account and access your writer dashboard where your assignments and earnings will live.</p>
-
-  <!-- CTA -->
-  <a href="https://apexfictionstudio.com/dashboard/login.html"
+  <!-- CTA — invite link embedded directly -->
+  <a href="${link}"
      style="display:inline-block;background:#C9A84C;color:#0D0B09;font-family:Georgia,serif;font-size:12px;font-weight:bold;letter-spacing:0.14em;text-transform:uppercase;padding:14px 34px;border-radius:3px;text-decoration:none;">
-    Access Your Dashboard
+    Set Up Your Account
   </a>
 
-  <p style="font-size:13px;color:#3A2F24;margin-top:52px;line-height:1.65;">
+  <p style="font-size:13px;color:#7A6A58;margin-top:52px;line-height:1.65;">
     — The Apex Fiction Studio Editorial Team<br/>
-    <a href="mailto:apexfictionstudio@gmail.com" style="color:#5A4A38;text-decoration:none;">apexfictionstudio@gmail.com</a>
+    <a href="mailto:admin@apexfictionstudio.com" style="color:#C9A84C;text-decoration:none;">admin@apexfictionstudio.com</a>
   </p>
 
   <div style="height:1px;background:rgba(201,168,76,0.08);margin-top:44px;"></div>
-  <p style="font-size:10px;color:#2A1F14;margin-top:14px;">© 2026 Apex Fiction Studio &nbsp;·&nbsp; Sent to ${e}</p>
+  <p style="font-size:10px;color:#5A4A38;margin-top:14px;">© 2026 Apex Fiction Studio &nbsp;·&nbsp; Sent to ${e}</p>
 </div>
 </body></html>`
 }
@@ -99,22 +98,25 @@ Deno.serve(async (req) => {
     if (appErr || !app) throw new Error('Application not found')
     if (app.status !== 'pending') throw new Error('Application already processed')
 
-    // Invite the writer — creates their account and sends an invite email.
-    // redirectTo must be in the Supabase allowed redirect URLs list.
-    const { data: inviteData, error: inviteErr } = await adminClient.auth.admin.inviteUserByEmail(
-      app.email,
-      {
+    // Generate invite link without sending Supabase's own email.
+    // This creates the user account and returns the action link so we can
+    // embed it directly in our single branded email below.
+    const { data: linkData, error: inviteErr } = await adminClient.auth.admin.generateLink({
+      type: 'invite',
+      email: app.email,
+      options: {
         data: { full_name: app.name },
         redirectTo: loginUrl,
       },
-    )
+    })
     if (inviteErr) throw inviteErr
+    const actionLink = linkData?.properties?.action_link
+    if (!actionLink) throw new Error('Failed to generate invite link')
 
-    // Ensure a profiles row exists for this writer (the DB trigger handles this
-    // automatically, but we upsert here as a safety net).
-    if (inviteData?.user?.id) {
+    // Ensure a profiles row exists for this writer
+    if (linkData?.user?.id) {
       await adminClient.from('profiles').upsert({
-        id:    inviteData.user.id,
+        id:    linkData.user.id,
         name:  app.name,
         email: app.email,
       }, { onConflict: 'id', ignoreDuplicates: true })
@@ -130,7 +132,7 @@ Deno.serve(async (req) => {
       })
       .eq('id', applicationId)
 
-    // Send premium acceptance email via Resend (non-fatal if unconfigured)
+    // Send single branded acceptance email with invite link embedded
     const resendKey = Deno.env.get('RESEND_API_KEY')
     if (resendKey) {
       await fetch('https://api.resend.com/emails', {
@@ -138,9 +140,10 @@ Deno.serve(async (req) => {
         headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           from: 'Apex Fiction Studio <notifications@apexfictionstudio.com>',
+          reply_to: ['admin@apexfictionstudio.com'],
           to: [app.email],
           subject: `You've been selected — Apex Fiction Studio`,
-          html: acceptanceEmailHtml(app.name, app.email),
+          html: acceptanceEmailHtml(app.name, app.email, actionLink),
         }),
       })
     }

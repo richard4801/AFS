@@ -153,6 +153,7 @@ Deno.serve(async (req) => {
       headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         from: 'Apex Fiction Studio <notifications@apexfictionstudio.com>',
+        reply_to: ['admin@apexfictionstudio.com'],
         to: [payload.writerEmail],
         subject,
         html,
