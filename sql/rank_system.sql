@@ -22,7 +22,7 @@ BEGIN
   IF NEW.status = 'signed' AND (OLD.status IS DISTINCT FROM 'signed') THEN
     UPDATE public.profiles
     SET rank = 'bronze'
-    WHERE id = NEW.user_id AND rank = 'unranked';
+    WHERE id = NEW.writer_id AND rank = 'unranked';
   END IF;
   RETURN NEW;
 END;
