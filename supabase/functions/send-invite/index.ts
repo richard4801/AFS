@@ -43,7 +43,7 @@ function inviteEmailHtml(writerEmail: string, link: string): string {
 
   <p style="font-size:13px;color:#6A5A4A;margin-top:44px;line-height:1.65;">
     — The Apex Fiction Studio Editorial Team<br/>
-    <a href="mailto:apexfictionstudio@gmail.com" style="color:#5A4A38;text-decoration:none;">apexfictionstudio@gmail.com</a>
+    <a href="mailto:admin@apexfictionstudio.com" style="color:#5A4A38;text-decoration:none;">admin@apexfictionstudio.com</a>
   </p>
 
   <div style="height:1px;background:rgba(201,168,76,0.08);margin-top:44px;"></div>
@@ -122,6 +122,7 @@ Deno.serve(async (req) => {
       headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         from: 'Apex Fiction Studio <notifications@apexfictionstudio.com>',
+        reply_to: ['admin@apexfictionstudio.com'],
         to: [writerEmail],
         subject: `Your Apex Fiction Studio Invitation`,
         html: inviteEmailHtml(writerEmail, actionLink),

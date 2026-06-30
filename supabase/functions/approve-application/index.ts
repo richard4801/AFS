@@ -47,7 +47,7 @@ function acceptanceEmailHtml(name: string, email: string): string {
 
   <p style="font-size:13px;color:#3A2F24;margin-top:52px;line-height:1.65;">
     — The Apex Fiction Studio Editorial Team<br/>
-    <a href="mailto:apexfictionstudio@gmail.com" style="color:#5A4A38;text-decoration:none;">apexfictionstudio@gmail.com</a>
+    <a href="mailto:admin@apexfictionstudio.com" style="color:#5A4A38;text-decoration:none;">admin@apexfictionstudio.com</a>
   </p>
 
   <div style="height:1px;background:rgba(201,168,76,0.08);margin-top:44px;"></div>
@@ -138,6 +138,7 @@ Deno.serve(async (req) => {
         headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           from: 'Apex Fiction Studio <notifications@apexfictionstudio.com>',
+          reply_to: ['admin@apexfictionstudio.com'],
           to: [app.email],
           subject: `You've been selected — Apex Fiction Studio`,
           html: acceptanceEmailHtml(app.name, app.email),
