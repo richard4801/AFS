@@ -3280,11 +3280,31 @@
       const { error } = await db.rpc('admin_send_contract', {
         p_writer_id: writerId, p_doc_version: 'v1'
       });
-      if (error) { alert('Error sending contract: ' + error.message); return; }
-      // Open mailto for notification
-      const subject = encodeURIComponent('Your AFS Contract Is Ready to Sign');
-      const body = encodeURIComponent('Hi ' + writerName + ',\n\nYour AFS Independent Contractor Agreement is ready for your review and signature.\n\nPlease log in to your dashboard at https://apexfictionstudio.com/dashboard to review and sign your contract.\n\nBest,\nApex Fiction Studio');
-      window.open('mailto:' + writerEmail + '?subject=' + subject + '&body=' + body);
+      if (error) { showToast('Error sending contract: ' + error.message); return; }
+
+      // Send branded contract email via Edge Function
+      const { data: { session } } = await db.auth.getSession();
+      const notifRes = await fetch(`${SUPABASE_URL}/functions/v1/send-notification`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + session.access_token,
+        },
+        body: JSON.stringify({
+          type: 'contract_sent',
+          writerId,
+          writerEmail,
+          writerName,
+          data: {},
+        }),
+      });
+      if (!notifRes.ok) {
+        const err = await notifRes.json().catch(() => ({}));
+        showToast('Contract recorded but email failed: ' + (err.error || 'unknown error'));
+      } else {
+        showToast('Contract sent to ' + writerEmail);
+      }
+
       _contractsLoaded = false;
       await loadContractsSection();
       _contractsLoaded = true;
