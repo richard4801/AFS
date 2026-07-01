@@ -894,6 +894,7 @@
       <span id="admin-fs-label" class="text-xs text-muted/70 truncate flex-1 min-w-0"></span>
       <div class="ml-auto flex items-center gap-2 flex-shrink-0">
         <span id="admin-fs-wc" class="text-muted text-xs tabular-nums hidden sm:block">0 words</span>
+        <span id="admin-fs-autosave" class="hidden text-xs mr-0.5" style="color:rgba(122,122,122,0.7)"></span>
         <button onclick="saveAdminFSEdit()"
                 class="px-3 py-1.5 bg-gold hover:bg-gold-light text-obsidian text-xs font-semibold rounded-lg transition-colors">
           Save Changes
@@ -2083,12 +2084,17 @@
       $('admin-fs-error').classList.add('hidden');
       document.execCommand('defaultParagraphSeparator', false, 'p');
       updateAdminFsWc();
+      // Reset auto-save state
+      _adminAsUnsaved = false;
+      clearTimeout(_adminAsTimer);
+      _adminAsSetStatus(null);
       $('admin-fullscreen-editor').classList.remove('hidden');
       document.body.style.overflow = 'hidden';
       setTimeout(() => { $('admin-fs-content').focus(); }, 60);
     }
 
     function adminFsClose() {
+      if (_adminAsUnsaved) _adminDoAutoSave(); // fire-and-forget
       $('admin-fullscreen-editor').classList.add('hidden');
       document.body.style.overflow = '';
     }
@@ -2106,7 +2112,46 @@
       });
     }
 
-    $('admin-fs-content').addEventListener('input', updateAdminFsWc);
+    // ── ADMIN EDITOR AUTO-SAVE ─────────────────────────────────────
+    let _adminAsTimer = null;
+    let _adminAsUnsaved = false;
+    let _adminAsInFlight = false;
+
+    function _adminAsSetStatus(state) {
+      const el = $('admin-fs-autosave');
+      if (!el) return;
+      if (state === 'saved')   { el.innerHTML = '&#x2713; Saved';      el.style.color = 'rgba(74,222,128,0.65)'; el.classList.remove('hidden'); }
+      else if (state === 'saving') { el.innerHTML = '&bull; Saving&hellip;'; el.style.color = 'rgba(122,122,122,0.7)'; el.classList.remove('hidden'); }
+      else if (state === 'unsaved') { el.innerHTML = '&bull; Unsaved'; el.style.color = 'rgba(201,168,76,0.6)'; el.classList.remove('hidden'); }
+      else { el.classList.add('hidden'); }
+    }
+
+    async function _adminDoAutoSave() {
+      if (_adminAsInFlight || !selectedChapter?.id) return;
+      const html  = $('admin-fs-content').innerHTML;
+      const inner = ($('admin-fs-content').innerText || '').trim();
+      if (!inner) return;
+      _adminAsInFlight = true;
+      _adminAsSetStatus('saving');
+      const words = adminFsWc();
+      const { error } = await db.from('chapters').update({ content: html, word_count: words, updated_at: new Date().toISOString() }).eq('id', selectedChapter.id);
+      _adminAsInFlight = false;
+      if (!error) {
+        _adminAsUnsaved = false;
+        selectedChapter.content = html;
+        _adminAsSetStatus('saved');
+      } else {
+        _adminAsSetStatus('unsaved');
+      }
+    }
+
+    $('admin-fs-content').addEventListener('input', () => {
+      updateAdminFsWc();
+      _adminAsUnsaved = true;
+      _adminAsSetStatus('unsaved');
+      clearTimeout(_adminAsTimer);
+      _adminAsTimer = setTimeout(_adminDoAutoSave, 2500);
+    });
     $('admin-fs-content').addEventListener('keyup', updateAdminFsToolbar);
     $('admin-fs-content').addEventListener('mouseup', updateAdminFsToolbar);
     $('admin-fs-content').addEventListener('keydown', e => {
@@ -2130,6 +2175,9 @@
       }).eq('id', selectedChapter.id);
       if (error) { errEl.textContent = error.message; errEl.classList.remove('hidden'); return; }
       selectedChapter.content = html;
+      _adminAsUnsaved = false;
+      clearTimeout(_adminAsTimer);
+      _adminAsSetStatus(null);
       adminFsClose();
       showToast('Chapter updated ✓');
       $('viewer-chapter-meta').textContent = words.toLocaleString() + ' words · ' + selectedChapter.status.replace('_', ' ');
