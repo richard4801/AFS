@@ -680,6 +680,9 @@
                 </button>
               </div>
 
+              <!-- Auto-save status (replaces buttons for submitted chapters) -->
+              <div id="editor-autosave-status" class="hidden items-center gap-2 py-1 text-xs" style="color:rgba(122,122,122,0.7)"></div>
+
             </div><!-- /editor-edit-mode -->
           </div>
 
@@ -1037,14 +1040,17 @@
              class="flex-1 min-w-0 bg-transparent text-white text-sm placeholder-muted focus:outline-none border-none"/>
       <div class="ml-auto flex items-center gap-1.5 flex-shrink-0">
         <span id="fs-word-count" class="text-muted text-xs tabular-nums hidden sm:block">0 words</span>
-        <button onclick="saveFSChapter('draft')"
-                class="hidden sm:block px-3 py-1.5 border border-border hover:border-white/20 text-muted hover:text-white text-xs rounded-lg transition-all">
-          Draft
-        </button>
-        <button onclick="saveFSChapter('submitted')"
-                class="px-3 py-1.5 bg-gold hover:bg-gold-light text-obsidian text-xs font-semibold rounded-lg transition-colors">
-          Submit
-        </button>
+        <span id="fs-autosave-status" class="hidden text-xs mr-0.5" style="color:rgba(122,122,122,0.7)"></span>
+        <div id="fs-manual-btns" class="flex items-center gap-1.5">
+          <button onclick="saveFSChapter('draft')"
+                  class="hidden sm:block px-3 py-1.5 border border-border hover:border-white/20 text-muted hover:text-white text-xs rounded-lg transition-all">
+            Draft
+          </button>
+          <button onclick="saveFSChapter('submitted')"
+                  class="px-3 py-1.5 bg-gold hover:bg-gold-light text-obsidian text-xs font-semibold rounded-lg transition-colors">
+            Submit
+          </button>
+        </div>
       </div>
     </div>
     <!-- Row 2: Formatting toolbar -->
@@ -1058,7 +1064,7 @@
       <!-- mobile: word count + draft save -->
       <div class="ml-auto flex items-center gap-2 sm:hidden">
         <span id="fs-word-count-mobile" class="text-muted text-xs tabular-nums">0 words</span>
-        <button onmousedown="event.preventDefault()" onclick="saveFSChapter('draft')" class="px-2.5 py-1 border border-border text-muted text-xs rounded-lg">Draft</button>
+        <button id="fs-draft-btn-mobile" onmousedown="event.preventDefault()" onclick="saveFSChapter('draft')" class="px-2.5 py-1 border border-border text-muted text-xs rounded-lg">Draft</button>
       </div>
     </div>
     <div id="fs-error-bar" class="hidden flex-shrink-0 px-4 py-2 bg-red-400/10 border-b border-red-400/20 text-xs text-red-400"></div>
@@ -1571,6 +1577,24 @@
         $('docx-section').classList.remove('hidden');
         $('editor-content').value = '';
         $('editor-word-count').textContent = '0 words';
+        // Restore localStorage backup if available
+        const _draftKey = 'afs_draft_' + (selectedBook?.id || 'new');
+        const _savedDraft = localStorage.getItem(_draftKey);
+        if (_savedDraft) {
+          try {
+            const _d = JSON.parse(_savedDraft);
+            if (_d?.content) {
+              $('editor-content').value = _d.content;
+              if (_d.title) $('editor-chapter-title').value = _d.title;
+              updateWordCount();
+              $('editor-status-label').textContent = 'Draft restored';
+              setTimeout(() => { if ($('editor-status-label').textContent === 'Draft restored') $('editor-status-label').textContent = ''; }, 4000);
+            }
+          } catch (_) {}
+        }
+        // Show autosave status, hide it initially
+        const _asStatusEl = $('editor-autosave-status');
+        if (_asStatusEl) { _asStatusEl.classList.add('hidden'); _asStatusEl.style.display = ''; }
       } else {
         $('editor-read-mode').classList.remove('hidden');
         $('editor-edit-mode').classList.add('hidden');
@@ -1998,6 +2022,63 @@
 
     const MAX_CHAPTER_CHARS = 200000; // ~40,000 words
 
+    // ── AUTO-SAVE ──────────────────────────────────────────────────
+    let _asTimer    = null;
+    let _asUnsaved  = false;
+    let _asInFlight = false;
+
+    function _asSetStatus(state, elId) {
+      const el = $(elId);
+      if (!el) return;
+      if (state === 'saved') {
+        el.innerHTML = '&#x2713; Saved';
+        el.style.color = 'rgba(74,222,128,0.65)';
+      } else if (state === 'saving') {
+        el.innerHTML = '&bull; Saving&hellip;';
+        el.style.color = 'rgba(122,122,122,0.7)';
+      } else if (state === 'unsaved') {
+        el.innerHTML = '&bull; Unsaved';
+        el.style.color = 'rgba(201,168,76,0.6)';
+      }
+    }
+
+    function _scheduleAutoSave(isFS) {
+      _asUnsaved = true;
+      _asSetStatus('unsaved', isFS ? 'fs-autosave-status' : 'editor-autosave-status');
+      clearTimeout(_asTimer);
+      _asTimer = setTimeout(() => _doAutoSave(isFS), 2500);
+    }
+
+    async function _doAutoSave(isFS) {
+      if (_asInFlight) return;
+      const statusEl = isFS ? 'fs-autosave-status' : 'editor-autosave-status';
+      if (isFS) {
+        const title = $('fs-title').value.trim() || null;
+        const html  = $('fs-content').innerHTML;
+        if (!($('fs-content').innerText || '').trim()) return;
+        if (!editingChapter) {
+          localStorage.setItem('afs_fsdraft_' + (selectedBook?.id || 'new'), JSON.stringify({ title, content: html, savedAt: Date.now() }));
+          _asUnsaved = false;
+          _asSetStatus('saved', statusEl);
+          return;
+        }
+        _asInFlight = true;
+        _asSetStatus('saving', statusEl);
+        const words = fswc();
+        const { error } = await db.from('chapters').update({ title, content: html, word_count: words, updated_at: new Date().toISOString() }).eq('id', editingChapter.id);
+        _asInFlight = false;
+        if (!error) { _asUnsaved = false; _originalChapterContent = html; _asSetStatus('saved', statusEl); }
+        else { _asSetStatus('unsaved', statusEl); }
+      } else {
+        const content = $('editor-content')?.value ?? '';
+        const title   = $('editor-chapter-title')?.value?.trim() || null;
+        if (!content.trim()) return;
+        localStorage.setItem('afs_draft_' + (selectedBook?.id || 'new'), JSON.stringify({ title, content, savedAt: Date.now() }));
+        _asUnsaved = false;
+        _asSetStatus('saved', statusEl);
+      }
+    }
+
     async function saveChapter(statusToSave) {
       const title   = $('editor-chapter-title').value.trim() || null;
       const content = $('editor-content').value.trim();
@@ -2048,6 +2129,7 @@
       } else {
         showToast('Draft saved ✓');
       }
+      localStorage.removeItem('afs_draft_' + (selectedBook?.id || 'new'));
       showChaptersView();
     }
 
@@ -2092,7 +2174,7 @@
     }
 
     let _inlineWcTimer;
-    $('editor-content').addEventListener('input', () => { clearTimeout(_inlineWcTimer); _inlineWcTimer = setTimeout(updateWordCount, 300); });
+    $('editor-content').addEventListener('input', () => { clearTimeout(_inlineWcTimer); _inlineWcTimer = setTimeout(updateWordCount, 300); _scheduleAutoSave(false); });
 
     // Normalize pasted content automatically
     $('editor-content').addEventListener('paste', e => {
@@ -2732,6 +2814,40 @@
       $('fs-error-bar').classList.add('hidden');
       document.execCommand('defaultParagraphSeparator', false, 'p');
       updateFSWordCount();
+
+      // Reset auto-save state
+      _asUnsaved = false;
+      clearTimeout(_asTimer);
+
+      // Auto-save mode for chapters submitted at least once; manual buttons for new/draft
+      const autoMode = !!(editingChapter && editingChapter.status !== 'draft');
+      $('fs-manual-btns').classList.toggle('hidden', autoMode);
+      const mobileDraftBtn = $('fs-draft-btn-mobile');
+      if (mobileDraftBtn) mobileDraftBtn.classList.toggle('hidden', autoMode);
+      const statusEl = $('fs-autosave-status');
+      if (autoMode) {
+        statusEl.classList.remove('hidden');
+        _asSetStatus('saved', 'fs-autosave-status');
+      } else {
+        statusEl.classList.add('hidden');
+      }
+
+      // Restore localStorage draft for new (unsaved) chapters
+      if (!editingChapter) {
+        const key = 'afs_fsdraft_' + (selectedBook?.id || 'new');
+        const saved = localStorage.getItem(key);
+        if (saved) {
+          try {
+            const d = JSON.parse(saved);
+            if (d?.content && !($('fs-content').innerText || '').trim()) {
+              $('fs-content').innerHTML = d.content;
+              if (d.title) $('fs-title').value = d.title;
+              updateFSWordCount();
+            }
+          } catch (_) {}
+        }
+      }
+
       $('fullscreen-editor').classList.remove('hidden');
       document.body.style.overflow = 'hidden';
       setTimeout(() => {
@@ -2759,6 +2875,7 @@
     }
 
     function fsClose() {
+      if (_asUnsaved) _doAutoSave(true); // fire-and-forget before closing
       $('fullscreen-editor').classList.add('hidden');
       document.body.style.overflow = '';
       if (_fsOpenedDirectly) {
@@ -2784,7 +2901,7 @@
 
     // Debounced listeners — word count and toolbar state don't need to fire on every keystroke
     let _fsWcTimer, _fsTbTimer;
-    $('fs-content').addEventListener('input',   () => { clearTimeout(_fsWcTimer); _fsWcTimer = setTimeout(updateFSWordCount, 300); });
+    $('fs-content').addEventListener('input', () => { clearTimeout(_fsWcTimer); _fsWcTimer = setTimeout(updateFSWordCount, 300); _scheduleAutoSave(true); });
     $('fs-content').addEventListener('keyup',   () => { clearTimeout(_fsTbTimer); _fsTbTimer = setTimeout(updateFSToolbar,   150); });
     $('fs-content').addEventListener('mouseup', updateFSToolbar);
     $('fs-content').addEventListener('keydown', e => {
@@ -2822,6 +2939,7 @@
         });
         if (error) { errBar.textContent = error.message; errBar.classList.remove('hidden'); return; }
       }
+      localStorage.removeItem('afs_fsdraft_' + (selectedBook?.id || 'new'));
       fsClose();
       showToast(statusToSave === 'submitted' ? (editingChapter ? 'Changes submitted ✓' : 'Chapter submitted for review ✓') : 'Draft saved ✓');
       if (statusToSave === 'submitted') loadCalendar();
@@ -3200,6 +3318,20 @@
       el.textContent = msg;
       el.classList.remove('hidden');
     }
+
+    window.addEventListener('beforeunload', () => {
+      if (!_asUnsaved) return;
+      const fsOpen = !$('fullscreen-editor').classList.contains('hidden');
+      if (!editingChapter) {
+        if (fsOpen) {
+          const inner = ($('fs-content').innerText || '').trim();
+          if (inner) localStorage.setItem('afs_fsdraft_' + (selectedBook?.id || 'new'), JSON.stringify({ title: $('fs-title').value.trim() || null, content: $('fs-content').innerHTML, savedAt: Date.now() }));
+        } else {
+          const c = $('editor-content').value;
+          if (c.trim()) localStorage.setItem('afs_draft_' + (selectedBook?.id || 'new'), JSON.stringify({ title: $('editor-chapter-title').value.trim() || null, content: c, savedAt: Date.now() }));
+        }
+      }
+    });
   </script>
 
   <!-- Cursor spotlight: mobile drift / desktop cursor -->
