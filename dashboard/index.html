@@ -3180,6 +3180,15 @@
       $('contract-banner').classList.add('hidden');
       $('contract-progress').style.width = '100%';
 
+      // Immediately refresh rank — DB trigger sets bronze the moment signing completes
+      const { data: { user } } = await db.auth.getUser();
+      if (user) {
+        const { data: updatedProfile } = await db.from('profiles')
+          .select('name, email, rank, payment_info, onboarded')
+          .eq('id', user.id).single();
+        if (updatedProfile) initRankProfile(updatedProfile);
+      }
+
       // Close modal after 3 seconds
       setTimeout(closeContractModal, 3000);
     }
