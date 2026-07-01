@@ -378,6 +378,42 @@
       </button>
     </div>
 
+    <!-- ── WRITING PROMPTS CAROUSEL ──────────────────────────────── -->
+    <div id="prompts-block" class="hidden mb-4">
+      <div class="flex items-end justify-between mb-3">
+        <div>
+          <p class="text-[11px] font-medium tracking-[0.22em] uppercase text-gold mb-1">Writing Prompts</p>
+          <h2 class="font-serif text-xl sm:text-2xl text-white leading-tight">Pick a prompt. Start a story.</h2>
+        </div>
+        <div id="prompts-dots" class="flex items-center gap-1.5 pb-1"></div>
+      </div>
+
+      <!-- Active-claim strip: shown when this writer already has a prompt running -->
+      <div id="prompt-active-strip" class="hidden mb-3 rounded-xl border border-gold/25 bg-gold/[0.06] px-4 py-3 flex items-center gap-3">
+        <svg class="flex-shrink-0 w-4 h-4 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <div class="min-w-0 flex-1">
+          <p class="text-white text-xs font-medium truncate">Developing: <span id="prompt-active-title" class="text-gold"></span></p>
+          <p class="text-muted text-[11px]">Time remaining to submit your first chapter</p>
+        </div>
+        <span id="prompt-active-timer" class="flex-shrink-0 font-mono tabular-nums text-sm font-semibold" data-countdown>—</span>
+      </div>
+
+      <!-- Slideshow -->
+      <div class="relative rounded-2xl overflow-hidden border border-border bg-surface">
+        <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent z-20 pointer-events-none"></div>
+        <div id="prompt-track" class="flex transition-transform duration-500 ease-out" style="will-change:transform"></div>
+        <!-- Desktop arrows -->
+        <button id="prompt-prev" onclick="promptCarousel(-1)" aria-label="Previous prompt"
+                class="hidden sm:flex absolute left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 items-center justify-center rounded-full border border-white/15 text-white/80 hover:text-white hover:border-white/30 transition-all" style="background:rgba(13,11,9,0.55);backdrop-filter:blur(6px)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <button id="prompt-next" onclick="promptCarousel(1)" aria-label="Next prompt"
+                class="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 items-center justify-center rounded-full border border-white/15 text-white/80 hover:text-white hover:border-white/30 transition-all" style="background:rgba(13,11,9,0.55);backdrop-filter:blur(6px)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      </div>
+    </div>
+
   </div><!-- /section-home -->
 
   <!-- ── SECTION: Earnings ─────────────────────────────────────────── -->
@@ -780,6 +816,34 @@
         <span class="text-[9px] font-semibold tracking-wide uppercase">Earnings</span>
       </button>
     </nav>
+  </div>
+
+  <!-- PROMPT DETAIL MODAL -->
+  <div id="prompt-modal" class="hidden fixed inset-0 z-[200] flex flex-col" style="background:#0D0B09;">
+    <div class="relative flex-shrink-0">
+      <div class="aspect-[2/1] sm:aspect-[16/5] w-full overflow-hidden bg-charcoal">
+        <img id="prompt-modal-banner" src="" alt="" class="w-full h-full object-cover"/>
+        <div class="absolute inset-0" style="background:linear-gradient(to top, rgba(13,11,9,0.96) 0%, rgba(13,11,9,0.25) 55%, rgba(13,11,9,0.5) 100%)"></div>
+      </div>
+      <button onclick="closePromptModal()" aria-label="Close"
+              class="absolute top-4 right-4 z-10 w-9 h-9 flex items-center justify-center rounded-lg border border-white/15 text-white/80 hover:text-white hover:border-white/30 text-2xl leading-none transition-colors" style="background:rgba(13,11,9,0.5);backdrop-filter:blur(6px)">×</button>
+      <div class="absolute bottom-0 left-0 right-0 px-5 sm:px-8 pb-5">
+        <span id="prompt-modal-genre" class="hidden inline-block text-[10px] font-medium tracking-widest uppercase text-gold border border-gold/25 bg-gold/10 rounded-full px-3 py-1 mb-2"></span>
+        <h2 id="prompt-modal-title" class="font-serif text-2xl sm:text-3xl text-white leading-tight"></h2>
+      </div>
+    </div>
+    <div class="flex-1 overflow-y-auto thin-scroll">
+      <div class="max-w-2xl mx-auto px-5 sm:px-8 py-7">
+        <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-3">The Brief</p>
+        <div id="prompt-modal-brief" class="text-white/80 text-[15px] leading-[1.9] space-y-4"></div>
+      </div>
+    </div>
+    <div class="flex-shrink-0 border-t border-border bg-charcoal/80 backdrop-blur-sm px-5 sm:px-8 py-4">
+      <div class="max-w-2xl mx-auto flex items-center justify-between gap-4">
+        <div id="prompt-modal-hint" class="text-xs text-muted min-w-0"></div>
+        <div id="prompt-modal-action" class="flex-shrink-0"></div>
+      </div>
+    </div>
   </div>
 
   <!-- BRIEF FULLSCREEN READER — outside <main> so it isn't capped by main's z-10 stacking context -->
@@ -2990,6 +3054,232 @@
       showChaptersView();
     }
 
+    // ── WRITING PROMPTS ────────────────────────────────────────
+    let _prompts       = [];
+    let _promptIdx     = 0;
+    let _promptAuto    = null;
+    let _promptModalId = null;
+    let _countdownTick = null;
+
+    async function loadPrompts() {
+      const { data, error } = await db.rpc('get_writer_prompt_feed');
+      if (error) { console.warn('prompts feed:', error.message); $('prompts-block').classList.add('hidden'); return; }
+      _prompts = data ?? [];
+      if (!_prompts.length) { $('prompts-block').classList.add('hidden'); _stopPromptAuto(); return; }
+      if (_promptIdx >= _prompts.length) _promptIdx = 0;
+      renderPrompts();
+      $('prompts-block').classList.remove('hidden');
+      _ensureCountdownTicker();
+    }
+
+    function _hasActiveClaim() { return _prompts.some(p => p.claim_state === 'mine'); }
+
+    function _promptStateCTA(p) {
+      if (p.claim_state === 'mine')  return { txt: "You're developing this",  cls: 'text-gold' };
+      if (p.claim_state === 'taken') return { txt: 'Being developed',          cls: 'text-muted' };
+      if (_hasActiveClaim())         return { txt: 'View brief',               cls: 'text-white/70' };
+      return { txt: 'Develop this prompt →', cls: 'text-gold' };
+    }
+
+    function renderPrompts() {
+      const track = $('prompt-track');
+      track.innerHTML = _prompts.map(p => {
+        const cta   = _promptStateCTA(p);
+        const genre = p.genre ? `<span class="inline-block text-[9px] font-semibold tracking-widest uppercase text-gold border border-gold/25 bg-gold/10 rounded-full px-2.5 py-0.5 mb-2">${escHtml(p.genre)}</span>` : '';
+        const banner = p.banner_url
+          ? `<img src="${escHtml(p.banner_url)}" alt="" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"/>`
+          : `<div class="absolute inset-0" style="background:radial-gradient(ellipse at 30% 20%,rgba(201,168,76,0.10),transparent 55%),linear-gradient(135deg,#1C1C1C,#242424)"></div>`;
+        const mineDot = p.claim_state === 'mine'
+          ? `<span class="ml-2 font-mono tabular-nums text-[11px] font-semibold" data-countdown data-expires="${p.my_expires_at}">—</span>` : '';
+        return `
+          <div class="prompt-slide flex-shrink-0 w-full">
+            <button onclick="openPromptModal('${p.id}')" class="relative block w-full text-left group">
+              <div class="relative aspect-[2/1] w-full overflow-hidden bg-charcoal">
+                ${banner}
+                <div class="absolute inset-0" style="background:linear-gradient(to top,rgba(13,11,9,0.94) 0%,rgba(13,11,9,0.15) 55%,transparent 78%)"></div>
+                <div class="absolute bottom-0 left-0 right-0 p-4 sm:p-6">
+                  ${genre}
+                  <h3 class="font-serif text-lg sm:text-2xl text-white leading-tight mb-2 pr-2">${escHtml(p.title)}</h3>
+                  <span class="inline-flex items-center text-xs sm:text-sm font-semibold ${cta.cls}">${cta.txt}${mineDot}</span>
+                </div>
+              </div>
+            </button>
+          </div>`;
+      }).join('');
+      track.style.transform = `translateX(-${_promptIdx * 100}%)`;
+
+      // Dots
+      $('prompts-dots').innerHTML = _prompts.map((_, i) => {
+        const active = i === _promptIdx;
+        return `<button onclick="goPrompt(${i})" aria-label="Prompt ${i+1}" class="h-1.5 rounded-full transition-all duration-300 ${active ? 'bg-gold' : 'bg-white/15 hover:bg-white/30'}" style="width:${active ? '20px' : '6px'}"></button>`;
+      }).join('');
+
+      // Arrows only when more than one
+      const multi = _prompts.length > 1;
+      $('prompt-prev').classList.toggle('hidden', !multi);
+      $('prompt-next').classList.toggle('hidden', !multi);
+      $('prompts-dots').classList.toggle('hidden', !multi);
+
+      // Active-claim strip
+      const mine = _prompts.find(p => p.claim_state === 'mine');
+      const strip = $('prompt-active-strip');
+      if (mine) {
+        $('prompt-active-title').textContent = mine.title;
+        $('prompt-active-timer').setAttribute('data-expires', mine.my_expires_at);
+        strip.classList.remove('hidden');
+      } else {
+        strip.classList.add('hidden');
+      }
+
+      if (multi) _startPromptAuto(); else _stopPromptAuto();
+    }
+
+    function goPrompt(i) {
+      if (!_prompts.length) return;
+      _promptIdx = (i + _prompts.length) % _prompts.length;
+      $('prompt-track').style.transform = `translateX(-${_promptIdx * 100}%)`;
+      $('prompts-dots').querySelectorAll('button').forEach((d, idx) => {
+        const active = idx === _promptIdx;
+        d.className = `h-1.5 rounded-full transition-all duration-300 ${active ? 'bg-gold' : 'bg-white/15 hover:bg-white/30'}`;
+        d.style.width = active ? '20px' : '6px';
+      });
+    }
+    function promptCarousel(dir) { goPrompt(_promptIdx + dir); _startPromptAuto(); }
+
+    function _startPromptAuto() {
+      _stopPromptAuto();
+      if (_prompts.length < 2) return;
+      _promptAuto = setInterval(() => {
+        if (document.hidden || _promptModalId) return;
+        goPrompt(_promptIdx + 1);
+      }, 7000);
+    }
+    function _stopPromptAuto() { if (_promptAuto) { clearInterval(_promptAuto); _promptAuto = null; } }
+
+    // Swipe support on the track
+    (function () {
+      const track = $('prompt-track');
+      if (!track) return;
+      let x0 = null;
+      track.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; _stopPromptAuto(); }, { passive: true });
+      track.addEventListener('touchend', e => {
+        if (x0 === null) return;
+        const dx = e.changedTouches[0].clientX - x0;
+        if (Math.abs(dx) > 45) promptCarousel(dx < 0 ? 1 : -1);
+        x0 = null; _startPromptAuto();
+      }, { passive: true });
+      track.closest('#prompts-block')?.addEventListener('mouseenter', _stopPromptAuto);
+      track.closest('#prompts-block')?.addEventListener('mouseleave', _startPromptAuto);
+    })();
+
+    // ── Prompt modal ──
+    function _briefToHtml(raw) {
+      return String(raw || '').split(/\n{2,}/).map(par =>
+        `<p>${escHtml(par.trim()).replace(/\n/g, '<br>')}</p>`).join('');
+    }
+
+    function openPromptModal(id) {
+      const p = _prompts.find(x => x.id === id);
+      if (!p) return;
+      _promptModalId = id;
+      const bannerImg = $('prompt-modal-banner');
+      if (p.banner_url) { bannerImg.src = p.banner_url; bannerImg.style.display = ''; }
+      else { bannerImg.removeAttribute('src'); bannerImg.style.display = 'none'; }
+      const genreEl = $('prompt-modal-genre');
+      if (p.genre) { genreEl.textContent = p.genre; genreEl.classList.remove('hidden'); }
+      else genreEl.classList.add('hidden');
+      $('prompt-modal-title').textContent = p.title;
+      $('prompt-modal-brief').innerHTML   = _briefToHtml(p.brief);
+      _renderPromptModalAction(p);
+      $('prompt-modal').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function _renderPromptModalAction(p) {
+      const action = $('prompt-modal-action');
+      const hint   = $('prompt-modal-hint');
+      if (p.claim_state === 'mine') {
+        hint.innerHTML = 'Time remaining · <span class="font-mono tabular-nums text-white/80" data-countdown data-expires="' + p.my_expires_at + '">—</span>';
+        action.innerHTML =
+          `<button onclick="releaseMyPrompt('${p.my_claim_id}')" class="px-4 py-2.5 border border-red-400/30 text-red-300 hover:bg-red-400/10 text-xs font-semibold rounded-xl transition-colors">Release prompt</button>`;
+      } else if (p.claim_state === 'taken') {
+        hint.textContent = 'Another writer is currently developing this prompt.';
+        action.innerHTML = `<button disabled class="px-5 py-2.5 bg-surface border border-border text-muted text-xs font-semibold rounded-xl cursor-not-allowed">Unavailable</button>`;
+      } else if (_hasActiveClaim()) {
+        hint.textContent = 'Finish or release your active prompt before starting another.';
+        action.innerHTML = `<button disabled class="px-5 py-2.5 bg-surface border border-border text-muted text-xs font-semibold rounded-xl cursor-not-allowed">Develop Prompt</button>`;
+      } else {
+        hint.innerHTML = 'You\'ll have <span class="text-white/70 font-medium">72 hours</span> to submit your first chapter.';
+        action.innerHTML =
+          `<button onclick="developPrompt('${p.id}')" class="inline-flex items-center gap-2 px-5 py-2.5 bg-gold hover:bg-gold-light text-obsidian text-xs font-bold rounded-xl transition-colors">
+             Develop Prompt
+             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+           </button>`;
+      }
+      _ensureCountdownTicker();
+    }
+
+    function closePromptModal() {
+      _promptModalId = null;
+      $('prompt-modal').classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    async function developPrompt(id) {
+      const btn = $('prompt-modal-action').querySelector('button');
+      if (btn) { btn.disabled = true; btn.textContent = 'Claiming…'; }
+      const { error } = await db.rpc('claim_prompt', { p_prompt_id: id });
+      if (error) {
+        showToast(error.message || 'Could not claim this prompt.');
+        await loadPrompts();
+        const p = _prompts.find(x => x.id === id);
+        if (p) _renderPromptModalAction(p); else closePromptModal();
+        return;
+      }
+      showToast('Prompt claimed — your 72-hour window has started ✓');
+      await loadPrompts();
+      const p = _prompts.find(x => x.id === id);
+      if (p) _renderPromptModalAction(p); else closePromptModal();
+    }
+
+    async function releaseMyPrompt(claimId) {
+      if (!confirm('Release this prompt? It will go back to the pool for other writers and your timer will stop.')) return;
+      const { error } = await db.rpc('release_prompt_claim', { p_claim_id: claimId });
+      if (error) { showToast(error.message || 'Could not release.'); return; }
+      showToast('Prompt released.');
+      closePromptModal();
+      await loadPrompts();
+    }
+
+    // ── Shared countdown ticker (updates every [data-countdown] element) ──
+    function _fmtCountdown(ms) {
+      if (ms <= 0) return { text: 'Expired', color: '#F87171' };
+      const totalS = Math.floor(ms / 1000);
+      const h = Math.floor(totalS / 3600), m = Math.floor((totalS % 3600) / 60), s = totalS % 60;
+      const pad = n => String(n).padStart(2, '0');
+      const text = h >= 24 ? `${Math.floor(h / 24)}d ${h % 24}h ${m}m` : `${pad(h)}:${pad(m)}:${pad(s)}`;
+      const hrs = ms / 3600000;
+      const color = hrs > 24 ? '#C9A84C' : hrs > 6 ? '#E8B488' : '#F87171';
+      return { text, color };
+    }
+    function _tickCountdowns() {
+      const els = document.querySelectorAll('[data-countdown][data-expires]');
+      if (!els.length) return;
+      const now = Date.now();
+      els.forEach(el => {
+        const exp = Date.parse(el.getAttribute('data-expires'));
+        if (isNaN(exp)) return;
+        const { text, color } = _fmtCountdown(exp - now);
+        el.textContent = text;
+        el.style.color = color;
+      });
+    }
+    function _ensureCountdownTicker() {
+      _tickCountdowns();
+      if (_countdownTick) return;
+      _countdownTick = setInterval(_tickCountdowns, 1000);
+    }
+
     // ── TOAST ──────────────────────────────────────────────────
     function showToast(msg) {
       const t = document.createElement('div');
@@ -3174,6 +3464,7 @@
       loadCalendar();
       loadBrief();
       loadPayouts();
+      loadPrompts();
       await loadBooks();
       checkContractStatus();
 
