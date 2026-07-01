@@ -3297,8 +3297,16 @@
     },
     {
       label: 'Project Brief',
-      title: 'Your Story Assignment',
-      body: 'Your editor assigns a project brief here — genre, characters, and plot direction. Read it carefully before writing your first chapter.',
+      title: () => {
+        const el = document.getElementById('brief-card');
+        return (el && !el.classList.contains('hidden')) ? 'Your Story Assignment' : 'Project Brief Coming Soon';
+      },
+      body: () => {
+        const el = document.getElementById('brief-card');
+        return (el && !el.classList.contains('hidden'))
+          ? 'Your editor has assigned your project brief — genre, characters, and plot direction are all in here. Read it carefully before writing your first chapter.'
+          : "Your editor will post your project brief here — genre, characters, and plot direction. It'll appear once your editor sets up your first assignment. Sit tight.";
+      },
       target: 'brief-card',
       fallback: 'brief-placeholder',
       tab: 'books',
@@ -3317,8 +3325,24 @@
     },
     {
       label: 'Your Rank & Profile',
-      title: 'You\'re Currently Unranked',
-      body: 'All writers start as <strong style="color:#E8B488">Unranked</strong> before signing their contract. Once you sign, you\'ll be promoted to <strong style="color:#E8B488">Bronze Novelist</strong> and unlock your $100 monthly milestone bonus. Click your profile to add your payment details so your first payout can be processed the moment you\'re signed.',
+      title: () => {
+        const r = (typeof _writerRank !== 'undefined' ? _writerRank : null) || 'unranked';
+        if (r === 'unranked') return 'You\'re Currently Uncontracted';
+        return 'You\'re a ' + RANK_CONFIG[r].label;
+      },
+      body: () => {
+        const r = (typeof _writerRank !== 'undefined' ? _writerRank : null) || 'unranked';
+        if (r === 'unranked') {
+          return 'You\'re currently <strong style="color:rgba(200,200,200,0.5)">Uncontracted</strong>. Once you complete your assignment and sign your contract, you\'ll be promoted to <strong style="color:#E8B488">Bronze Novelist</strong> and unlock a $100 monthly milestone bonus. Tap your profile to add payment details now so your first payout is ready the moment you sign.';
+        }
+        if (r === 'bronze') {
+          return 'You\'re a <strong style="color:#E8B488">Bronze Novelist</strong> — earning a $100 monthly milestone bonus. Keep 25+ writing days per month and reach $500+/month consistently to climb to <strong style="color:#F0C95A">Gold Novelist</strong>. Tap your profile to keep your payment details up to date.';
+        }
+        if (r === 'gold') {
+          return 'You\'re a <strong style="color:#F0C95A">Gold Novelist</strong> — earning a $120 monthly milestone bonus. Hit $1,000+/month consistently to unlock <strong style="color:#CBD7E0">Platinum Novelist</strong> status and a $140 bonus. Keep the momentum going.';
+        }
+        return 'You\'ve reached <strong style="color:#CBD7E0">Platinum Novelist</strong> status — the highest rank at AFS, earning a $140 monthly milestone bonus. Exceptional work. Keep it up.';
+      },
       target: 'nav-profile-btn',
     },
     {
@@ -3380,8 +3404,8 @@
     }).join('');
 
     document.getElementById('tour-step-label').textContent = `Step ${_tourStep + 1} of ${total}`;
-    document.getElementById('tour-title').textContent      = step.title;
-    document.getElementById('tour-body').innerHTML        = step.body;
+    document.getElementById('tour-title').textContent      = typeof step.title === 'function' ? step.title() : step.title;
+    document.getElementById('tour-body').innerHTML         = typeof step.body  === 'function' ? step.body()  : step.body;
 
     const prevBtn = document.getElementById('tour-prev-btn');
     const nextBtn = document.getElementById('tour-next-btn');
