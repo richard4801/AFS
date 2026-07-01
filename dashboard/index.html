@@ -93,15 +93,19 @@
     #chat-messages { position: relative; z-index: 1; }
     #chat-typing, #chat-panel > div:last-child { position: relative; z-index: 1; }
 
-    /* ── Mobile Writer Tab Navigation ──────────────────────────────── */
+    /* ── Writer Tab Navigation (mobile bottom bar + desktop sidebar) ─ */
+    /* One section visible at a time on every width; sidebar on ≥sm, bottom bar on <sm */
+    .writer-section{display:none!important}
+    .writer-section.active{display:block!important}
     @media (max-width:639px){
-      .writer-section{display:none!important}
-      .writer-section.active{display:block!important}
       #chat-float{bottom:110px!important}
     }
     #writer-mobile-nav button{border-radius:9999px;border:1px solid transparent;transition:all 0.2s}
     #writer-mobile-nav button[data-active="1"]{color:#C9A84C;background:rgba(201,168,76,0.10);border-color:rgba(201,168,76,0.25)}
     #writer-mobile-nav button[data-active="0"]{color:rgba(122,107,97,0.75)}
+    #writer-sidebar-nav button{border:1px solid transparent;transition:all 0.2s;color:rgba(122,107,97,0.85)}
+    #writer-sidebar-nav button[data-active="1"]{color:#C9A84C;background:rgba(201,168,76,0.10);border-color:rgba(201,168,76,0.22)}
+    #writer-sidebar-nav button[data-active="0"]:hover{color:rgba(255,255,255,0.88);background:rgba(255,255,255,0.04)}
   </style>
 </head>
 
@@ -175,7 +179,7 @@
   </div>
 
   <!-- NAV -->
-  <header class="fixed top-4 sm:top-5 inset-x-0 z-50 flex justify-center px-3 sm:px-5 pointer-events-none">
+  <header class="fixed top-4 sm:top-5 left-0 right-0 sm:left-56 z-50 flex justify-center px-3 sm:px-5 pointer-events-none">
     <nav class="pointer-events-auto flex items-center justify-between gap-3 sm:gap-6 w-full max-w-4xl rounded-full bg-obsidian/70 backdrop-blur-md border border-white/10 shadow-xl shadow-black/60 px-4 py-2.5">
       <div class="flex items-center flex-shrink-0">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="15 18 110 52" height="36" style="clip-path:path('M0 0 H200 V14 H0 Z M0 17 H200 V36 H0 Z')" aria-label="AFS Publishing">
@@ -222,8 +226,47 @@
     </nav>
   </header>
 
+  <!-- ── DESKTOP SIDEBAR NAV (hidden on mobile; mobile uses bottom bar) ── -->
+  <aside class="hidden sm:flex fixed left-0 top-0 bottom-0 z-40 w-56 flex-col border-r border-white/5"
+         style="background:rgba(13,11,9,0.55);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);">
+    <div class="px-6 pt-6 pb-9">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="15 18 110 52" height="34" style="clip-path:path('M0 0 H200 V14 H0 Z M0 17 H200 V36 H0 Z')" aria-label="AFS Publishing">
+        <g transform="translate(20,15)">
+          <text font-family="'Cinzel',Georgia,serif" font-weight="400" fill="#EEECE9" font-size="38" letter-spacing="4" x="0" y="35">AFS</text>
+          <text font-family="'Montserrat',system-ui,sans-serif" font-weight="400" fill="rgba(238,236,233,0.42)" font-size="9" letter-spacing="5" x="2" y="52">Publishing</text>
+        </g>
+      </svg>
+    </div>
+    <nav id="writer-sidebar-nav" class="flex-1 px-3 space-y-1">
+      <button onclick="switchWriterTab('home')" id="stab-home" data-active="1"
+              class="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium">
+        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span>Home</span>
+      </button>
+      <button onclick="switchWriterTab('books')" id="stab-books" data-active="0"
+              class="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium">
+        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        <span>Books</span>
+      </button>
+      <button onclick="switchWriterTab('calendar')" id="stab-calendar" data-active="0"
+              class="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium">
+        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span>Calendar</span>
+      </button>
+      <button onclick="switchWriterTab('earnings')" id="stab-earnings" data-active="0"
+              class="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium">
+        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <span>Earnings</span>
+      </button>
+    </nav>
+    <div class="px-6 py-5 border-t border-white/5">
+      <p class="text-[10px] tracking-[0.18em] uppercase" style="color:rgba(122,107,97,0.6)">Apex Fiction Studio</p>
+    </div>
+  </aside>
+
   <!-- MAIN -->
-  <main class="relative z-10 max-w-4xl mx-auto px-4 sm:px-5 pt-28 pb-28 sm:pb-20">
+  <main class="relative z-10 sm:ml-56 px-4 sm:px-8 pt-28 pb-28 sm:pb-16">
+  <div class="mx-auto max-w-4xl">
 
   <!-- ── SECTION: Home ─────────────────────────────────────────────── -->
   <div id="section-home" class="writer-section active">
@@ -707,6 +750,7 @@
 
   </div><!-- /section-books -->
 
+  </div><!-- /main inner wrapper -->
   </main>
 
   <!-- ── MOBILE WRITER FLOATING PILL NAV (sm:hidden) ──────────────── -->
@@ -3546,8 +3590,9 @@
     prevBtn.classList.toggle('invisible', _tourStep === 0);
     nextBtn.textContent = step.isLast ? 'Got it →' : 'Next →';
 
-    // On mobile, switch to the tab containing this step's target before measuring
-    if (step.tab && window.innerWidth < 640) {
+    // Sections show one at a time on every width now — switch to the
+    // tab containing this step's target before measuring it.
+    if (step.tab) {
       switchWriterTab(step.tab);
     }
 
@@ -3678,10 +3723,12 @@
   const _writerTabs = ['home','books','calendar','earnings'];
   function switchWriterTab(tab) {
     _writerTabs.forEach(t => {
-      const sec = document.getElementById('section-' + t);
-      const btn = document.getElementById('wtab-' + t);
-      if (sec) sec.classList.toggle('active', t === tab);
-      if (btn) btn.setAttribute('data-active', t === tab ? '1' : '0');
+      const sec  = document.getElementById('section-' + t);
+      const btn  = document.getElementById('wtab-' + t);
+      const sbtn = document.getElementById('stab-' + t);
+      if (sec)  sec.classList.toggle('active', t === tab);
+      if (btn)  btn.setAttribute('data-active', t === tab ? '1' : '0');
+      if (sbtn) sbtn.setAttribute('data-active', t === tab ? '1' : '0');
     });
     window.scrollTo({ top: 0, behavior: 'instant' });
     // Chart.js canvas renders at 0×0 while hidden — force resize on reveal
