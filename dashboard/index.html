@@ -3279,18 +3279,21 @@
       title: 'Track Your Income',
       body: 'These cards show your monthly royalties, all-time total, total words written, and milestone progress — updated every morning.',
       target: 'stats-grid',
+      tab: 'home',
     },
     {
       label: 'Your Books',
       title: 'Create & Submit Chapters',
       body: 'This is your main workspace. Click "New Book" to start a manuscript, then add chapters and submit them for your editor to review. Aim for 3 chapters a day.',
       target: 'books-section',
+      tab: 'books',
     },
     {
       label: 'Update Calendar',
       title: 'Hit 25 Writing Days a Month',
       body: 'Every day you submit or get a chapter approved counts as an active day. Hit 25 per month to keep your book at maximum visibility on the platform.',
       target: 'cal-card',
+      tab: 'calendar',
     },
     {
       label: 'Project Brief',
@@ -3298,6 +3301,7 @@
       body: 'Your editor assigns a project brief here — genre, characters, and plot direction. Read it carefully before writing your first chapter.',
       target: 'brief-card',
       fallback: 'brief-placeholder',
+      tab: 'books',
     },
     {
       label: 'Editor Chat',
@@ -3383,6 +3387,11 @@
     const nextBtn = document.getElementById('tour-next-btn');
     prevBtn.classList.toggle('invisible', _tourStep === 0);
     nextBtn.textContent = step.isLast ? 'Got it →' : 'Next →';
+
+    // On mobile, switch to the tab containing this step's target before measuring
+    if (step.tab && window.innerWidth < 640) {
+      switchWriterTab(step.tab);
+    }
 
     // Resolve target — use fallback if primary is hidden
     let targetEl = step.target ? document.getElementById(step.target) : null;
