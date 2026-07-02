@@ -3084,6 +3084,9 @@
         const o = document.getElementById(cfg.overlayId);
         const root = el();
         if (!peer || !o || !root || peer.offset == null) return;
+        // Cursor can arrive before the content that makes the doc that long;
+        // skip until content catches up so the caret doesn't snap to the end.
+        if (peer.offset > root.textContent.length) return;
         const wrap = root.parentElement;
         const rect = rectAt(root, peer.offset);
         if (!rect) return;
@@ -3152,6 +3155,28 @@
       onContentApplied: () => updateFSWordCount(),
     });
 
+    // Keep the full-screen editor sized to the *visible* viewport so the
+    // header/toolbar stay put when the mobile keyboard opens.
+    let _fsVVUnbind = null;
+    function _bindEditorViewport(editorId) {
+      const ed = document.getElementById(editorId);
+      const vv = window.visualViewport;
+      if (!ed || !vv) return null;
+      const apply = () => {
+        ed.style.height = vv.height + 'px';
+        ed.style.transform = 'translateY(' + vv.offsetTop + 'px)';
+      };
+      apply();
+      vv.addEventListener('resize', apply);
+      vv.addEventListener('scroll', apply);
+      return () => {
+        vv.removeEventListener('resize', apply);
+        vv.removeEventListener('scroll', apply);
+        ed.style.transform = '';
+        ed.style.height = '100dvh';
+      };
+    }
+
     function openFSEditor() {
       $('fs-title').value = editingChapter?.title || '';
       $('fs-content').innerHTML = contentToEditable(_originalChapterContent);
@@ -3194,6 +3219,9 @@
 
       $('fullscreen-editor').classList.remove('hidden');
       document.body.style.overflow = 'hidden';
+      $('chat-float')?.classList.add('hidden');
+      if (_fsVVUnbind) _fsVVUnbind();
+      _fsVVUnbind = _bindEditorViewport('fullscreen-editor');
 
       // Live collaboration — join only for saved chapters (they have an id)
       if (editingChapter?.id) writerCollab.join(editingChapter.id);
@@ -3226,7 +3254,9 @@
     function fsClose() {
       if (_asUnsaved) _doAutoSave(true); // fire-and-forget before closing
       writerCollab.leave();
+      if (_fsVVUnbind) { _fsVVUnbind(); _fsVVUnbind = null; }
       $('fullscreen-editor').classList.add('hidden');
+      $('chat-float')?.classList.remove('hidden');
       document.body.style.overflow = '';
       if (_fsOpenedDirectly) {
         _fsOpenedDirectly = false;

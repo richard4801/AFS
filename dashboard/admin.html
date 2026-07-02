@@ -2358,6 +2358,9 @@
         const o = document.getElementById(cfg.overlayId);
         const root = el();
         if (!peer || !o || !root || peer.offset == null) return;
+        // Cursor can arrive before the content that makes the doc that long;
+        // skip until content catches up so the caret doesn't snap to the end.
+        if (peer.offset > root.textContent.length) return;
         const wrap = root.parentElement;
         const rect = rectAt(root, peer.offset);
         if (!rect) return;
@@ -2426,6 +2429,28 @@
       onContentApplied: () => updateAdminFsWc(),
     });
 
+    // Keep the full-screen editor sized to the *visible* viewport so the
+    // header/toolbar stay put when the mobile keyboard opens.
+    let _adminFsVVUnbind = null;
+    function _bindEditorViewport(editorId) {
+      const ed = document.getElementById(editorId);
+      const vv = window.visualViewport;
+      if (!ed || !vv) return null;
+      const apply = () => {
+        ed.style.height = vv.height + 'px';
+        ed.style.transform = 'translateY(' + vv.offsetTop + 'px)';
+      };
+      apply();
+      vv.addEventListener('resize', apply);
+      vv.addEventListener('scroll', apply);
+      return () => {
+        vv.removeEventListener('resize', apply);
+        vv.removeEventListener('scroll', apply);
+        ed.style.transform = '';
+        ed.style.height = '100dvh';
+      };
+    }
+
     function openAdminFSEditor() {
       $('admin-fs-label').textContent = selectedChapter
         ? 'Chapter ' + selectedChapter.chapter_number + (selectedChapter.title ? ' — ' + selectedChapter.title : '')
@@ -2440,6 +2465,9 @@
       _adminAsSetStatus(null);
       $('admin-fullscreen-editor').classList.remove('hidden');
       document.body.style.overflow = 'hidden';
+      $('admin-chat-float')?.classList.add('hidden');
+      if (_adminFsVVUnbind) _adminFsVVUnbind();
+      _adminFsVVUnbind = _bindEditorViewport('admin-fullscreen-editor');
       if (selectedChapter?.id) adminCollab.join(selectedChapter.id);
       else adminCollab.leave();
       setTimeout(() => { $('admin-fs-content').focus(); }, 60);
@@ -2448,7 +2476,9 @@
     function adminFsClose() {
       if (_adminAsUnsaved) _adminDoAutoSave(); // fire-and-forget
       adminCollab.leave();
+      if (_adminFsVVUnbind) { _adminFsVVUnbind(); _adminFsVVUnbind = null; }
       $('admin-fullscreen-editor').classList.add('hidden');
+      $('admin-chat-float')?.classList.remove('hidden');
       document.body.style.overflow = '';
     }
 
