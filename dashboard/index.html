@@ -3120,10 +3120,12 @@
         return `<button onclick="goPrompt(${i})" aria-label="Prompt ${i+1}" class="h-1.5 rounded-full transition-all duration-300 ${active ? 'bg-gold' : 'bg-white/15 hover:bg-white/30'}" style="width:${active ? '20px' : '6px'}"></button>`;
       }).join('');
 
-      // Arrows only when more than one
+      // Arrows: desktop-only affordance — keep base `hidden`, toggle the
+      // sm:flex reveal so they never fall back to visible on mobile.
+      // (Mobile navigates via swipe + the dot pagination below.)
       const multi = _prompts.length > 1;
-      $('prompt-prev').classList.toggle('hidden', !multi);
-      $('prompt-next').classList.toggle('hidden', !multi);
+      $('prompt-prev').classList.toggle('sm:flex', multi);
+      $('prompt-next').classList.toggle('sm:flex', multi);
       $('prompts-dots').classList.toggle('hidden', !multi);
 
       // Active-claim strip
