@@ -217,18 +217,24 @@ $$;
 
 -- ── 8. pg_cron: hard auto-release every 15 minutes ──────────────
 -- Requires the pg_cron extension (Supabase: Database → Extensions →
--- enable "pg_cron"). Safe to run repeatedly; unschedule-then-schedule.
+-- enable "pg_cron"). Wrapped so that if pg_cron is unavailable the
+-- migration still succeeds — get_writer_prompt_feed()'s lazy sweep
+-- keeps expiry correct regardless. Safe to run repeatedly.
 
-CREATE EXTENSION IF NOT EXISTS pg_cron;
-
-SELECT cron.unschedule('release-expired-prompts')
-  WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'release-expired-prompts');
-
-SELECT cron.schedule(
-  'release-expired-prompts',
-  '*/15 * * * *',
-  $$ SELECT public.release_expired_prompt_claims(); $$
-);
+DO $$
+BEGIN
+  EXECUTE 'CREATE EXTENSION IF NOT EXISTS pg_cron';
+  PERFORM cron.unschedule('release-expired-prompts')
+    WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'release-expired-prompts');
+  PERFORM cron.schedule(
+    'release-expired-prompts',
+    '*/15 * * * *',
+    $cron$ SELECT public.release_expired_prompt_claims(); $cron$
+  );
+  RAISE NOTICE 'pg_cron scheduled: release-expired-prompts every 15 min.';
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'pg_cron not scheduled (%). Lazy sweep on feed read still enforces the 72h expiry.', SQLERRM;
+END $$;
 
 -- ── 9. Storage bucket for prompt banners ────────────────────────
 -- Public-read bucket; only admins can write. (You can also create
