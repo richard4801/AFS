@@ -154,8 +154,8 @@
             </svg>
           </div>
         </div>
-        <h2 class="font-serif text-2xl text-white mb-1 text-center">Reset Password</h2>
-        <p class="text-muted text-sm text-center mb-6">Enter your email and we'll send a reset link.</p>
+        <h2 id="forgot-title" class="font-serif text-2xl text-white mb-1 text-center">Reset Password</h2>
+        <p id="forgot-subtitle" class="text-muted text-sm text-center mb-6">Enter your email and we'll send a reset link.</p>
         <div class="space-y-4">
           <input id="forgot-email" type="email" autocomplete="email" placeholder="you@email.com"
                  class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 transition-all duration-200"/>
@@ -273,6 +273,10 @@
     const _hashToken      = _hashParams.get('access_token');  // present in implicit-flow links
     const _urlCode        = new URLSearchParams(window.location.search).has('code'); // PKCE links
     const _isAuthRedirect = _urlCode || !!_hashToken || _linkType === 'recovery' || _linkType === 'invite';
+    // Expired / already-consumed link: Supabase redirects here with an error
+    // (e.g. #error=access_denied&error_code=otp_expired) instead of tokens.
+    const _qsParams       = new URLSearchParams(window.location.search);
+    const _authError      = _hashParams.get('error_code') || _hashParams.get('error') || _qsParams.get('error_code') || _qsParams.get('error');
 
     const { createClient } = supabase;
     // Use implicit flow — Supabase emails embed tokens in the URL hash (#access_token=...).
@@ -406,6 +410,20 @@
     function showForgotStep() {
       _hideAllSteps();
       document.getElementById('forgot-step').style.display = 'block';
+      document.getElementById('forgot-title').textContent = 'Reset Password';
+      document.getElementById('forgot-subtitle').textContent = "Enter your email and we'll send a reset link.";
+      document.getElementById('forgot-error').classList.add('hidden');
+      document.getElementById('forgot-success').classList.add('hidden');
+      setTimeout(() => document.getElementById('forgot-email')?.focus(), 80);
+    }
+
+    // Expired or already-used sign-in/invite link → guide the user to get a fresh one.
+    function showLinkExpired() {
+      _hideAllSteps();
+      document.getElementById('forgot-step').style.display = 'block';
+      document.getElementById('forgot-title').textContent = 'Link Expired';
+      document.getElementById('forgot-subtitle').textContent =
+        "That sign-in link has expired or was already used. Enter your email and we'll send you a fresh link to set your password.";
       document.getElementById('forgot-error').classList.add('hidden');
       document.getElementById('forgot-success').classList.add('hidden');
       setTimeout(() => document.getElementById('forgot-email')?.focus(), 80);
@@ -428,7 +446,7 @@
       spin.classList.remove('hidden');
 
       const { error } = await db.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.href.replace(/(\?.*)?$/, ''),
+        redirectTo: window.location.origin + window.location.pathname,
       });
 
       btn.disabled = false;
@@ -506,6 +524,9 @@
       const { data: { session } } = await db.auth.getSession();
       if (session) showSetPasswordStep();
     })();
+
+    // If we arrived with an auth error (expired/consumed link), guide recovery.
+    if (_authError && !_isAuthRedirect) showLinkExpired();
 
     // Digit-box auto-advance + backspace
     document.getElementById('digit-row').addEventListener('input', e => {
