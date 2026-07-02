@@ -2273,19 +2273,17 @@
       function join(chapterId) {
         if (ch) leave();
         if (!chapterId) return;
-        console.log('[collab:' + cfg.role + '] join chapter', chapterId, 'user', cfg.getUserId());
         ch = cfg.db.channel('chapter-collab:' + chapterId, {
           config: { presence: { key: clientId }, broadcast: { self: false } },
         });
-        ch.on('broadcast', { event: 'content' }, ({ payload }) => { console.log('[collab:' + cfg.role + '] recv content from', payload && payload.from); onRemoteContent(payload); })
-          .on('broadcast', { event: 'cursor' }, ({ payload }) => { console.log('[collab:' + cfg.role + '] recv cursor from', payload && payload.from, 'offset', payload && payload.offset); onRemoteCursor(payload); })
+        ch.on('broadcast', { event: 'content' }, ({ payload }) => onRemoteContent(payload))
+          .on('broadcast', { event: 'cursor' }, ({ payload }) => onRemoteCursor(payload))
           .on('presence', { event: 'sync' }, () => { renderPresence(); })
-          .on('presence', { event: 'join' }, () => { console.log('[collab:' + cfg.role + '] peer joined'); renderPresence(); broadcastContent(); broadcastCursor(); })
+          .on('presence', { event: 'join' }, () => { renderPresence(); broadcastContent(); broadcastCursor(); })
           .on('presence', { event: 'leave' }, ({ leftPresences }) => {
             (leftPresences || []).forEach(p => removeCaret(p.clientId)); renderPresence();
           })
           .subscribe(status => {
-            console.log('[collab:' + cfg.role + '] channel status:', status);
             if (status === 'SUBSCRIBED') {
               ch.track({ clientId: clientId, id: cfg.getUserId(), name: cfg.getUserName(), role: cfg.role });
               setTimeout(() => { broadcastContent(); broadcastCursor(); }, 400);
@@ -2425,7 +2423,7 @@
       followBtnId: 'admin-fs-follow-btn',
       role: 'admin',
       getUserId: () => currentUserId,
-      getUserName: () => (document.querySelector('.admin-nav-name')?.textContent || 'Editor').trim() || 'Editor',
+      getUserName: () => 'Editor', // writers always see the admin as "Editor", never a personal name
       onContentApplied: () => updateAdminFsWc(),
     });
 
