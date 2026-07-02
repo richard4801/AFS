@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <link rel="icon" type="image/svg+xml" href="../assets/afs-favicon.svg"/>
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/favicon-32.png"/>
+  <title>Editorial Studio — Apex Fiction Studio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: {
+        colors: { obsidian:'#121212', charcoal:'#1C1C1C', surface:'#242424', border:'#2E2E2E',
+                  gold:'#C9A84C', 'gold-light':'#E2C97E', muted:'#7A7A7A' },
+        fontFamily: { sans:['Inter','system-ui','sans-serif'], serif:['"DM Serif Display"','Georgia','serif'] },
+      } },
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@400&display=swap" rel="stylesheet"/>
+  <style>
+    .form-input:focus { outline:none; border-color:#C9A84C; box-shadow:0 0 0 2px rgba(201,168,76,0.15); }
+    .digit-box { width:44px; height:54px; text-align:center; font-size:1.35rem; font-weight:700; background:#1C1C1C; border:1px solid #2E2E2E; border-radius:10px; color:#fff; transition:border-color .15s, box-shadow .15s; caret-color:#C9A84C; -moz-appearance:textfield; }
+    .digit-box::-webkit-outer-spin-button, .digit-box::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+    .digit-box:focus { outline:none; border-color:#C9A84C; box-shadow:0 0 0 2px rgba(201,168,76,0.15); }
+    .digit-box.filled { border-color:rgba(201,168,76,0.45); }
+    .thin-scroll::-webkit-scrollbar { width:4px; height:4px; }
+    .thin-scroll::-webkit-scrollbar-thumb { background:#2E2E2E; border-radius:4px; }
+    .hairline { height:1px; background:linear-gradient(90deg,transparent,rgba(201,168,76,0.35),transparent); }
+    [x-cloak]{display:none!important;}
+  </style>
+</head>
+<body class="bg-obsidian text-white font-sans antialiased" style="font-weight:300;">
+
+  <div id="afs-glow" class="pointer-events-none fixed inset-0" style="z-index:0;"></div>
+  <div id="afs-grid" class="pointer-events-none fixed inset-0"
+       style="z-index:0;background-image:linear-gradient(rgba(201,168,76,0.10) 1px,transparent 1px),linear-gradient(90deg,rgba(201,168,76,0.10) 1px,transparent 1px);background-size:48px 48px;-webkit-mask-image:radial-gradient(circle 520px at -9999px -9999px,black 0%,transparent 70%);mask-image:radial-gradient(circle 520px at -9999px -9999px,black 0%,transparent 70%);"></div>
+
+  <!-- ══ PIN GATE ══ -->
+  <div id="gate" class="relative z-10 min-h-screen flex items-center justify-center px-4">
+    <div class="w-full max-w-sm">
+      <div class="flex items-center justify-center mb-9">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="15 18 110 52" height="52" style="clip-path:path('M0 0 H200 V21 H0 Z M0 26 H200 V54 H0 Z')" aria-label="AFS Publishing">
+          <g transform="translate(20,15)">
+            <text font-family="'Cinzel',Georgia,serif" font-weight="400" fill="#EEECE9" font-size="38" letter-spacing="4" x="0" y="35">AFS</text>
+            <text font-family="'Montserrat',system-ui,sans-serif" font-weight="400" fill="rgba(238,236,233,0.45)" font-size="9" letter-spacing="5" x="2" y="52">Publishing</text>
+          </g>
+        </svg>
+      </div>
+
+      <div class="relative rounded-2xl border border-border bg-surface p-7 sm:p-8 shadow-2xl shadow-black/60">
+        <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold to-transparent opacity-40"></div>
+
+        <!-- loading -->
+        <div id="gate-loading" class="text-center py-8">
+          <svg class="animate-spin w-6 h-6 mx-auto text-gold/70" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
+        </div>
+
+        <!-- enter PIN -->
+        <div id="gate-enter" class="hidden text-center">
+          <p class="text-[11px] font-medium tracking-[0.22em] uppercase text-gold mb-2">Editorial Studio</p>
+          <h1 class="font-serif text-2xl text-white mb-1">Welcome back</h1>
+          <p class="text-muted text-sm mb-7">Enter your 4-digit PIN to continue.</p>
+          <div id="enter-row" class="flex gap-2.5 justify-center mb-4"></div>
+          <div id="enter-error" class="hidden text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-2.5 mb-3"></div>
+        </div>
+
+        <!-- create PIN (first time) -->
+        <div id="gate-create" class="hidden">
+          <div class="text-center mb-6">
+            <p class="text-[11px] font-medium tracking-[0.22em] uppercase text-gold mb-2">Editorial Studio</p>
+            <h1 class="font-serif text-2xl text-white mb-1">Let's get you set up</h1>
+            <p class="text-muted text-sm">Create a private 4-digit PIN. You'll use it to sign in.</p>
+          </div>
+          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Setup code <span class="text-muted font-normal">(from your admin)</span></label>
+          <input id="create-token" type="text" autocomplete="off" placeholder="One-time setup code"
+                 class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 mb-5"/>
+          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Choose your PIN</label>
+          <div id="create-row" class="flex gap-2.5 justify-center mb-3"></div>
+          <p id="create-hint" class="text-muted text-xs text-center mb-3">Enter 4 digits</p>
+          <div id="create-error" class="hidden text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-2.5 mb-3"></div>
+          <button id="create-btn" onclick="submitCreate()" disabled
+                  class="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-gold hover:bg-gold-light text-obsidian text-sm font-semibold rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+            <span id="create-label">Create PIN &amp; Enter</span>
+          </button>
+        </div>
+      </div>
+      <p class="text-center text-muted/60 text-[11px] mt-6">Apex Fiction Studio · Editorial</p>
+    </div>
+  </div>
+
+  <!-- ══ DASHBOARD ══ -->
+  <div id="app" class="hidden relative z-10">
+    <!-- Top bar -->
+    <header class="sticky top-0 z-40 border-b border-border/70" style="background:rgba(18,18,18,0.82);backdrop-filter:blur(14px);">
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="15 18 110 52" height="30" style="clip-path:path('M0 0 H200 V14 H0 Z M0 17 H200 V36 H0 Z')" aria-label="AFS">
+            <g transform="translate(20,15)">
+              <text font-family="'Cinzel',Georgia,serif" font-weight="400" fill="#EEECE9" font-size="38" letter-spacing="4" x="0" y="35">AFS</text>
+              <text font-family="'Montserrat',system-ui,sans-serif" font-weight="400" fill="rgba(238,236,233,0.42)" font-size="9" letter-spacing="5" x="2" y="52">Publishing</text>
+            </g>
+          </svg>
+          <span class="hidden sm:inline text-[9px] font-bold tracking-[0.22em] uppercase text-gold border border-gold/30 bg-gold/10 rounded-full px-2.5 py-0.5">Senior Editor</span>
+        </div>
+        <button onclick="signOut()" class="inline-flex items-center gap-1.5 px-3 sm:px-4 py-1.5 text-sm text-muted hover:text-white border border-border hover:border-white/20 rounded-full transition-all">
+          <span class="hidden sm:inline">Sign Out</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-4 sm:px-6 pb-24 pt-9">
+      <!-- Welcome -->
+      <div class="mb-10">
+        <p class="text-[11px] font-medium tracking-[0.22em] uppercase text-gold mb-2">Editorial Studio</p>
+        <h1 class="font-serif text-3xl sm:text-4xl text-white leading-tight">Good to see you.</h1>
+        <p class="text-muted text-sm mt-1.5 max-w-xl">Curate the prompts that shape every story on Apex Fiction Studio. Review what comes in, add your own, and watch the collective at work.</p>
+      </div>
+
+      <!-- Review queue -->
+      <section class="mb-12">
+        <div class="flex items-end justify-between mb-4">
+          <div>
+            <h2 class="font-serif text-xl sm:text-2xl text-white">Awaiting your review</h2>
+            <p class="text-muted text-xs mt-0.5">Prompts submitted by the admin. Approve to send them to writers, or decline with a note.</p>
+          </div>
+          <span id="review-count" class="flex-shrink-0 text-[11px] font-bold text-gold bg-gold/10 border border-gold/25 rounded-full px-2.5 py-0.5">0</span>
+        </div>
+        <div id="review-list" class="space-y-4"></div>
+        <p id="review-empty" class="hidden text-muted/60 text-sm text-center py-10 rounded-2xl border border-dashed border-border">Nothing to review right now. You're all caught up.</p>
+      </section>
+
+      <!-- My prompts -->
+      <section class="mb-12">
+        <div class="flex items-end justify-between mb-4">
+          <div>
+            <h2 class="font-serif text-xl sm:text-2xl text-white">Your prompts</h2>
+            <p class="text-muted text-xs mt-0.5">Prompts you've written. These go to the admin for approval before reaching writers.</p>
+          </div>
+          <button onclick="openPromptEditor()" class="flex-shrink-0 inline-flex items-center gap-2 px-4 py-2.5 bg-gold hover:bg-gold-light text-obsidian text-xs font-bold rounded-xl transition-colors">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+            New Prompt
+          </button>
+        </div>
+        <div id="mine-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        <p id="mine-empty" class="hidden text-muted/60 text-sm text-center py-10 rounded-2xl border border-dashed border-border">You haven't written any prompts yet. Tap <span class="text-gold">New Prompt</span> to begin.</p>
+      </section>
+
+      <!-- Active development -->
+      <section class="mb-12">
+        <h2 class="font-serif text-xl sm:text-2xl text-white mb-1">In development</h2>
+        <p class="text-muted text-xs mb-4">Prompts writers are actively developing, with time remaining.</p>
+        <div id="active-list" class="space-y-2.5"></div>
+        <p id="active-empty" class="hidden text-muted/60 text-sm text-center py-8 rounded-2xl border border-dashed border-border">No prompt is being developed right now.</p>
+      </section>
+
+      <!-- Signed books -->
+      <section>
+        <h2 class="font-serif text-xl sm:text-2xl text-white mb-1">Signed books</h2>
+        <p class="text-muted text-xs mb-4">Every book that's been signed to the studio.</p>
+        <div id="books-grid" class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4"></div>
+        <p id="books-empty" class="hidden text-muted/60 text-sm text-center py-8 rounded-2xl border border-dashed border-border">No signed books yet.</p>
+      </section>
+    </main>
+  </div>
+
+  <!-- ══ PROMPT EDITOR MODAL ══ -->
+  <div id="prompt-modal" class="hidden fixed inset-0 z-[80] flex items-center justify-center p-0 sm:p-6" style="background:rgba(0,0,0,0.75);backdrop-filter:blur(4px)">
+    <div class="w-full sm:max-w-lg h-full sm:h-auto sm:max-h-[92vh] bg-charcoal sm:rounded-2xl border border-border flex flex-col overflow-hidden">
+      <div class="flex-shrink-0 flex items-center justify-between px-5 py-4 border-b border-border">
+        <h3 class="font-serif text-lg text-white">New Prompt</h3>
+        <button onclick="closePromptEditor()" class="w-8 h-8 rounded-full border border-border hover:border-white/25 flex items-center justify-center text-muted hover:text-white transition-colors">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="flex-1 overflow-y-auto thin-scroll px-5 py-5 space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Banner <span class="text-muted font-normal">(recommended 1600×800)</span></label>
+          <div id="pe-dropzone" class="relative border-2 border-dashed border-border hover:border-gold/40 rounded-xl overflow-hidden cursor-pointer transition-colors aspect-[2/1] flex items-center justify-center bg-obsidian group">
+            <img id="pe-banner-preview" class="hidden absolute inset-0 w-full h-full object-cover" alt=""/>
+            <div id="pe-dropzone-hint" class="relative text-center px-4">
+              <svg class="w-7 h-7 mx-auto mb-2 text-muted group-hover:text-gold transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"/></svg>
+              <p class="text-xs text-muted group-hover:text-white/70 transition-colors">Drop an image or <span class="text-gold">browse</span></p>
+            </div>
+            <input type="file" id="pe-banner-input" accept="image/*" class="hidden"/>
+          </div>
+          <button type="button" id="pe-banner-clear" onclick="clearPeBanner()" class="hidden mt-1.5 text-[11px] text-muted hover:text-red-300 transition-colors">Remove banner</button>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Title <span class="text-gold">*</span></label>
+          <input id="pe-title" type="text" placeholder="e.g. The Alpha's Reluctant Mate"
+                 class="form-input w-full bg-obsidian border border-border text-white placeholder-muted/60 text-sm rounded-lg px-4 py-2.5"/>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Genre</label>
+          <input id="pe-genre" type="text" placeholder="e.g. Werewolf Romance"
+                 class="form-input w-full bg-obsidian border border-border text-white placeholder-muted/60 text-sm rounded-lg px-4 py-2.5"/>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Brief <span class="text-gold">*</span></label>
+          <textarea id="pe-brief" rows="7" placeholder="The premise, characters, tone, and any must-hit beats — what the writer reads before claiming."
+                    class="form-input w-full bg-obsidian border border-border text-white placeholder-muted/60 text-sm rounded-lg px-4 py-3 resize-y leading-relaxed thin-scroll"></textarea>
+        </div>
+        <div id="pe-error" class="hidden text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-2.5"></div>
+      </div>
+      <div class="flex-shrink-0 flex items-center justify-end gap-3 px-5 py-4 border-t border-border">
+        <button onclick="closePromptEditor()" class="px-4 py-2.5 border border-border hover:border-white/25 text-muted hover:text-white text-xs rounded-lg transition-all">Cancel</button>
+        <button id="pe-save" onclick="submitPrompt()" class="px-5 py-2.5 bg-gold hover:bg-gold-light text-obsidian text-xs font-semibold rounded-lg transition-colors">Submit for Approval</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ DECLINE MODAL ══ -->
+  <div id="decline-modal" class="hidden fixed inset-0 z-[80] flex items-center justify-center px-4" style="background:rgba(0,0,0,0.75);backdrop-filter:blur(4px)">
+    <div class="w-full max-w-md bg-charcoal rounded-2xl border border-border p-6">
+      <h3 class="font-serif text-lg text-white mb-1">Decline this prompt</h3>
+      <p class="text-muted text-xs mb-4">Leave a note so the admin knows why (optional but kind).</p>
+      <textarea id="decline-note" rows="4" placeholder="What would make this prompt work?"
+                class="form-input w-full bg-obsidian border border-border text-white placeholder-muted/60 text-sm rounded-lg px-4 py-3 resize-y mb-4"></textarea>
+      <div class="flex items-center justify-end gap-3">
+        <button onclick="closeDecline()" class="px-4 py-2.5 border border-border hover:border-white/25 text-muted hover:text-white text-xs rounded-lg transition-all">Cancel</button>
+        <button onclick="confirmDecline()" class="px-5 py-2.5 border border-red-400/40 text-red-300 hover:bg-red-400/10 text-xs font-semibold rounded-lg transition-colors">Decline Prompt</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL      = 'https://qbqsbdswcqmrxoizgfrw.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_v0fbhx8NkRNxYYVw8VGz_g_7Eqja11K';
+    const { createClient } = supabase;
+    const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, storage: window.localStorage } });
+    const $ = id => document.getElementById(id);
+    const escHtml = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+    // ── PIN gate ──
+    async function callSe(action, extra = {}) {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/se-access`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'apikey': SUPABASE_ANON_KEY },
+        body: JSON.stringify({ action, ...extra }),
+      });
+      return res.json().catch(() => ({ ok: false, error: 'Network error.' }));
+    }
+
+    function _showGateStep(step) {
+      ['gate-loading','gate-enter','gate-create'].forEach(id => $(id).classList.toggle('hidden', id !== 'gate-' + step && id !== step));
+    }
+
+    async function boot() {
+      const { data: { session } } = await db.auth.getSession();
+      if (session) {
+        const { data: prof } = await db.from('profiles').select('is_senior_editor, name').eq('id', session.user.id).maybeSingle();
+        if (prof?.is_senior_editor) { enterDashboard(); return; }
+        await db.auth.signOut();
+      }
+      const st = await callSe('status');
+      if (st.pinSet) { _showGateStep('enter'); buildDigits('enter-row', onEnterComplete); setTimeout(() => $('enter-row').querySelector('input')?.focus(), 80); }
+      else { _showGateStep('create'); buildDigits('create-row', () => {}, updateCreateBtn); }
+    }
+
+    // Digit-box builder
+    function buildDigits(rowId, onComplete, onChange) {
+      const row = $(rowId);
+      row.innerHTML = Array.from({ length: 4 }).map(() => '<input class="digit-box" type="text" inputmode="numeric" maxlength="1"/>').join('');
+      const boxes = [...row.querySelectorAll('.digit-box')];
+      row.addEventListener('input', e => {
+        if (!e.target.classList.contains('digit-box')) return;
+        e.target.value = e.target.value.replace(/\D/g, '').slice(-1);
+        e.target.classList.toggle('filled', !!e.target.value);
+        const i = boxes.indexOf(e.target);
+        if (e.target.value && i < 3) boxes[i + 1].focus();
+        if (onChange) onChange();
+        if (boxes.every(b => b.value) && onComplete) onComplete();
+      });
+      row.addEventListener('keydown', e => {
+        if (e.key === 'Backspace' && !e.target.value) {
+          const i = boxes.indexOf(e.target);
+          if (i > 0) { boxes[i-1].value=''; boxes[i-1].classList.remove('filled'); boxes[i-1].focus(); if (onChange) onChange(); }
+        }
+      });
+      return boxes;
+    }
+    function readDigits(rowId) { return [...$(rowId).querySelectorAll('.digit-box')].map(b => b.value).join(''); }
+    function clearDigits(rowId) { $(rowId).querySelectorAll('.digit-box').forEach(b => { b.value=''; b.classList.remove('filled'); }); }
+
+    function updateCreateBtn() {
+      const pin = readDigits('create-row');
+      const tok = $('create-token').value.trim();
+      $('create-btn').disabled = !(pin.length === 4 && tok.length > 0);
+      $('create-hint').textContent = pin.length === 4 ? 'Looks good' : 'Enter 4 digits';
+    }
+    $('create-token')?.addEventListener('input', updateCreateBtn);
+
+    async function onEnterComplete() {
+      const pin = readDigits('enter-row');
+      $('enter-error').classList.add('hidden');
+      const r = await callSe('verify', { pin });
+      if (r.ok && r.session) { await db.auth.setSession(r.session); enterDashboard(); return; }
+      $('enter-error').textContent = r.error || 'Incorrect PIN.';
+      $('enter-error').classList.remove('hidden');
+      clearDigits('enter-row'); $('enter-row').querySelector('input')?.focus();
+    }
+
+    async function submitCreate() {
+      const pin = readDigits('create-row'), token = $('create-token').value.trim();
+      $('create-error').classList.add('hidden');
+      if (pin.length !== 4) return;
+      $('create-btn').disabled = true; $('create-label').textContent = 'Setting up…';
+      const r = await callSe('setup', { pin, token });
+      if (r.ok && r.session) { await db.auth.setSession(r.session); enterDashboard(); return; }
+      $('create-error').textContent = r.error || 'Could not set up your PIN.';
+      $('create-error').classList.remove('hidden');
+      $('create-btn').disabled = false; $('create-label').textContent = 'Create PIN & Enter';
+    }
+
+    async function signOut() { await db.auth.signOut(); location.reload(); }
+
+    // ── Dashboard ──
+    function enterDashboard() {
+      $('gate').classList.add('hidden');
+      $('app').classList.remove('hidden');
+      loadAll();
+    }
+    async function loadAll() {
+      await Promise.all([loadReviewQueue(), loadMyPrompts(), loadActive(), loadBooks()]);
+      _ensureTicker();
+    }
+
+    function _briefPreview(t) { const s = String(t || '').replace(/\s+/g, ' ').trim(); return s.length > 160 ? s.slice(0, 160) + '…' : s; }
+    function _bannerBg(url) {
+      return url
+        ? `<img src="${escHtml(url)}" alt="" class="absolute inset-0 w-full h-full object-cover"/>`
+        : `<div class="absolute inset-0" style="background:radial-gradient(ellipse at 30% 20%,rgba(201,168,76,0.12),transparent 55%),linear-gradient(135deg,#1C1C1C,#242424)"></div>`;
+    }
+
+    async function loadReviewQueue() {
+      const { data, error } = await db.rpc('get_prompts_pending_review');
+      const rows = error ? [] : (data ?? []);
+      $('review-count').textContent = rows.length;
+      $('review-empty').classList.toggle('hidden', rows.length > 0);
+      $('review-list').innerHTML = rows.map(p => `
+        <div class="rounded-2xl border border-border bg-surface overflow-hidden">
+          <div class="relative aspect-[16/6] bg-charcoal overflow-hidden">
+            ${_bannerBg(p.banner_url)}
+            <div class="absolute inset-0" style="background:linear-gradient(to top,rgba(13,11,9,0.9),transparent 65%)"></div>
+            <div class="absolute bottom-0 left-0 right-0 p-4">
+              ${p.genre ? `<span class="inline-block text-[9px] font-semibold tracking-widest uppercase text-gold mb-1">${escHtml(p.genre)}</span>` : ''}
+              <h3 class="font-serif text-lg sm:text-xl text-white leading-tight">${escHtml(p.title)}</h3>
+            </div>
+          </div>
+          <div class="p-4">
+            <p class="text-white/70 text-sm leading-relaxed mb-4">${escHtml(_briefPreview(p.brief))}</p>
+            <div class="flex items-center gap-2.5">
+              <button onclick="approve('${p.id}')" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gold hover:bg-gold-light text-obsidian text-xs font-bold rounded-lg transition-colors">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                Approve
+              </button>
+              <button onclick="openDecline('${p.id}')" class="px-4 py-2 border border-border hover:border-red-400/40 text-muted hover:text-red-300 text-xs font-semibold rounded-lg transition-colors">Decline</button>
+            </div>
+          </div>
+        </div>`).join('');
+    }
+
+    async function approve(id) {
+      const { error } = await db.rpc('review_prompt', { p_id: id, p_decision: 'approved', p_note: null });
+      if (error) { toast(error.message); return; }
+      toast('Approved — it\'s live for writers now.');
+      loadReviewQueue();
+    }
+
+    let _declineId = null;
+    function openDecline(id) { _declineId = id; $('decline-note').value = ''; $('decline-modal').classList.remove('hidden'); }
+    function closeDecline() { _declineId = null; $('decline-modal').classList.add('hidden'); }
+    async function confirmDecline() {
+      if (!_declineId) return;
+      const note = $('decline-note').value.trim() || null;
+      const { error } = await db.rpc('review_prompt', { p_id: _declineId, p_decision: 'denied', p_note: note });
+      closeDecline();
+      if (error) { toast(error.message); return; }
+      toast('Prompt declined.');
+      loadReviewQueue();
+    }
+
+    const STATUS_STYLE = {
+      pending:  { label: 'Awaiting admin', cls: 'text-gold bg-gold/10 border-gold/25' },
+      approved: { label: 'Approved · live', cls: 'text-emerald-300 bg-emerald-400/10 border-emerald-400/25' },
+      denied:   { label: 'Declined', cls: 'text-red-300 bg-red-400/10 border-red-400/25' },
+    };
+    async function loadMyPrompts() {
+      const { data, error } = await db.rpc('get_se_my_prompts');
+      const rows = error ? [] : (data ?? []);
+      $('mine-empty').classList.toggle('hidden', rows.length > 0);
+      $('mine-grid').innerHTML = rows.map(p => {
+        const st = STATUS_STYLE[p.review_status] || STATUS_STYLE.pending;
+        return `
+        <div class="rounded-2xl border border-border bg-surface overflow-hidden">
+          <div class="relative aspect-[2/1] bg-charcoal overflow-hidden">
+            ${_bannerBg(p.banner_url)}
+            <div class="absolute inset-0" style="background:linear-gradient(to top,rgba(13,11,9,0.85),transparent 60%)"></div>
+            <span class="absolute top-2.5 right-2.5 text-[9px] font-bold uppercase tracking-wide border rounded-full px-2 py-0.5 ${st.cls}">${st.label}</span>
+            <div class="absolute bottom-0 left-0 right-0 p-3">
+              ${p.genre ? `<span class="inline-block text-[8px] font-semibold tracking-widest uppercase text-gold/90 mb-1">${escHtml(p.genre)}</span>` : ''}
+              <h4 class="font-serif text-white text-base leading-tight">${escHtml(p.title)}</h4>
+            </div>
+          </div>
+          ${p.review_status === 'denied' && p.review_note ? `<div class="px-3 py-2.5 border-t border-border"><p class="text-[11px] text-muted"><span class="text-red-300/80 font-medium">Admin note:</span> ${escHtml(p.review_note)}</p></div>` : ''}
+          ${p.review_status === 'pending' ? `<div class="px-3 py-2 border-t border-border text-right"><button onclick="withdraw('${p.id}')" class="text-[11px] text-muted hover:text-red-300 transition-colors">Withdraw</button></div>` : ''}
+        </div>`;
+      }).join('');
+    }
+    async function withdraw(id) {
+      if (!confirm('Withdraw this pending prompt?')) return;
+      const { error } = await db.rpc('se_delete_prompt', { p_id: id });
+      if (error) { toast(error.message); return; }
+      toast('Withdrawn.'); loadMyPrompts();
+    }
+
+    async function loadActive() {
+      const { data, error } = await db.rpc('get_se_active_prompts');
+      const rows = error ? [] : (data ?? []);
+      $('active-empty').classList.toggle('hidden', rows.length > 0);
+      $('active-list').innerHTML = rows.map(p => `
+        <div class="rounded-xl border border-border bg-surface px-4 py-3 flex items-center gap-3">
+          <div class="w-12 h-12 rounded-lg overflow-hidden bg-charcoal flex-shrink-0 relative">${_bannerBg(p.banner_url)}</div>
+          <div class="min-w-0 flex-1">
+            <p class="text-white text-sm font-medium truncate">${escHtml(p.title)}</p>
+            ${p.genre ? `<p class="text-muted text-[11px] truncate">${escHtml(p.genre)}</p>` : ''}
+          </div>
+          <span class="flex-shrink-0 font-mono tabular-nums text-sm font-semibold" data-countdown data-expires="${p.expires_at}">—</span>
+        </div>`).join('');
+    }
+
+    async function loadBooks() {
+      const { data, error } = await db.rpc('get_se_books');
+      const rows = error ? [] : (data ?? []);
+      $('books-empty').classList.toggle('hidden', rows.length > 0);
+      $('books-grid').innerHTML = rows.map(b => `
+        <div class="group">
+          <div class="relative aspect-[2/3] rounded-lg overflow-hidden bg-charcoal border border-border">
+            ${b.cover_url ? `<img src="${escHtml(b.cover_url)}" alt="" class="absolute inset-0 w-full h-full object-cover"/>` : `<div class="absolute inset-0 flex items-center justify-center"><span class="font-serif text-2xl text-muted/40">${escHtml((b.title||'?')[0])}</span></div>`}
+            <span class="absolute top-1.5 left-1.5 text-[8px] font-bold uppercase tracking-wide text-emerald-300 bg-emerald-400/15 border border-emerald-400/25 rounded-full px-1.5 py-0.5">Signed</span>
+          </div>
+          <p class="text-white/80 text-[11px] mt-1.5 leading-tight line-clamp-2">${escHtml(b.title)}</p>
+        </div>`).join('');
+    }
+
+    // ── New prompt (Senior Editor) ──
+    let _peBannerFile = null;
+    function openPromptEditor() {
+      _peBannerFile = null;
+      $('pe-title').value=''; $('pe-genre').value=''; $('pe-brief').value='';
+      $('pe-error').classList.add('hidden');
+      $('pe-banner-preview').classList.add('hidden'); $('pe-banner-preview').removeAttribute('src');
+      $('pe-dropzone-hint').classList.remove('hidden'); $('pe-banner-clear').classList.add('hidden');
+      $('prompt-modal').classList.remove('hidden');
+    }
+    function closePromptEditor() { $('prompt-modal').classList.add('hidden'); }
+    function clearPeBanner() {
+      _peBannerFile = null; $('pe-banner-input').value='';
+      $('pe-banner-preview').classList.add('hidden'); $('pe-banner-preview').removeAttribute('src');
+      $('pe-dropzone-hint').classList.remove('hidden'); $('pe-banner-clear').classList.add('hidden');
+    }
+    function _pePick(file) {
+      if (!file || !file.type.startsWith('image/')) return;
+      _peBannerFile = file;
+      $('pe-banner-preview').src = URL.createObjectURL(file);
+      $('pe-banner-preview').classList.remove('hidden');
+      $('pe-dropzone-hint').classList.add('hidden'); $('pe-banner-clear').classList.remove('hidden');
+    }
+    (function () {
+      const dz = $('pe-dropzone'), input = $('pe-banner-input');
+      dz.addEventListener('click', () => input.click());
+      input.addEventListener('change', e => _pePick(e.target.files?.[0]));
+      dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('border-gold/50'); });
+      dz.addEventListener('dragleave', () => dz.classList.remove('border-gold/50'));
+      dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('border-gold/50'); _pePick(e.dataTransfer.files?.[0]); });
+    })();
+
+    async function submitPrompt() {
+      const title = $('pe-title').value.trim(), genre = $('pe-genre').value.trim() || null, brief = $('pe-brief').value.trim();
+      const err = $('pe-error'); err.classList.add('hidden');
+      if (!title) { err.textContent = 'Title is required.'; err.classList.remove('hidden'); return; }
+      if (!brief) { err.textContent = 'Brief is required.'; err.classList.remove('hidden'); return; }
+      const btn = $('pe-save'); btn.disabled = true; btn.textContent = 'Submitting…';
+      let bannerUrl = null;
+      if (_peBannerFile) {
+        const ext = (_peBannerFile.name.split('.').pop() || 'jpg').toLowerCase();
+        const path = crypto.randomUUID() + '.' + ext;
+        const { error: upErr } = await db.storage.from('prompt-banners').upload(path, _peBannerFile, { upsert: true, contentType: _peBannerFile.type });
+        if (upErr) { err.textContent = 'Banner upload failed: ' + upErr.message; err.classList.remove('hidden'); btn.disabled=false; btn.textContent='Submit for Approval'; return; }
+        bannerUrl = db.storage.from('prompt-banners').getPublicUrl(path).data.publicUrl;
+      }
+      const { error } = await db.rpc('se_add_prompt', { p_title: title, p_brief: brief, p_genre: genre, p_banner_url: bannerUrl, p_sort_order: 0 });
+      btn.disabled = false; btn.textContent = 'Submit for Approval';
+      if (error) { err.textContent = error.message; err.classList.remove('hidden'); return; }
+      closePromptEditor(); toast('Submitted to the admin for approval.'); loadMyPrompts();
+    }
+
+    // ── Countdown ticker ──
+    let _tick = null;
+    function _fmt(ms) {
+      if (ms <= 0) return { t: 'Expired', c: '#F87171' };
+      const s = Math.floor(ms/1000), h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+      const pad = n => String(n).padStart(2,'0');
+      const t = h >= 24 ? `${Math.floor(h/24)}d ${h%24}h ${m}m` : `${pad(h)}:${pad(m)}:${pad(sec)}`;
+      const hrs = ms/3600000;
+      return { t, c: hrs > 24 ? '#C9A84C' : hrs > 6 ? '#E8B488' : '#F87171' };
+    }
+    function _tickNow() {
+      document.querySelectorAll('[data-countdown][data-expires]').forEach(el => {
+        const exp = Date.parse(el.getAttribute('data-expires'));
+        if (isNaN(exp)) return;
+        const { t, c } = _fmt(exp - Date.now());
+        el.textContent = t; el.style.color = c;
+      });
+    }
+    function _ensureTicker() { _tickNow(); if (!_tick) _tick = setInterval(_tickNow, 1000); }
+
+    // ── Toast ──
+    function toast(msg) {
+      const t = document.createElement('div');
+      t.className = 'fixed bottom-6 right-6 z-[90] px-4 py-3 bg-surface border border-border rounded-xl text-sm text-white shadow-xl shadow-black/50 transition-opacity duration-300';
+      t.textContent = msg; document.body.appendChild(t);
+      setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3200);
+    }
+
+    boot();
+  </script>
+
+  <!-- Cursor glow -->
+  <script>
+    const g = document.getElementById('afs-glow'), gr = document.getElementById('afs-grid');
+    function paint(x, y) {
+      g.style.background = `radial-gradient(700px circle at ${x}px ${y}px, rgba(212,175,55,0.055), transparent 40%)`;
+      const m = `radial-gradient(circle 520px at ${x}px ${y}px, black 0%, transparent 68%)`;
+      gr.style.webkitMaskImage = m; gr.style.maskImage = m;
+    }
+    if (!window.matchMedia('(pointer: coarse)').matches) {
+      let raf = null, cx=-9999, cy=-9999;
+      addEventListener('mousemove', e => { cx=e.clientX; cy=e.clientY; if(!raf) raf=requestAnimationFrame(()=>{paint(cx,cy);raf=null;}); }, { passive:true });
+    }
+  </script>
+</body>
+</html>
