@@ -818,30 +818,36 @@
     </nav>
   </div>
 
-  <!-- PROMPT DETAIL MODAL -->
-  <div id="prompt-modal" class="hidden fixed inset-0 z-[200] flex flex-col" style="background:#0D0B09;">
-    <div class="relative flex-shrink-0">
-      <div class="aspect-[2/1] sm:aspect-[16/5] w-full overflow-hidden bg-charcoal">
-        <img id="prompt-modal-banner" src="" alt="" class="w-full h-full object-cover"/>
-        <div class="absolute inset-0" style="background:linear-gradient(to top, rgba(13,11,9,0.96) 0%, rgba(13,11,9,0.25) 55%, rgba(13,11,9,0.5) 100%)"></div>
-      </div>
-      <button onclick="closePromptModal()" aria-label="Close"
-              class="absolute top-4 right-4 z-10 w-9 h-9 flex items-center justify-center rounded-lg border border-white/15 text-white/80 hover:text-white hover:border-white/30 text-2xl leading-none transition-colors" style="background:rgba(13,11,9,0.5);backdrop-filter:blur(6px)">×</button>
-      <div class="absolute bottom-0 left-0 right-0 px-5 sm:px-8 pb-5">
-        <span id="prompt-modal-genre" class="hidden inline-block text-[10px] font-medium tracking-widest uppercase text-gold border border-gold/25 bg-gold/10 rounded-full px-3 py-1 mb-2"></span>
-        <h2 id="prompt-modal-title" class="font-serif text-2xl sm:text-3xl text-white leading-tight"></h2>
-      </div>
-    </div>
-    <div class="flex-1 overflow-y-auto thin-scroll">
-      <div class="max-w-2xl mx-auto px-5 sm:px-8 py-7">
-        <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-3">The Brief</p>
-        <div id="prompt-modal-brief" class="text-white/80 text-[15px] leading-[1.9] space-y-4"></div>
-      </div>
-    </div>
-    <div class="flex-shrink-0 border-t border-border bg-charcoal/80 backdrop-blur-sm px-5 sm:px-8 py-4">
-      <div class="max-w-2xl mx-auto flex items-center justify-between gap-4">
-        <div id="prompt-modal-hint" class="text-xs text-muted min-w-0"></div>
-        <div id="prompt-modal-action" class="flex-shrink-0"></div>
+  <!-- PROMPT DETAIL MODAL — immersive full-page: image fills, brief in a frosted side panel -->
+  <div id="prompt-modal" class="hidden fixed inset-0 z-[200] overflow-hidden" style="background:#0D0B09;">
+    <!-- Full-bleed banner -->
+    <img id="prompt-modal-banner" src="" alt="" class="absolute inset-0 w-full h-full object-cover"/>
+    <!-- Seam scrims darken the image toward the reading panel (top on mobile, right on desktop) -->
+    <div class="sm:hidden absolute inset-0 pointer-events-none" style="background:linear-gradient(to top, rgba(13,11,9,0.7) 0%, transparent 42%)"></div>
+    <div class="hidden sm:block absolute inset-0 pointer-events-none" style="background:linear-gradient(to right, transparent 38%, rgba(13,11,9,0.45) 100%)"></div>
+
+    <!-- Close -->
+    <button onclick="closePromptModal()" aria-label="Close"
+            class="absolute top-4 right-4 z-30 w-9 h-9 flex items-center justify-center rounded-lg border border-white/15 text-white/80 hover:text-white hover:border-white/30 text-2xl leading-none transition-colors" style="background:rgba(13,11,9,0.5);backdrop-filter:blur(6px)">×</button>
+
+    <!-- Reading panel: bottom sheet on mobile, right column on desktop -->
+    <div class="relative h-full w-full flex flex-col sm:flex-row sm:justify-end">
+      <div class="mt-auto sm:mt-0 w-full sm:w-[44%] sm:max-w-[620px] sm:min-w-[400px] h-[74%] sm:h-full flex flex-col min-h-0 border-t sm:border-t-0 sm:border-l border-white/10"
+           style="background:rgba(13,11,9,0.86);backdrop-filter:blur(22px) saturate(1.1);-webkit-backdrop-filter:blur(22px) saturate(1.1);">
+        <!-- Gold hairline seam -->
+        <div class="flex-shrink-0 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent"></div>
+        <div class="flex-1 overflow-y-auto thin-scroll px-6 sm:px-9 py-7 sm:py-11">
+          <span id="prompt-modal-genre" class="hidden inline-block text-[10px] font-medium tracking-widest uppercase text-gold border border-gold/25 bg-gold/10 rounded-full px-3 py-1 mb-3"></span>
+          <h2 id="prompt-modal-title" class="font-serif text-2xl sm:text-3xl lg:text-[2.5rem] text-white leading-tight mb-5"></h2>
+          <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-3">The Brief</p>
+          <div id="prompt-modal-brief" class="text-white/80 text-[15px] sm:text-base leading-[1.95] space-y-4"></div>
+        </div>
+        <div class="flex-shrink-0 border-t border-white/10 px-6 sm:px-9 py-4" style="background:rgba(13,11,9,0.5)">
+          <div class="flex items-center justify-between gap-4">
+            <div id="prompt-modal-hint" class="text-xs text-muted min-w-0"></div>
+            <div id="prompt-modal-action" class="flex-shrink-0"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
