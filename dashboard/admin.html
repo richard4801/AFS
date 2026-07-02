@@ -2270,19 +2270,25 @@
       function join(chapterId) {
         if (ch) leave();
         if (!chapterId) return;
+        console.log('[collab:' + cfg.role + '] join chapter', chapterId, 'user', cfg.getUserId());
         ch = cfg.db.channel('chapter-collab:' + chapterId, {
           config: { presence: { key: String(cfg.getUserId()) }, broadcast: { self: false } },
         });
-        ch.on('broadcast', { event: 'content' }, ({ payload }) => onRemoteContent(payload))
-          .on('broadcast', { event: 'cursor' }, ({ payload }) => onRemoteCursor(payload))
-          .on('presence', { event: 'sync' }, renderPresence)
+        ch.on('broadcast', { event: 'content' }, ({ payload }) => { console.log('[collab:' + cfg.role + '] recv content from', payload && payload.from); onRemoteContent(payload); })
+          .on('broadcast', { event: 'cursor' }, ({ payload }) => { console.log('[collab:' + cfg.role + '] recv cursor from', payload && payload.from, 'offset', payload && payload.offset); onRemoteCursor(payload); })
+          .on('presence', { event: 'sync' }, () => { renderPresence(); })
+          .on('presence', { event: 'join' }, () => { console.log('[collab:' + cfg.role + '] peer joined'); renderPresence(); broadcastContent(); broadcastCursor(); })
           .on('presence', { event: 'leave' }, ({ leftPresences }) => {
             (leftPresences || []).forEach(p => removeCaret(p.id)); renderPresence();
           })
           .subscribe(status => {
+            console.log('[collab:' + cfg.role + '] channel status:', status);
             if (status === 'SUBSCRIBED') {
               ch.track({ id: cfg.getUserId(), name: cfg.getUserName(), role: cfg.role });
-              setTimeout(broadcastCursor, 400);
+              setTimeout(() => { broadcastContent(); broadcastCursor(); }, 400);
+            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+              const host = document.getElementById(cfg.peersHostId);
+              if (host) { host.classList.remove('hidden'); host.classList.add('flex'); host.innerHTML = '<span class="collab-chip" style="color:#F87171">Live sync unavailable</span>'; }
             }
           });
         tick = setInterval(() => { renderPresence(); Object.keys(carets).forEach(positionCaret); }, 1000);
