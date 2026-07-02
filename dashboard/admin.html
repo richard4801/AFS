@@ -115,6 +115,11 @@
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
       <span class="text-[9px] font-semibold tracking-wide uppercase">Income</span>
     </button>
+    <button id="tab-prompts" onclick="switchSection('prompts')"
+            class="flex-shrink-0 flex-1 min-w-[60px] flex flex-col items-center gap-1 px-1 py-2.5 text-muted border-t-2 border-transparent hover:text-white transition-colors duration-200">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"/></svg>
+      <span class="text-[9px] font-semibold tracking-wide uppercase">Prompts</span>
+    </button>
   </nav>
 
   <!-- DELETE BOOK MODAL -->
@@ -381,6 +386,11 @@
           <span class="text-[10px] font-bold tracking-[0.26em] uppercase">Income</span>
         </button>
 
+        <button data-dsk-tab="prompts" onclick="switchSection('prompts')"
+                class="desk-nav-btn w-full text-left pl-6 pr-4 py-3 border-l-[2px] border-transparent text-muted hover:text-white hover:bg-white/5 transition-colors duration-150">
+          <span class="text-[10px] font-bold tracking-[0.26em] uppercase">Prompts</span>
+        </button>
+
       </nav>
 
       <!-- Divider -->
@@ -433,6 +443,18 @@
         <div id="sidebar-contracts" class="hidden flex-col">
           <p class="px-4 pt-4 pb-2 text-[9px] font-bold tracking-[0.22em] uppercase text-muted/70">Contract Status</p>
           <div id="contract-writer-list" class="px-2 pb-4 space-y-0.5"></div>
+        </div>
+
+        <!-- Prompts sub-panel -->
+        <div id="sidebar-prompts" class="hidden flex-col">
+          <div class="px-3 pt-4 pb-2 flex-shrink-0">
+            <button onclick="openAdminPromptModal()" class="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-crimson/15 hover:bg-crimson/25 border border-crimson/35 hover:border-crimson/55 text-crimson-light text-xs font-semibold rounded-lg transition-all">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+              New Prompt
+            </button>
+          </div>
+          <p class="px-4 pt-2 pb-2 text-[9px] font-bold tracking-[0.22em] uppercase text-muted/70">Prompt Library</p>
+          <div id="admin-prompts-sidebar" class="px-2 pb-4 space-y-0.5"></div>
         </div>
 
       </div>
@@ -849,6 +871,42 @@
         </div>
       </div>
 
+      <!-- PROMPTS PANEL -->
+      <div id="panel-prompts" class="hidden p-5 md:p-7">
+        <div class="mb-7 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <p class="text-[10px] font-bold tracking-[0.22em] uppercase text-crimson-light mb-1.5">Home Feed</p>
+            <h2 class="font-serif text-2xl sm:text-3xl text-white mb-1">Writing Prompts</h2>
+            <p class="text-muted text-sm">Publish prompts to the writer home feed and track who's developing what.</p>
+          </div>
+          <button onclick="openAdminPromptModal()" class="flex-shrink-0 inline-flex items-center gap-2 px-4 py-2.5 bg-crimson hover:bg-crimson-light text-white text-xs font-semibold rounded-lg transition-colors">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+            New Prompt
+          </button>
+        </div>
+
+        <div class="mb-8">
+          <div class="flex items-center gap-2 mb-3">
+            <h3 class="text-white text-sm font-semibold">Active Development</h3>
+            <span id="admin-claims-count" class="text-[10px] font-bold text-crimson-light bg-crimson/12 border border-crimson/30 rounded-full px-2 py-0.5">0</span>
+          </div>
+          <div id="admin-claims-list" class="space-y-2.5"></div>
+          <p id="admin-claims-empty" class="text-muted/60 text-xs py-6 text-center">No writer is developing a prompt right now.</p>
+        </div>
+
+        <div>
+          <h3 class="text-white text-sm font-semibold mb-3">All Prompts</h3>
+          <div id="admin-prompts-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+          <div id="admin-prompts-empty" class="hidden text-center py-16">
+            <div class="w-14 h-14 rounded-2xl bg-surface border border-border flex items-center justify-center mx-auto mb-4">
+              <svg class="w-6 h-6 text-muted/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"/></svg>
+            </div>
+            <p class="text-white/60 text-sm font-medium mb-1">No prompts yet</p>
+            <p class="text-muted text-xs">Create your first prompt to populate the writer home feed.</p>
+          </div>
+        </div>
+      </div>
+
       <!-- APPLICATIONS PANEL -->
       <div id="panel-applications" class="hidden p-5 md:p-7">
         <div class="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
@@ -880,6 +938,66 @@
       </div>
 
     </main>
+  </div>
+
+  <!-- ADMIN PROMPT EDIT MODAL -->
+  <div id="admin-prompt-modal" class="hidden fixed inset-0 z-[210] flex items-center justify-center p-0 sm:p-6" style="background:rgba(0,0,0,0.75);backdrop-filter:blur(4px)">
+    <div class="w-full sm:max-w-lg h-full sm:h-auto sm:max-h-[90vh] bg-charcoal sm:rounded-2xl border border-border flex flex-col overflow-hidden">
+      <div class="flex-shrink-0 flex items-center justify-between px-5 py-4 border-b border-border">
+        <h3 id="admin-prompt-modal-title" class="font-serif text-lg text-white">New Prompt</h3>
+        <button onclick="closeAdminPromptModal()" class="w-8 h-8 rounded-full border border-border hover:border-white/25 flex items-center justify-center text-muted hover:text-white transition-colors">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="flex-1 overflow-y-auto thin-scroll px-5 py-5 space-y-4">
+        <input type="hidden" id="admin-prompt-id"/>
+        <div>
+          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Banner <span class="text-muted font-normal">(recommended 1600×800)</span></label>
+          <div id="admin-prompt-dropzone" class="relative border-2 border-dashed border-border hover:border-crimson/40 rounded-xl overflow-hidden cursor-pointer transition-colors aspect-[2/1] flex items-center justify-center bg-obsidian group">
+            <img id="admin-prompt-banner-preview" class="hidden absolute inset-0 w-full h-full object-cover" alt=""/>
+            <div id="admin-prompt-dropzone-hint" class="relative text-center px-4">
+              <svg class="w-7 h-7 mx-auto mb-2 text-muted group-hover:text-crimson-light transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"/></svg>
+              <p class="text-xs text-muted group-hover:text-white/70 transition-colors">Drop an image or <span class="text-crimson-light">browse</span></p>
+            </div>
+            <input type="file" id="admin-prompt-banner-input" accept="image/*" class="hidden"/>
+          </div>
+          <button type="button" id="admin-prompt-banner-clear" onclick="clearAdminPromptBanner()" class="hidden mt-1.5 text-[11px] text-muted hover:text-red-300 transition-colors">Remove banner</button>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Title <span class="text-crimson-light">*</span></label>
+          <input id="admin-prompt-title-input" type="text" placeholder="e.g. The Alpha's Reluctant Mate"
+                 class="w-full bg-obsidian border border-border text-white placeholder-muted/60 text-sm rounded-lg px-4 py-2.5 focus:outline-none focus:border-crimson/50"/>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Genre</label>
+          <input id="admin-prompt-genre-input" type="text" placeholder="e.g. Werewolf Romance"
+                 class="w-full bg-obsidian border border-border text-white placeholder-muted/60 text-sm rounded-lg px-4 py-2.5 focus:outline-none focus:border-crimson/50"/>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Brief <span class="text-crimson-light">*</span></label>
+          <textarea id="admin-prompt-brief-input" rows="7" placeholder="The premise, characters, tone, and any must-hit beats. This is what the writer reads before claiming."
+                    class="w-full bg-obsidian border border-border text-white placeholder-muted/60 text-sm rounded-lg px-4 py-3 resize-y leading-relaxed focus:outline-none focus:border-crimson/50 thin-scroll"></textarea>
+        </div>
+        <div class="flex items-center gap-4">
+          <div class="flex-1">
+            <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Display order</label>
+            <input id="admin-prompt-order-input" type="number" value="0"
+                   class="w-full bg-obsidian border border-border text-white text-sm rounded-lg px-4 py-2.5 focus:outline-none focus:border-crimson/50"/>
+          </div>
+          <label class="flex items-center gap-2 cursor-pointer pt-6">
+            <input id="admin-prompt-active-input" type="checkbox" checked class="w-4 h-4 rounded border-border accent-crimson cursor-pointer"/>
+            <span class="text-xs text-white/70">Visible to writers</span>
+          </label>
+        </div>
+        <div id="admin-prompt-error" class="hidden text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-2.5"></div>
+      </div>
+      <div class="flex-shrink-0 flex items-center gap-3 px-5 py-4 border-t border-border">
+        <button id="admin-prompt-delete-btn" onclick="deleteAdminPrompt()" class="hidden px-4 py-2.5 border border-red-400/30 text-red-300 hover:bg-red-400/10 text-xs font-semibold rounded-lg transition-colors">Delete</button>
+        <div class="flex-1"></div>
+        <button onclick="closeAdminPromptModal()" class="px-4 py-2.5 border border-border hover:border-white/25 text-muted hover:text-white text-xs rounded-lg transition-all">Cancel</button>
+        <button id="admin-prompt-save-btn" onclick="saveAdminPrompt()" class="px-5 py-2.5 bg-crimson hover:bg-crimson-light text-white text-xs font-semibold rounded-lg transition-colors">Save Prompt</button>
+      </div>
+    </div>
   </div>
 
   <!-- ADMIN FULL-SCREEN CHAPTER EDITOR -->
@@ -1380,7 +1498,7 @@
     // ── SECTION SWITCHING ───────────────────────────────────────────
     let _contractsLoaded = false;
     function switchSection(section) {
-      ['writers','income','applications','payments','contracts'].forEach(s => {
+      ['writers','income','applications','payments','contracts','prompts'].forEach(s => {
         const tab = $(`tab-${s}`);
         if (!tab) return;
         const isContracts = s === 'contracts';
@@ -1396,9 +1514,11 @@
       $('panel-applications').classList.toggle('hidden',  section !== 'applications');
       $('panel-payments').classList.toggle('hidden',      section !== 'payments');
       $('panel-contracts').classList.toggle('hidden',     section !== 'contracts');
+      $('panel-prompts').classList.toggle('hidden',       section !== 'prompts');
       if (section === 'applications' && !_appsLoaded) loadApplications();
       if (section === 'payments' && !_payoutWritersLoaded) loadPayoutWriterList();
       if (section === 'contracts' && !_contractsLoaded) { _contractsLoaded = true; loadContractsSection(); }
+      if (section === 'prompts' && !_promptsLoaded) { _promptsLoaded = true; loadAdminPrompts(); }
     }
 
     // ── VIEW ROUTER ─────────────────────────────────────────────────
@@ -3223,6 +3343,246 @@
       _contractsLoaded = true;
     }
 
+    // ── WRITING PROMPTS (ADMIN) ─────────────────────────────────
+    let _promptsLoaded = false;
+    let _adminPromptReg = {};
+    let _adminActiveClaimByPrompt = {};
+    let _adminPromptBannerFile = null;
+    let _adminPromptExistingBanner = null;
+    let _adminCountdownTick = null;
+
+    async function loadAdminPrompts() {
+      await _loadAdminClaims();      // populates _adminActiveClaimByPrompt first
+      await _loadAdminPromptLibrary();
+      _ensureAdminCountdown();
+    }
+
+    async function _loadAdminPromptLibrary() {
+      const { data, error } = await db.from('writing_prompts')
+        .select('id, title, genre, brief, banner_url, sort_order, is_active, created_at')
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: false });
+      const prompts = error ? [] : (data ?? []);
+      _adminPromptReg = {};
+      prompts.forEach(p => { _adminPromptReg[p.id] = p; });
+
+      const sb = $('admin-prompts-sidebar');
+      if (sb) sb.innerHTML = prompts.length ? prompts.map(p => `
+        <button onclick="openAdminPromptModal('${p.id}')" class="w-full text-left px-3 py-2 rounded-lg text-white/65 hover:text-white hover:bg-white/[0.03] transition-colors flex items-center gap-2">
+          <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 ${p.is_active ? 'bg-emerald-400' : 'bg-muted/40'}"></span>
+          <span class="truncate text-[12.5px]">${escHtml(p.title)}</span>
+        </button>`).join('') : `<p class="text-muted/60 text-xs px-3 py-2">No prompts yet.</p>`;
+
+      const grid = $('admin-prompts-grid');
+      $('admin-prompts-empty').classList.toggle('hidden', prompts.length > 0);
+      grid.innerHTML = prompts.map(p => {
+        const banner = p.banner_url
+          ? `<img src="${escHtml(p.banner_url)}" alt="" class="absolute inset-0 w-full h-full object-cover"/>`
+          : `<div class="absolute inset-0" style="background:radial-gradient(ellipse at 30% 20%,rgba(163,22,33,0.12),transparent 55%),linear-gradient(135deg,#1C1C1C,#242424)"></div>`;
+        const claim = _adminActiveClaimByPrompt[p.id];
+        const statusBadge = !p.is_active
+          ? `<span class="text-[9px] font-bold uppercase tracking-wide text-muted bg-white/5 border border-border rounded-full px-2 py-0.5">Hidden</span>`
+          : claim
+            ? `<span class="text-[9px] font-bold uppercase tracking-wide text-gold bg-gold/10 border border-gold/25 rounded-full px-2 py-0.5">In development</span>`
+            : `<span class="text-[9px] font-bold uppercase tracking-wide text-emerald-400 bg-emerald-400/10 border border-emerald-400/25 rounded-full px-2 py-0.5">Available</span>`;
+        return `
+        <div class="rounded-2xl border border-border bg-surface overflow-hidden">
+          <button onclick="openAdminPromptModal('${p.id}')" class="block w-full text-left group">
+            <div class="relative aspect-[2/1] bg-charcoal overflow-hidden">
+              ${banner}
+              <div class="absolute inset-0" style="background:linear-gradient(to top,rgba(13,11,9,0.85),transparent 60%)"></div>
+              <div class="absolute top-2.5 right-2.5">${statusBadge}</div>
+              <div class="absolute bottom-0 left-0 right-0 p-3">
+                ${p.genre ? `<span class="inline-block text-[8px] font-semibold tracking-widest uppercase text-gold/90 mb-1">${escHtml(p.genre)}</span>` : ''}
+                <h4 class="font-serif text-white text-base leading-tight truncate">${escHtml(p.title)}</h4>
+              </div>
+            </div>
+          </button>
+        </div>`;
+      }).join('');
+    }
+
+    async function _loadAdminClaims() {
+      const { data: claims } = await db.from('prompt_claims')
+        .select('id, writer_id, claimed_at, expires_at, prompt_id, writing_prompts(title)')
+        .eq('status', 'active')
+        .order('expires_at', { ascending: true });
+      const list = claims ?? [];
+      _adminActiveClaimByPrompt = {};
+      list.forEach(c => { _adminActiveClaimByPrompt[c.prompt_id] = c; });
+
+      const ids = [...new Set(list.map(c => c.writer_id))];
+      let names = {};
+      if (ids.length) {
+        const { data: profs } = await db.from('profiles').select('id, name, email').in('id', ids);
+        (profs ?? []).forEach(p => { names[p.id] = p; });
+      }
+
+      $('admin-claims-count').textContent = list.length;
+      $('admin-claims-empty').classList.toggle('hidden', list.length > 0);
+      $('admin-claims-list').innerHTML = list.map(c => {
+        const who = names[c.writer_id] || {};
+        const title = c.writing_prompts?.title || 'Untitled prompt';
+        return `
+        <div class="rounded-xl border border-border bg-surface px-4 py-3 flex items-center gap-3">
+          <div class="min-w-0 flex-1">
+            <p class="text-white text-sm font-medium truncate">${escHtml(who.name || who.email || 'Writer')}</p>
+            <p class="text-muted text-xs truncate">Developing: <span class="text-white/70">${escHtml(title)}</span></p>
+          </div>
+          <span class="flex-shrink-0 font-mono tabular-nums text-sm font-semibold" data-countdown data-expires="${c.expires_at}">—</span>
+          <div class="flex-shrink-0 flex items-center gap-1.5">
+            <button onclick="adminCompleteClaim('${c.id}')" title="Mark completed" class="px-2.5 py-1.5 border border-emerald-400/30 text-emerald-300 hover:bg-emerald-400/10 text-[11px] font-semibold rounded-lg transition-colors">Done</button>
+            <button onclick="adminReleaseClaim('${c.id}')" title="Release back to pool" class="px-2.5 py-1.5 border border-border text-muted hover:text-white hover:border-white/25 text-[11px] font-semibold rounded-lg transition-colors">Release</button>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    function openAdminPromptModal(id) {
+      const p = id ? _adminPromptReg[id] : null;
+      $('admin-prompt-id').value = p?.id || '';
+      $('admin-prompt-title-input').value = p?.title || '';
+      $('admin-prompt-genre-input').value = p?.genre || '';
+      $('admin-prompt-brief-input').value = p?.brief || '';
+      $('admin-prompt-order-input').value = p?.sort_order ?? 0;
+      $('admin-prompt-active-input').checked = p ? !!p.is_active : true;
+      $('admin-prompt-modal-title').textContent = p ? 'Edit Prompt' : 'New Prompt';
+      $('admin-prompt-error').classList.add('hidden');
+      _adminPromptBannerFile = null;
+      _adminPromptExistingBanner = p?.banner_url || null;
+      const prev = $('admin-prompt-banner-preview');
+      const hint = $('admin-prompt-dropzone-hint');
+      const clr  = $('admin-prompt-banner-clear');
+      if (p?.banner_url) {
+        prev.src = p.banner_url; prev.classList.remove('hidden'); hint.classList.add('hidden'); clr.classList.remove('hidden');
+      } else {
+        prev.removeAttribute('src'); prev.classList.add('hidden'); hint.classList.remove('hidden'); clr.classList.add('hidden');
+      }
+      $('admin-prompt-delete-btn').classList.toggle('hidden', !p);
+      $('admin-prompt-modal').classList.remove('hidden');
+    }
+
+    function closeAdminPromptModal() { $('admin-prompt-modal').classList.add('hidden'); }
+
+    function clearAdminPromptBanner() {
+      _adminPromptBannerFile = null;
+      _adminPromptExistingBanner = null;
+      $('admin-prompt-banner-input').value = '';
+      $('admin-prompt-banner-preview').removeAttribute('src');
+      $('admin-prompt-banner-preview').classList.add('hidden');
+      $('admin-prompt-dropzone-hint').classList.remove('hidden');
+      $('admin-prompt-banner-clear').classList.add('hidden');
+    }
+
+    function _adminPromptPickBanner(file) {
+      if (!file || !file.type.startsWith('image/')) return;
+      _adminPromptBannerFile = file;
+      const url = URL.createObjectURL(file);
+      const prev = $('admin-prompt-banner-preview');
+      prev.src = url; prev.classList.remove('hidden');
+      $('admin-prompt-dropzone-hint').classList.add('hidden');
+      $('admin-prompt-banner-clear').classList.remove('hidden');
+    }
+
+    (function () {
+      const dz = $('admin-prompt-dropzone');
+      const input = $('admin-prompt-banner-input');
+      if (!dz) return;
+      dz.addEventListener('click', () => input.click());
+      input.addEventListener('change', e => _adminPromptPickBanner(e.target.files?.[0]));
+      dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('border-crimson/50'); });
+      dz.addEventListener('dragleave', () => dz.classList.remove('border-crimson/50'));
+      dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('border-crimson/50'); _adminPromptPickBanner(e.dataTransfer.files?.[0]); });
+    })();
+
+    async function saveAdminPrompt() {
+      const err = $('admin-prompt-error');
+      err.classList.add('hidden');
+      const id     = $('admin-prompt-id').value || null;
+      const title  = $('admin-prompt-title-input').value.trim();
+      const genre  = $('admin-prompt-genre-input').value.trim() || null;
+      const brief  = $('admin-prompt-brief-input').value.trim();
+      const order  = parseInt($('admin-prompt-order-input').value, 10) || 0;
+      const active = $('admin-prompt-active-input').checked;
+      if (!title) { err.textContent = 'Title is required.'; err.classList.remove('hidden'); return; }
+      if (!brief) { err.textContent = 'Brief is required.'; err.classList.remove('hidden'); return; }
+
+      const btn = $('admin-prompt-save-btn');
+      btn.disabled = true; btn.textContent = 'Saving…';
+
+      let bannerUrl = _adminPromptExistingBanner;
+      if (_adminPromptBannerFile) {
+        const ext = (_adminPromptBannerFile.name.split('.').pop() || 'jpg').toLowerCase();
+        const path = crypto.randomUUID() + '.' + ext;
+        const { error: upErr } = await db.storage.from('prompt-banners').upload(path, _adminPromptBannerFile, { upsert: true, contentType: _adminPromptBannerFile.type });
+        if (upErr) { err.textContent = 'Banner upload failed: ' + upErr.message; err.classList.remove('hidden'); btn.disabled = false; btn.textContent = 'Save Prompt'; return; }
+        bannerUrl = db.storage.from('prompt-banners').getPublicUrl(path).data.publicUrl;
+      }
+
+      const row = { title, genre, brief, sort_order: order, is_active: active, banner_url: bannerUrl, updated_at: new Date().toISOString() };
+      let error;
+      if (id) {
+        ({ error } = await db.from('writing_prompts').update(row).eq('id', id));
+      } else {
+        row.created_by = currentUserId;
+        ({ error } = await db.from('writing_prompts').insert(row));
+      }
+      btn.disabled = false; btn.textContent = 'Save Prompt';
+      if (error) { err.textContent = error.message; err.classList.remove('hidden'); return; }
+      closeAdminPromptModal();
+      showToast(id ? 'Prompt updated ✓' : 'Prompt published ✓');
+      loadAdminPrompts();
+    }
+
+    async function deleteAdminPrompt() {
+      const id = $('admin-prompt-id').value;
+      if (!id) return;
+      if (!confirm('Delete this prompt? Any active claim on it will be removed too. This cannot be undone.')) return;
+      const { error } = await db.from('writing_prompts').delete().eq('id', id);
+      if (error) { showToast('Delete failed: ' + error.message); return; }
+      closeAdminPromptModal();
+      showToast('Prompt deleted.');
+      loadAdminPrompts();
+    }
+
+    async function adminReleaseClaim(claimId) {
+      if (!confirm('Release this claim back to the pool? The writer loses their hold on the prompt.')) return;
+      const { error } = await db.rpc('release_prompt_claim', { p_claim_id: claimId });
+      if (error) { showToast(error.message); return; }
+      showToast('Claim released.');
+      loadAdminPrompts();
+    }
+
+    async function adminCompleteClaim(claimId) {
+      const { error } = await db.rpc('complete_prompt_claim', { p_claim_id: claimId });
+      if (error) { showToast(error.message); return; }
+      showToast('Marked as completed ✓');
+      loadAdminPrompts();
+    }
+
+    function _adminFmtCountdown(ms) {
+      if (ms <= 0) return { text: 'Expired', color: '#F87171' };
+      const t = Math.floor(ms / 1000);
+      const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = t % 60;
+      const pad = n => String(n).padStart(2, '0');
+      const text = h >= 24 ? `${Math.floor(h/24)}d ${h%24}h ${m}m` : `${pad(h)}:${pad(m)}:${pad(s)}`;
+      const hrs = ms / 3600000;
+      return { text, color: hrs > 24 ? '#C9A84C' : hrs > 6 ? '#E8B488' : '#F87171' };
+    }
+    function _adminTickCountdowns() {
+      document.querySelectorAll('[data-countdown][data-expires]').forEach(el => {
+        const exp = Date.parse(el.getAttribute('data-expires'));
+        if (isNaN(exp)) return;
+        const { text, color } = _adminFmtCountdown(exp - Date.now());
+        el.textContent = text; el.style.color = color;
+      });
+    }
+    function _ensureAdminCountdown() {
+      _adminTickCountdowns();
+      if (_adminCountdownTick) return;
+      _adminCountdownTick = setInterval(_adminTickCountdowns, 1000);
+    }
+
     function showToast(msg) {
       const t = document.createElement('div');
       t.className = 'fixed bottom-6 right-6 z-[70] px-4 py-3 bg-surface border border-border rounded-xl text-sm text-white shadow-xl shadow-black/50 transition-opacity duration-300';
@@ -3462,7 +3822,7 @@
 
     // 2. Mirror tab active state to desktop sidebar nav buttons
     (function() {
-      const sections = ['writers','income','applications','payments','contracts'];
+      const sections = ['writers','income','applications','payments','contracts','prompts'];
 
       function syncDeskNav(activeSection) {
         document.querySelectorAll('.desk-nav-btn').forEach(btn => {
