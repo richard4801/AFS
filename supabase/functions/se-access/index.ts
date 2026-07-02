@@ -56,11 +56,10 @@ Deno.serve(async (req) => {
     const anon        = Deno.env.get('SUPABASE_ANON_KEY')!
     const seEmail     = Deno.env.get('SE_EMAIL')
     const sePassword  = Deno.env.get('SE_PASSWORD')
-    const setupToken  = Deno.env.get('SE_SETUP_TOKEN')
     if (!seEmail || !sePassword) throw new Error('Senior Editor access is not configured yet.')
 
     const admin = createClient(url, service, { auth: { persistSession: false } })
-    const { action, pin, token } = await req.json().catch(() => ({}))
+    const { action, pin } = await req.json().catch(() => ({}))
 
     async function getSeUser() {
       const { data } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 })
