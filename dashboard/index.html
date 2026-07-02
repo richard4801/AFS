@@ -106,6 +106,17 @@
     #writer-sidebar-nav button{border:1px solid transparent;transition:all 0.2s;color:rgba(122,107,97,0.85)}
     #writer-sidebar-nav button[data-active="1"]{color:#C9A84C;background:rgba(201,168,76,0.10);border-color:rgba(201,168,76,0.22)}
     #writer-sidebar-nav button[data-active="0"]:hover{color:rgba(255,255,255,0.88);background:rgba(255,255,255,0.04)}
+    /* ── Live collaboration (presence + spotlight caret) ─────────── */
+    .collab-caret{position:absolute;top:0;left:0;pointer-events:none;z-index:20;will-change:transform;transition:transform .12s linear;}
+    .collab-caret-bar{display:block;width:2px;background:var(--cc,#C9A84C);border-radius:1px;box-shadow:0 0 6px var(--cc,#C9A84C);}
+    .collab-caret-flag{position:absolute;top:-15px;left:-1px;white-space:nowrap;font-size:9px;font-weight:700;line-height:1;padding:2px 5px;border-radius:4px 4px 4px 0;color:#0D0B09;background:var(--cc,#C9A84C);letter-spacing:.02em;}
+    .collab-chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:rgba(255,255,255,0.78);background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:999px;padding:2px 9px;}
+    .collab-dot{width:6px;height:6px;border-radius:50%;box-shadow:0 0 6px currentColor;flex-shrink:0;}
+    .collab-typing{color:var(--cc,#C9A84C);font-weight:700;animation:collabPulse 1.2s ease-in-out infinite;}
+    @keyframes collabPulse{0%,100%{opacity:.45}50%{opacity:1}}
+    .collab-follow-btn{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:5px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.6);transition:all .15s;}
+    .collab-follow-btn:hover{color:#fff;border-color:rgba(255,255,255,0.25);}
+    .collab-follow-btn[data-on="1"]{color:#C9A84C;border-color:rgba(201,168,76,0.4);background:rgba(201,168,76,0.1);}
   </style>
 </head>
 
@@ -1153,6 +1164,12 @@
       <input id="fs-title" type="text" placeholder="Chapter title…"
              class="flex-1 min-w-0 bg-transparent text-white text-sm placeholder-muted focus:outline-none border-none"/>
       <div class="ml-auto flex items-center gap-1.5 flex-shrink-0">
+        <div id="fs-collab-peers" class="hidden items-center gap-1.5 mr-0.5"></div>
+        <button id="fs-follow-btn" onclick="writerCollab.toggleFollow()" data-on="0" title="Follow the editor's cursor"
+                class="collab-follow-btn hidden">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+          Follow
+        </button>
         <span id="fs-word-count" class="text-muted text-xs tabular-nums hidden sm:block">0 words</span>
         <span id="fs-autosave-status" class="hidden text-xs mr-0.5" style="color:rgba(122,122,122,0.7)"></span>
         <div id="fs-manual-btns" class="flex items-center gap-1.5">
@@ -1184,7 +1201,8 @@
     <div id="fs-error-bar" class="hidden flex-shrink-0 px-4 py-2 bg-red-400/10 border-b border-red-400/20 text-xs text-red-400"></div>
     <!-- Editor body -->
     <div class="flex-1 overflow-y-auto thin-scroll">
-      <div class="max-w-3xl mx-auto px-4 sm:px-10 py-8 sm:py-12">
+      <div class="max-w-3xl mx-auto px-4 sm:px-10 py-8 sm:py-12 relative">
+        <div id="fs-collab-overlay" class="pointer-events-none absolute inset-0 z-10"></div>
         <div id="fs-content" contenteditable="true" spellcheck="true"
              class="min-h-[65vh] outline-none"
              data-placeholder="Begin writing your chapter here…"
@@ -2922,6 +2940,208 @@
     }
     function updateFSWordCount() { const t = fswc().toLocaleString() + ' words'; $('fs-word-count').textContent = t; const m=$('fs-word-count-mobile'); if(m) m.textContent = t; }
 
+    // ── LIVE CHAPTER COLLABORATION (Supabase Realtime) ──────────────
+    // Bidirectional live mirror + presence + spotlight caret. Active
+    // typist "holds" the text (autosave to DB is the source of truth);
+    // the other side sees keystrokes live and can follow the cursor.
+    function createChapterCollab(cfg) {
+      const ROLE_COLOR = { writer: '#C9A84C', admin: '#C82333' };
+      let ch = null, applying = false, lastLocalInput = 0, follow = false;
+      let cThrottle = null, kThrottle = null, tick = null;
+      const carets = {}; // from -> { name, role, color, offset, typingUntil }
+      const el = () => document.getElementById(cfg.editorId);
+      const isTyping = () => (Date.now() - lastLocalInput) < 1500;
+
+      function selOffset(root) {
+        const sel = window.getSelection();
+        if (!sel || !sel.rangeCount) return null;
+        const rng = sel.getRangeAt(0);
+        if (!root.contains(rng.endContainer)) return null;
+        const pre = rng.cloneRange();
+        pre.selectNodeContents(root);
+        pre.setEnd(rng.endContainer, rng.endOffset);
+        return pre.toString().length;
+      }
+      function placeCaret(root, offset) {
+        const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+        let node, acc = 0;
+        while ((node = w.nextNode())) {
+          const len = node.nodeValue.length;
+          if (acc + len >= offset) {
+            const r = document.createRange();
+            r.setStart(node, Math.max(0, Math.min(len, offset - acc))); r.collapse(true);
+            const s = window.getSelection(); s.removeAllRanges(); s.addRange(r); return;
+          }
+          acc += len;
+        }
+      }
+      function rectAt(root, offset) {
+        const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+        let node, acc = 0;
+        while ((node = w.nextNode())) {
+          const len = node.nodeValue.length;
+          if (acc + len >= offset) {
+            const r = document.createRange();
+            r.setStart(node, Math.max(0, Math.min(len, offset - acc))); r.collapse(true);
+            const rects = r.getClientRects();
+            return (rects && rects.length) ? rects[0] : r.getBoundingClientRect();
+          }
+          acc += len;
+        }
+        const r = document.createRange(); r.selectNodeContents(root); r.collapse(false);
+        const rects = r.getClientRects();
+        return (rects && rects.length) ? rects[rects.length - 1] : r.getBoundingClientRect();
+      }
+
+      function join(chapterId) {
+        if (ch) leave();
+        if (!chapterId) return;
+        ch = cfg.db.channel('chapter-collab:' + chapterId, {
+          config: { presence: { key: String(cfg.getUserId()) }, broadcast: { self: false } },
+        });
+        ch.on('broadcast', { event: 'content' }, ({ payload }) => onRemoteContent(payload))
+          .on('broadcast', { event: 'cursor' }, ({ payload }) => onRemoteCursor(payload))
+          .on('presence', { event: 'sync' }, renderPresence)
+          .on('presence', { event: 'leave' }, ({ leftPresences }) => {
+            (leftPresences || []).forEach(p => removeCaret(p.id)); renderPresence();
+          })
+          .subscribe(status => {
+            if (status === 'SUBSCRIBED') {
+              ch.track({ id: cfg.getUserId(), name: cfg.getUserName(), role: cfg.role });
+              setTimeout(broadcastCursor, 400);
+            }
+          });
+        tick = setInterval(() => { renderPresence(); Object.keys(carets).forEach(positionCaret); }, 1000);
+      }
+      function leave() {
+        if (tick) { clearInterval(tick); tick = null; }
+        if (ch) { try { cfg.db.removeChannel(ch); } catch (_) {} ch = null; }
+        Object.keys(carets).forEach(id => delete carets[id]);
+        const o = document.getElementById(cfg.overlayId); if (o) o.innerHTML = '';
+        follow = false;
+        const fb = document.getElementById(cfg.followBtnId);
+        if (fb) { fb.setAttribute('data-on', '0'); fb.classList.add('hidden'); }
+        const host = document.getElementById(cfg.peersHostId);
+        if (host) { host.innerHTML = ''; host.classList.add('hidden'); }
+      }
+
+      function broadcastContent() {
+        if (!ch) return;
+        ch.send({ type: 'broadcast', event: 'content', payload: { from: cfg.getUserId(), html: el().innerHTML } });
+      }
+      function broadcastCursor() {
+        if (!ch) return;
+        const off = selOffset(el());
+        if (off == null) return;
+        ch.send({ type: 'broadcast', event: 'cursor', payload: { from: cfg.getUserId(), name: cfg.getUserName(), role: cfg.role, color: ROLE_COLOR[cfg.role], offset: off } });
+      }
+      function onLocalInput() {
+        lastLocalInput = Date.now();
+        if (applying) return;
+        clearTimeout(cThrottle);
+        cThrottle = setTimeout(() => { broadcastContent(); broadcastCursor(); }, 180);
+      }
+      function onLocalCaret() { clearTimeout(kThrottle); kThrottle = setTimeout(broadcastCursor, 110); }
+
+      function onRemoteContent(p) {
+        if (!p || p.from === cfg.getUserId()) return;
+        if (isTyping()) return; // don't clobber active local typing
+        const root = el();
+        const focused = document.activeElement === root;
+        const keepOff = focused ? selOffset(root) : null;
+        applying = true;
+        root.innerHTML = p.html;
+        applying = false;
+        if (keepOff != null) placeCaret(root, keepOff);
+        cfg.onContentApplied && cfg.onContentApplied();
+        Object.keys(carets).forEach(positionCaret);
+      }
+      function onRemoteCursor(p) {
+        if (!p || p.from === cfg.getUserId()) return;
+        carets[p.from] = Object.assign(carets[p.from] || {}, { name: p.name, role: p.role, color: p.color, offset: p.offset, typingUntil: Date.now() + 1500 });
+        positionCaret(p.from);
+        renderPresence();
+        if (follow) followTo(p.from);
+      }
+
+      function removeCaret(id) {
+        if (id && carets[id]) delete carets[id];
+        const o = document.getElementById(cfg.overlayId); if (!o) return;
+        const m = o.querySelector('[data-caret="' + id + '"]'); if (m) m.remove();
+      }
+      function positionCaret(id) {
+        const peer = carets[id];
+        const o = document.getElementById(cfg.overlayId);
+        const root = el();
+        if (!peer || !o || !root || peer.offset == null) return;
+        const wrap = root.parentElement;
+        const rect = rectAt(root, peer.offset);
+        if (!rect) return;
+        const wr = wrap.getBoundingClientRect();
+        let m = o.querySelector('[data-caret="' + id + '"]');
+        if (!m) {
+          m = document.createElement('div');
+          m.setAttribute('data-caret', id);
+          m.className = 'collab-caret';
+          m.innerHTML = '<span class="collab-caret-flag"></span><span class="collab-caret-bar"></span>';
+          o.appendChild(m);
+        }
+        m.style.transform = `translate(${rect.left - wr.left}px, ${rect.top - wr.top}px)`;
+        m.style.setProperty('--cc', peer.color || '#C9A84C');
+        m.querySelector('.collab-caret-flag').textContent = peer.name || (peer.role === 'admin' ? 'Editor' : 'Writer');
+        m.querySelector('.collab-caret-bar').style.height = (rect.height || 20) + 'px';
+      }
+      function followTo(id) {
+        const o = document.getElementById(cfg.overlayId); if (!o) return;
+        const m = o.querySelector('[data-caret="' + id + '"]');
+        if (m) m.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }
+      function renderPresence() {
+        const host = document.getElementById(cfg.peersHostId);
+        const fb = document.getElementById(cfg.followBtnId);
+        if (!host) return;
+        let metas = [];
+        if (ch && ch.presenceState) {
+          const st = ch.presenceState();
+          Object.values(st).forEach(arr => arr.forEach(m => metas.push(m)));
+        }
+        const others = metas.filter(m => String(m.id) !== String(cfg.getUserId()));
+        if (!others.length) {
+          host.innerHTML = ''; host.classList.add('hidden');
+          if (fb) fb.classList.add('hidden');
+          return;
+        }
+        host.classList.remove('hidden'); host.classList.add('flex');
+        if (fb) fb.classList.remove('hidden');
+        host.innerHTML = others.map(m => {
+          const color = ROLE_COLOR[m.role] || '#9A9A9A';
+          const typing = carets[m.id] && carets[m.id].typingUntil > Date.now();
+          const label = escHtml(m.name || (m.role === 'admin' ? 'Editor' : 'Writer'));
+          return `<span class="collab-chip" style="--cc:${color}"><span class="collab-dot" style="background:${color};color:${color}"></span>${label}${typing ? ' <span class="collab-typing">typing…</span>' : ''}</span>`;
+        }).join('');
+      }
+      function toggleFollow() {
+        follow = !follow;
+        const fb = document.getElementById(cfg.followBtnId);
+        if (fb) fb.setAttribute('data-on', follow ? '1' : '0');
+        if (follow) { const id = Object.keys(carets)[0]; if (id) followTo(id); }
+      }
+
+      return { join, leave, onLocalInput, onLocalCaret, toggleFollow };
+    }
+
+    var writerCollab = createChapterCollab({
+      db,
+      editorId: 'fs-content',
+      overlayId: 'fs-collab-overlay',
+      peersHostId: 'fs-collab-peers',
+      followBtnId: 'fs-follow-btn',
+      role: 'writer',
+      getUserId: () => currentUserId,
+      getUserName: () => ($('greeting-name')?.textContent || 'Writer').trim(),
+      onContentApplied: () => updateFSWordCount(),
+    });
+
     function openFSEditor() {
       $('fs-title').value = editingChapter?.title || '';
       $('fs-content').innerHTML = contentToEditable(_originalChapterContent);
@@ -2964,6 +3184,11 @@
 
       $('fullscreen-editor').classList.remove('hidden');
       document.body.style.overflow = 'hidden';
+
+      // Live collaboration — join only for saved chapters (they have an id)
+      if (editingChapter?.id) writerCollab.join(editingChapter.id);
+      else writerCollab.leave();
+
       setTimeout(() => {
         $('fs-content').focus();
         const r = document.createRange(), s = window.getSelection();
@@ -2990,6 +3215,7 @@
 
     function fsClose() {
       if (_asUnsaved) _doAutoSave(true); // fire-and-forget before closing
+      writerCollab.leave();
       $('fullscreen-editor').classList.add('hidden');
       document.body.style.overflow = '';
       if (_fsOpenedDirectly) {
@@ -3015,9 +3241,9 @@
 
     // Debounced listeners — word count and toolbar state don't need to fire on every keystroke
     let _fsWcTimer, _fsTbTimer;
-    $('fs-content').addEventListener('input', () => { clearTimeout(_fsWcTimer); _fsWcTimer = setTimeout(updateFSWordCount, 300); _scheduleAutoSave(true); });
-    $('fs-content').addEventListener('keyup',   () => { clearTimeout(_fsTbTimer); _fsTbTimer = setTimeout(updateFSToolbar,   150); });
-    $('fs-content').addEventListener('mouseup', updateFSToolbar);
+    $('fs-content').addEventListener('input', () => { clearTimeout(_fsWcTimer); _fsWcTimer = setTimeout(updateFSWordCount, 300); _scheduleAutoSave(true); writerCollab.onLocalInput(); });
+    $('fs-content').addEventListener('keyup',   () => { clearTimeout(_fsTbTimer); _fsTbTimer = setTimeout(updateFSToolbar,   150); writerCollab.onLocalCaret(); });
+    $('fs-content').addEventListener('mouseup', () => { updateFSToolbar(); writerCollab.onLocalCaret(); });
     $('fs-content').addEventListener('keydown', e => {
       const mod = e.ctrlKey || e.metaKey;
       if (mod && e.key === 'b') { e.preventDefault(); execFmt('bold'); }
