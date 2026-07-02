@@ -70,12 +70,12 @@ Deno.serve(async (req) => {
       if (!u) {
         const { data, error } = await admin.auth.admin.createUser({
           email: seEmail, password: sePassword, email_confirm: true,
-          user_metadata: { full_name: 'Senior Editor' },
+          user_metadata: { full_name: 'Christine Franklin' },
         })
         if (error) throw error
         u = data.user
       }
-      await admin.from('profiles').update({ is_senior_editor: true, name: 'Senior Editor' }).eq('id', u!.id)
+      await admin.from('profiles').update({ is_senior_editor: true, name: 'Christine Franklin' }).eq('id', u!.id)
       return u!
     }
     async function mintSession() {

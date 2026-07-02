@@ -9,3 +9,8 @@ verify_jwt = true
 
 [functions.delete-writer]
 verify_jwt = true
+
+# Public: the Senior Editor has no account/session yet, so this function
+# must be callable without a JWT. It does its own auth via the 4-digit PIN.
+[functions.se-access]
+verify_jwt = false
