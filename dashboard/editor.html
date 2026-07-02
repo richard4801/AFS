@@ -74,9 +74,14 @@
             <h1 class="font-serif text-2xl text-white mb-1">Welcome, Christine</h1>
             <p class="text-muted text-sm">We've been expecting you. Set up a private 4-digit PIN — you'll use it each time you sign in.</p>
           </div>
-          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Setup code <span class="text-muted font-normal">(from your admin)</span></label>
-          <input id="create-token" type="text" autocomplete="off" placeholder="One-time setup code"
-                 class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 mb-5"/>
+          <div class="flex items-center gap-3 rounded-lg border border-gold/20 bg-gold/[0.05] px-4 py-3 mb-5">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <div class="min-w-0 flex-1 text-left">
+              <p class="text-white/85 text-xs font-medium">Secure setup authorized</p>
+              <p class="text-muted text-[11px]">Your studio admin has enabled your access.</p>
+            </div>
+            <span class="font-mono tracking-[0.3em] text-muted/40 text-sm select-none pointer-events-none">••••••</span>
+          </div>
           <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Choose your PIN</label>
           <div id="create-row" class="flex gap-2.5 justify-center mb-3"></div>
           <p id="create-hint" class="text-muted text-xs text-center mb-3">Enter 4 digits</p>
@@ -159,12 +164,12 @@
         <p id="mine-empty" class="hidden text-muted/60 text-sm text-center py-10 rounded-2xl border border-dashed border-border">You haven't written any prompts yet. Tap <span class="text-gold">New Prompt</span> to begin.</p>
       </section>
 
-      <!-- Active development -->
+      <!-- On the platform -->
       <section class="mb-12">
-        <h2 class="font-serif text-xl sm:text-2xl text-white mb-1">In development</h2>
-        <p class="text-muted text-xs mb-4">Prompts writers are actively developing, with time remaining.</p>
-        <div id="active-list" class="space-y-2.5"></div>
-        <p id="active-empty" class="hidden text-muted/60 text-sm text-center py-8 rounded-2xl border border-dashed border-border">No prompt is being developed right now.</p>
+        <h2 class="font-serif text-xl sm:text-2xl text-white mb-1">On the platform</h2>
+        <p class="text-muted text-xs mb-4">Every prompt live for writers — available to claim, or currently in development.</p>
+        <div id="board-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        <p id="board-empty" class="hidden text-muted/60 text-sm text-center py-8 rounded-2xl border border-dashed border-border">No live prompts yet.</p>
       </section>
 
       <!-- Signed books -->
@@ -313,11 +318,9 @@
 
     function updateCreateBtn() {
       const pin = readDigits('create-row');
-      const tok = $('create-token').value.trim();
-      $('create-btn').disabled = !(pin.length === 4 && tok.length > 0);
+      $('create-btn').disabled = pin.length !== 4;
       $('create-hint').textContent = pin.length === 4 ? 'Looks good' : 'Enter 4 digits';
     }
-    $('create-token')?.addEventListener('input', updateCreateBtn);
 
     async function onEnterComplete() {
       const pin = readDigits('enter-row');
@@ -330,11 +333,11 @@
     }
 
     async function submitCreate() {
-      const pin = readDigits('create-row'), token = $('create-token').value.trim();
+      const pin = readDigits('create-row');
       $('create-error').classList.add('hidden');
       if (pin.length !== 4) return;
       $('create-btn').disabled = true; $('create-label').textContent = 'Setting up…';
-      const r = await callSe('setup', { pin, token });
+      const r = await callSe('setup', { pin });
       if (r.ok && r.session) { await db.auth.setSession(r.session); enterDashboard(); return; }
       $('create-error').textContent = r.error === '__unreachable__' ? _friendlyErr(r.error) : (r.error || 'Could not set up your PIN.');
       $('create-error').classList.remove('hidden');
@@ -350,7 +353,7 @@
       loadAll();
     }
     async function loadAll() {
-      await Promise.all([loadReviewQueue(), loadMyPrompts(), loadActive(), loadBooks()]);
+      await Promise.all([loadReviewQueue(), loadMyPrompts(), loadBoard(), loadBooks()]);
       _ensureTicker();
     }
 
@@ -443,19 +446,28 @@
       toast('Withdrawn.'); loadMyPrompts();
     }
 
-    async function loadActive() {
-      const { data, error } = await db.rpc('get_se_active_prompts');
+    async function loadBoard() {
+      const { data, error } = await db.rpc('get_se_prompt_board');
       const rows = error ? [] : (data ?? []);
-      $('active-empty').classList.toggle('hidden', rows.length > 0);
-      $('active-list').innerHTML = rows.map(p => `
-        <div class="rounded-xl border border-border bg-surface px-4 py-3 flex items-center gap-3">
-          <div class="w-12 h-12 rounded-lg overflow-hidden bg-charcoal flex-shrink-0 relative">${_bannerBg(p.banner_url)}</div>
-          <div class="min-w-0 flex-1">
-            <p class="text-white text-sm font-medium truncate">${escHtml(p.title)}</p>
-            ${p.genre ? `<p class="text-muted text-[11px] truncate">${escHtml(p.genre)}</p>` : ''}
+      $('board-empty').classList.toggle('hidden', rows.length > 0);
+      $('board-grid').innerHTML = rows.map(p => {
+        const dev = p.claim_state === 'taken';
+        const badge = dev
+          ? `<span class="absolute top-2.5 right-2.5 inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-gold bg-gold/10 border border-gold/25 rounded-full px-2 py-0.5">In dev · <span class="font-mono tabular-nums normal-case" data-countdown data-expires="${p.expires_at}">—</span></span>`
+          : `<span class="absolute top-2.5 right-2.5 text-[9px] font-bold uppercase tracking-wide text-emerald-400 bg-emerald-400/10 border border-emerald-400/25 rounded-full px-2 py-0.5">Available</span>`;
+        return `
+        <div class="rounded-2xl border border-border bg-surface overflow-hidden">
+          <div class="relative aspect-[2/1] bg-charcoal overflow-hidden">
+            ${_bannerBg(p.banner_url)}
+            <div class="absolute inset-0" style="background:linear-gradient(to top,rgba(13,11,9,0.85),transparent 60%)"></div>
+            ${badge}
+            <div class="absolute bottom-0 left-0 right-0 p-3">
+              ${p.genre ? `<span class="inline-block text-[8px] font-semibold tracking-widest uppercase text-gold/90 mb-1">${escHtml(p.genre)}</span>` : ''}
+              <h4 class="font-serif text-white text-base leading-tight">${escHtml(p.title)}</h4>
+            </div>
           </div>
-          <span class="flex-shrink-0 font-mono tabular-nums text-sm font-semibold" data-countdown data-expires="${p.expires_at}">—</span>
-        </div>`).join('');
+        </div>`;
+      }).join('');
     }
 
     async function loadBooks() {

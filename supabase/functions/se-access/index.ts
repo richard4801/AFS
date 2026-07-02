@@ -6,8 +6,9 @@
 // Required secrets (Supabase → Edge Functions → Manage secrets):
 //   SE_EMAIL         e.g. senior-editor@apexfictionstudio.com  (she never sees it)
 //   SE_PASSWORD      a long random string (the account's real password)
-//   SE_SETUP_TOKEN   a one-time code you share with her for her FIRST login only
 // SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY / SUPABASE_ANON_KEY are auto-provided.
+// (SE_SETUP_TOKEN is no longer used — PIN setup is allowed whenever no PIN is
+//  set, which the admin controls via the "Reset SE PIN" button.)
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -93,13 +94,13 @@ Deno.serve(async (req) => {
       return json({ pinSet: !!row })
     }
 
-    // First-time PIN creation (guarded by the one-time setup token)
+    // PIN creation. Allowed only when no PIN is set — which is the case on
+    // first setup and after the admin resets it. No code for her to type.
     if (action === 'setup') {
       if (!/^\d{4}$/.test(pin || '')) throw new Error('Your PIN must be 4 digits.')
-      if (!setupToken || token !== setupToken) throw new Error('Invalid setup code.')
       const u = await ensureSeUser()
       const { data: existing } = await admin.from('se_pins').select('user_id').eq('user_id', u.id).maybeSingle()
-      if (existing) throw new Error('A PIN has already been set. Please sign in with it.')
+      if (existing) throw new Error('A PIN is already set. Sign in with it, or ask your admin to reset it.')
       await admin.from('se_pins').insert({ user_id: u.id, pin_hash: await hashPin(pin) })
       return json({ ok: true, session: await mintSession() })
     }
