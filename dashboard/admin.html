@@ -60,7 +60,7 @@
     #admin-fs-content a, #admin-fs-content span, #admin-fs-content font { color:rgba(255,255,255,0.88) !important; text-decoration:none !important; }
     #chapter-content a, #chapter-content span, #chapter-content font { color:inherit !important; text-decoration:none !important; }
     /* ── Live collaboration (presence + spotlight caret) ─────────── */
-    .collab-caret{position:absolute;top:0;left:0;pointer-events:none;z-index:20;will-change:transform;transition:transform .12s linear;}
+    .collab-caret{position:absolute;top:0;left:0;pointer-events:none;z-index:20;will-change:transform;transition:transform .09s cubic-bezier(.33,1,.68,1);}
     .collab-caret-bar{display:block;width:2px;background:var(--cc,#C82333);border-radius:1px;box-shadow:0 0 6px var(--cc,#C82333);}
     .collab-caret-flag{position:absolute;top:-15px;left:-1px;white-space:nowrap;font-size:9px;font-weight:700;line-height:1;padding:2px 5px;border-radius:4px 4px 4px 0;color:#fff;background:var(--cc,#C82333);letter-spacing:.02em;}
     .collab-chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:rgba(255,255,255,0.78);background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:999px;padding:2px 9px;}
@@ -1012,7 +1012,7 @@
   </div>
 
   <!-- ADMIN FULL-SCREEN CHAPTER EDITOR -->
-  <div id="admin-fullscreen-editor" class="hidden fixed inset-0 z-[200] bg-obsidian flex flex-col">
+  <div id="admin-fullscreen-editor" class="hidden fixed inset-x-0 top-0 z-[200] bg-obsidian flex flex-col" style="height:100vh;height:100dvh">
     <!-- Row 1: Back + label + save -->
     <div class="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 border-b border-border bg-charcoal/80 backdrop-blur-sm">
       <button onclick="adminFsClose()" class="flex-shrink-0 flex items-center gap-1 text-muted hover:text-white text-xs transition-colors">
@@ -1047,7 +1047,7 @@
       <span id="admin-fs-wc-mobile" class="ml-auto text-muted text-xs tabular-nums sm:hidden">0 words</span>
     </div>
     <div id="admin-fs-error" class="hidden flex-shrink-0 px-4 py-2 bg-red-400/10 border-b border-red-400/20 text-xs text-red-400"></div>
-    <div class="flex-1 overflow-y-auto thin-scroll">
+    <div class="flex-1 min-h-0 overflow-y-auto thin-scroll">
       <div class="max-w-3xl mx-auto px-4 sm:px-10 py-8 sm:py-12 relative">
         <div id="admin-fs-collab-overlay" class="pointer-events-none absolute inset-0 z-10"></div>
         <div id="admin-fs-content" contenteditable="true" spellcheck="true"
@@ -2324,12 +2324,13 @@
         clearTimeout(cThrottle);
         cThrottle = setTimeout(() => { broadcastContent(); broadcastCursor(); }, 180);
       }
-      function onLocalCaret() { clearTimeout(kThrottle); kThrottle = setTimeout(broadcastCursor, 110); }
+      function onLocalCaret() { clearTimeout(kThrottle); kThrottle = setTimeout(broadcastCursor, 60); }
 
       function onRemoteContent(p) {
         if (!p || p.from === clientId) return;
         if (isTyping()) return;
         const root = el();
+        if (root.innerHTML === p.html) return; // cursor-only update — skip DOM rebuild/flicker
         const focused = document.activeElement === root;
         const keepOff = focused ? selOffset(root) : null;
         applying = true;
