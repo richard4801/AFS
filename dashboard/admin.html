@@ -2425,7 +2425,7 @@
       followBtnId: 'admin-fs-follow-btn',
       role: 'admin',
       getUserId: () => currentUserId,
-      getUserName: () => (document.querySelector('.admin-nav-name')?.textContent || 'Editor').trim() || 'Editor',
+      getUserName: () => 'Editor', // writers always see the admin as "Editor", never a personal name
       onContentApplied: () => updateAdminFsWc(),
     });
 
