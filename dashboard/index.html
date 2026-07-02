@@ -2948,7 +2948,10 @@
       const ROLE_COLOR = { writer: '#C9A84C', admin: '#C82333' };
       let ch = null, applying = false, lastLocalInput = 0, follow = false;
       let cThrottle = null, kThrottle = null, tick = null;
-      const carets = {}; // from -> { name, role, color, offset, typingUntil }
+      const carets = {}; // from(clientId) -> { name, role, color, offset, typingUntil }
+      // Identify each browser tab uniquely, so the same user account in two
+      // tabs (writer + admin during testing) still counts as two peers.
+      const clientId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('c-' + Date.now() + '-' + Math.random().toString(16).slice(2));
       const el = () => document.getElementById(cfg.editorId);
       const isTyping = () => (Date.now() - lastLocalInput) < 1500;
 
@@ -2998,19 +3001,19 @@
         if (!chapterId) return;
         console.log('[collab:' + cfg.role + '] join chapter', chapterId, 'user', cfg.getUserId());
         ch = cfg.db.channel('chapter-collab:' + chapterId, {
-          config: { presence: { key: String(cfg.getUserId()) }, broadcast: { self: false } },
+          config: { presence: { key: clientId }, broadcast: { self: false } },
         });
         ch.on('broadcast', { event: 'content' }, ({ payload }) => { console.log('[collab:' + cfg.role + '] recv content from', payload && payload.from); onRemoteContent(payload); })
           .on('broadcast', { event: 'cursor' }, ({ payload }) => { console.log('[collab:' + cfg.role + '] recv cursor from', payload && payload.from, 'offset', payload && payload.offset); onRemoteCursor(payload); })
           .on('presence', { event: 'sync' }, () => { renderPresence(); })
           .on('presence', { event: 'join' }, () => { console.log('[collab:' + cfg.role + '] peer joined'); renderPresence(); broadcastContent(); broadcastCursor(); })
           .on('presence', { event: 'leave' }, ({ leftPresences }) => {
-            (leftPresences || []).forEach(p => removeCaret(p.id)); renderPresence();
+            (leftPresences || []).forEach(p => removeCaret(p.clientId)); renderPresence();
           })
           .subscribe(status => {
             console.log('[collab:' + cfg.role + '] channel status:', status);
             if (status === 'SUBSCRIBED') {
-              ch.track({ id: cfg.getUserId(), name: cfg.getUserName(), role: cfg.role });
+              ch.track({ clientId: clientId, id: cfg.getUserId(), name: cfg.getUserName(), role: cfg.role });
               setTimeout(() => { broadcastContent(); broadcastCursor(); }, 400);
             } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
               const host = document.getElementById(cfg.peersHostId);
@@ -3033,13 +3036,13 @@
 
       function broadcastContent() {
         if (!ch) return;
-        ch.send({ type: 'broadcast', event: 'content', payload: { from: cfg.getUserId(), html: el().innerHTML } });
+        ch.send({ type: 'broadcast', event: 'content', payload: { from: clientId, html: el().innerHTML } });
       }
       function broadcastCursor() {
         if (!ch) return;
         const off = selOffset(el());
         if (off == null) return;
-        ch.send({ type: 'broadcast', event: 'cursor', payload: { from: cfg.getUserId(), name: cfg.getUserName(), role: cfg.role, color: ROLE_COLOR[cfg.role], offset: off } });
+        ch.send({ type: 'broadcast', event: 'cursor', payload: { from: clientId, name: cfg.getUserName(), role: cfg.role, color: ROLE_COLOR[cfg.role], offset: off } });
       }
       function onLocalInput() {
         lastLocalInput = Date.now();
@@ -3050,7 +3053,7 @@
       function onLocalCaret() { clearTimeout(kThrottle); kThrottle = setTimeout(broadcastCursor, 110); }
 
       function onRemoteContent(p) {
-        if (!p || p.from === cfg.getUserId()) return;
+        if (!p || p.from === clientId) return;
         if (isTyping()) return; // don't clobber active local typing
         const root = el();
         const focused = document.activeElement === root;
@@ -3063,7 +3066,7 @@
         Object.keys(carets).forEach(positionCaret);
       }
       function onRemoteCursor(p) {
-        if (!p || p.from === cfg.getUserId()) return;
+        if (!p || p.from === clientId) return;
         carets[p.from] = Object.assign(carets[p.from] || {}, { name: p.name, role: p.role, color: p.color, offset: p.offset, typingUntil: Date.now() + 1500 });
         positionCaret(p.from);
         renderPresence();
@@ -3111,7 +3114,7 @@
           const st = ch.presenceState();
           Object.values(st).forEach(arr => arr.forEach(m => metas.push(m)));
         }
-        const others = metas.filter(m => String(m.id) !== String(cfg.getUserId()));
+        const others = metas.filter(m => String(m.clientId) !== String(clientId));
         if (!others.length) {
           host.innerHTML = ''; host.classList.add('hidden');
           if (fb) fb.classList.add('hidden');
@@ -3121,7 +3124,7 @@
         if (fb) fb.classList.remove('hidden');
         host.innerHTML = others.map(m => {
           const color = ROLE_COLOR[m.role] || '#9A9A9A';
-          const typing = carets[m.id] && carets[m.id].typingUntil > Date.now();
+          const typing = carets[m.clientId] && carets[m.clientId].typingUntil > Date.now();
           const label = escHtml(m.name || (m.role === 'admin' ? 'Editor' : 'Writer'));
           return `<span class="collab-chip" style="--cc:${color}"><span class="collab-dot" style="background:${color};color:${color}"></span>${label}${typing ? ' <span class="collab-typing">typing…</span>' : ''}</span>`;
         }).join('');
