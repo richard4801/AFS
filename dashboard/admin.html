@@ -890,10 +890,26 @@
             <h2 class="font-serif text-2xl sm:text-3xl text-white mb-1">Writing Prompts</h2>
             <p class="text-muted text-sm">Publish prompts to the writer home feed and track who's developing what.</p>
           </div>
-          <button onclick="openAdminPromptModal()" class="flex-shrink-0 inline-flex items-center gap-2 px-4 py-2.5 bg-crimson hover:bg-crimson-light text-white text-xs font-semibold rounded-lg transition-colors">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-            New Prompt
-          </button>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <button onclick="resetSePin()" title="Reset your Senior Editor's PIN" class="inline-flex items-center gap-1.5 px-3 py-2.5 border border-border hover:border-white/25 text-muted hover:text-white text-xs font-medium rounded-lg transition-all">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            <span class="hidden sm:inline">Reset SE PIN</span>
+            </button>
+            <button onclick="openAdminPromptModal()" class="inline-flex items-center gap-2 px-4 py-2.5 bg-crimson hover:bg-crimson-light text-white text-xs font-semibold rounded-lg transition-colors">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+              New Prompt
+            </button>
+          </div>
+        </div>
+
+        <!-- Awaiting your review — Senior Editor submissions -->
+        <div class="mb-8">
+          <div class="flex items-center gap-2 mb-3">
+            <h3 class="text-white text-sm font-semibold">Awaiting your review</h3>
+            <span id="admin-review-count" class="text-[10px] font-bold text-crimson-light bg-crimson/12 border border-crimson/30 rounded-full px-2 py-0.5">0</span>
+          </div>
+          <div id="admin-review-list" class="space-y-4"></div>
+          <p id="admin-review-empty" class="text-muted/60 text-xs py-6 text-center">No prompts from your Senior Editor to review.</p>
         </div>
 
         <div class="mb-8">
@@ -949,6 +965,20 @@
       </div>
 
     </main>
+  </div>
+
+  <!-- ADMIN DECLINE (Senior Editor prompt) MODAL -->
+  <div id="admin-decline-modal" class="hidden fixed inset-0 z-[210] flex items-center justify-center px-4" style="background:rgba(0,0,0,0.75);backdrop-filter:blur(4px)">
+    <div class="w-full max-w-md bg-charcoal rounded-2xl border border-border p-6">
+      <h3 class="font-serif text-lg text-white mb-1">Decline this prompt</h3>
+      <p class="text-muted text-xs mb-4">Leave a note so your Senior Editor knows why (optional).</p>
+      <textarea id="admin-decline-note" rows="4" placeholder="What would make this prompt work?"
+                class="w-full bg-obsidian border border-border text-white placeholder-muted/60 text-sm rounded-lg px-4 py-3 resize-y mb-4 focus:outline-none focus:border-crimson/50"></textarea>
+      <div class="flex items-center justify-end gap-3">
+        <button onclick="adminCloseDecline()" class="px-4 py-2.5 border border-border hover:border-white/25 text-muted hover:text-white text-xs rounded-lg transition-all">Cancel</button>
+        <button onclick="adminConfirmDecline()" class="px-5 py-2.5 border border-red-400/40 text-red-300 hover:bg-red-400/10 text-xs font-semibold rounded-lg transition-colors">Decline Prompt</button>
+      </div>
+    </div>
   </div>
 
   <!-- ADMIN PROMPT EDIT MODAL -->
@@ -3644,13 +3674,70 @@
 
     async function loadAdminPrompts() {
       await _loadAdminClaims();      // populates _adminActiveClaimByPrompt first
-      await _loadAdminPromptLibrary();
+      await Promise.all([_loadAdminReviewQueue(), _loadAdminPromptLibrary()]);
       _ensureAdminCountdown();
+    }
+
+    async function _loadAdminReviewQueue() {
+      const { data, error } = await db.rpc('get_prompts_pending_review');
+      const rows = error ? [] : (data ?? []);
+      $('admin-review-count').textContent = rows.length;
+      $('admin-review-empty').classList.toggle('hidden', rows.length > 0);
+      $('admin-review-list').innerHTML = rows.map(p => {
+        const banner = p.banner_url
+          ? `<img src="${escHtml(p.banner_url)}" alt="" class="absolute inset-0 w-full h-full object-cover"/>`
+          : `<div class="absolute inset-0" style="background:radial-gradient(ellipse at 30% 20%,rgba(163,22,33,0.12),transparent 55%),linear-gradient(135deg,#1C1C1C,#242424)"></div>`;
+        const brief = String(p.brief || '').replace(/\s+/g, ' ').trim();
+        return `
+        <div class="rounded-2xl border border-border bg-surface overflow-hidden">
+          <div class="relative aspect-[16/6] bg-charcoal overflow-hidden">
+            ${banner}
+            <div class="absolute inset-0" style="background:linear-gradient(to top,rgba(13,11,9,0.9),transparent 65%)"></div>
+            <div class="absolute bottom-0 left-0 right-0 p-4">
+              ${p.genre ? `<span class="inline-block text-[9px] font-semibold tracking-widest uppercase text-gold mb-1">${escHtml(p.genre)}</span>` : ''}
+              <h4 class="font-serif text-lg sm:text-xl text-white leading-tight">${escHtml(p.title)}</h4>
+            </div>
+          </div>
+          <div class="p-4">
+            <p class="text-white/70 text-sm leading-relaxed mb-4">${escHtml(brief.length > 200 ? brief.slice(0,200)+'…' : brief)}</p>
+            <div class="flex items-center gap-2.5">
+              <button onclick="adminReviewPrompt('${p.id}','approved')" class="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-500/90 hover:bg-emerald-500 text-obsidian text-xs font-bold rounded-lg transition-colors">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                Approve
+              </button>
+              <button onclick="adminOpenDecline('${p.id}')" class="px-4 py-2 border border-border hover:border-red-400/40 text-muted hover:text-red-300 text-xs font-semibold rounded-lg transition-colors">Decline</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    async function adminReviewPrompt(id, decision, note = null) {
+      const { error } = await db.rpc('review_prompt', { p_id: id, p_decision: decision, p_note: note });
+      if (error) { showToast(error.message); return; }
+      showToast(decision === 'approved' ? 'Approved — live for writers ✓' : 'Prompt declined.');
+      loadAdminPrompts();
+    }
+    async function resetSePin() {
+      if (!confirm('Reset your Senior Editor\'s PIN?\n\nHer current PIN stops working immediately. On her next visit she\'ll be asked to create a new one (she\'ll need the setup code again).')) return;
+      const { error } = await db.rpc('admin_reset_se_pin');
+      if (error) { showToast('Error: ' + error.message); return; }
+      showToast('Senior Editor PIN reset. She can set a new one on her next visit.');
+    }
+    let _adminDeclineId = null;
+    function adminOpenDecline(id) { _adminDeclineId = id; $('admin-decline-note').value = ''; $('admin-decline-modal').classList.remove('hidden'); }
+    function adminCloseDecline() { _adminDeclineId = null; $('admin-decline-modal').classList.add('hidden'); }
+    function adminConfirmDecline() {
+      if (!_adminDeclineId) return;
+      const note = $('admin-decline-note').value.trim() || null;
+      const id = _adminDeclineId;
+      adminCloseDecline();
+      adminReviewPrompt(id, 'denied', note);
     }
 
     async function _loadAdminPromptLibrary() {
       const { data, error } = await db.from('writing_prompts')
-        .select('id, title, genre, brief, banner_url, sort_order, is_active, created_at')
+        .select('id, title, genre, brief, banner_url, sort_order, is_active, created_at, review_status, review_note, created_by_role')
         .order('sort_order', { ascending: true })
         .order('created_at', { ascending: false });
       const prompts = error ? [] : (data ?? []);
@@ -3671,11 +3758,14 @@
           ? `<img src="${escHtml(p.banner_url)}" alt="" class="absolute inset-0 w-full h-full object-cover"/>`
           : `<div class="absolute inset-0" style="background:radial-gradient(ellipse at 30% 20%,rgba(163,22,33,0.12),transparent 55%),linear-gradient(135deg,#1C1C1C,#242424)"></div>`;
         const claim = _adminActiveClaimByPrompt[p.id];
-        const statusBadge = !p.is_active
-          ? `<span class="text-[9px] font-bold uppercase tracking-wide text-muted bg-white/5 border border-border rounded-full px-2 py-0.5">Hidden</span>`
-          : claim
-            ? `<span class="text-[9px] font-bold uppercase tracking-wide text-gold bg-gold/10 border border-gold/25 rounded-full px-2 py-0.5">In development</span>`
-            : `<span class="text-[9px] font-bold uppercase tracking-wide text-emerald-400 bg-emerald-400/10 border border-emerald-400/25 rounded-full px-2 py-0.5">Available</span>`;
+        const badge = (txt, cls) => `<span class="text-[9px] font-bold uppercase tracking-wide ${cls} rounded-full px-2 py-0.5">${txt}</span>`;
+        const statusBadge =
+          (p.review_status === 'pending' && p.created_by_role === 'admin') ? badge('Pending SE review', 'text-gold bg-gold/10 border border-gold/25')
+          : (p.review_status === 'pending' && p.created_by_role === 'senior_editor') ? badge('Awaiting your review', 'text-crimson-light bg-crimson/12 border border-crimson/30')
+          : (p.review_status === 'denied') ? badge('Declined', 'text-red-300 bg-red-400/10 border border-red-400/25')
+          : !p.is_active ? badge('Hidden', 'text-muted bg-white/5 border border-border')
+          : claim ? badge('In development', 'text-gold bg-gold/10 border border-gold/25')
+          : badge('Available', 'text-emerald-400 bg-emerald-400/10 border border-emerald-400/25');
         return `
         <div class="rounded-2xl border border-border bg-surface overflow-hidden">
           <button onclick="openAdminPromptModal('${p.id}')" class="block w-full text-left group">
@@ -3816,12 +3906,14 @@
         ({ error } = await db.from('writing_prompts').update(row).eq('id', id));
       } else {
         row.created_by = currentUserId;
+        row.created_by_role = 'admin';
+        row.review_status = 'pending'; // your new prompts go to the Senior Editor for approval
         ({ error } = await db.from('writing_prompts').insert(row));
       }
       btn.disabled = false; btn.textContent = 'Save Prompt';
       if (error) { err.textContent = error.message; err.classList.remove('hidden'); return; }
       closeAdminPromptModal();
-      showToast(id ? 'Prompt updated ✓' : 'Prompt published ✓');
+      showToast(id ? 'Prompt updated ✓' : 'Submitted to your Senior Editor for approval');
       loadAdminPrompts();
     }
 
