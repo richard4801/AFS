@@ -49,6 +49,17 @@
     .se-comment-card.active{border-color:rgba(201,168,76,0.5);background:rgba(201,168,76,0.07);}
     .se-comment-card.resolved{opacity:.55;}
     .se-comment-quote{font-size:11px;color:rgba(201,168,76,0.85);border-left:2px solid rgba(201,168,76,0.4);padding-left:8px;margin-bottom:7px;line-height:1.5;font-style:italic;}
+    /* ── Edit mode (once the admin grants edit access) ─────────────
+       Same overlay-based highlight technique the writer/admin editors
+       use — content becomes contenteditable + autosaved, so highlights
+       can no longer be safely drawn by wrapping the DOM in <mark>. */
+    #se-reader-content[contenteditable="true"]{outline:none;caret-color:#C9A84C;}
+    .chapter-highlight-ov{position:absolute;background:rgba(201,168,76,0.28);border-radius:2px;pointer-events:none;transition:background .15s;}
+    .chapter-highlight-ov.active{background:rgba(201,168,76,0.5);}
+    .chapter-highlight-ov.resolved{background:rgba(122,122,122,0.16);}
+    .fs-tool-btn{padding:2px 9px;border-radius:5px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.6);background:transparent;border:1px solid transparent;cursor:pointer;transition:all .15s;line-height:1.8;}
+    .fs-tool-btn:hover{background:rgba(255,255,255,0.07);border-color:rgba(255,255,255,0.12);color:#fff;}
+    .fs-tool-btn.active{background:rgba(201,168,76,0.18);border-color:rgba(201,168,76,0.4);color:#C9A84C;}
   </style>
 </head>
 <body class="bg-obsidian text-white font-sans antialiased" style="font-weight:300;">
@@ -284,12 +295,20 @@
       <div class="w-px h-4 bg-border flex-shrink-0"></div>
       <span id="sr-title" class="text-sm text-white/85 truncate flex-1 min-w-0"></span>
       <div id="sr-collab-peers" class="hidden items-center gap-1.5 flex-shrink-0"></div>
-      <span class="text-[9px] font-bold uppercase tracking-wide text-muted border border-border rounded-full px-2 py-0.5 flex-shrink-0">Read only</span>
+      <span id="sr-autosave" class="hidden text-[10px] text-muted flex-shrink-0"></span>
+      <button id="sr-request-btn" onclick="requestSeEditAccess()" class="hidden flex-shrink-0 text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full border border-gold/40 text-gold hover:bg-gold/10 transition-colors">Request Edit Access</button>
+      <span id="sr-access-badge" class="text-[9px] font-bold uppercase tracking-wide text-muted border border-border rounded-full px-2 py-0.5 flex-shrink-0">Read only</span>
+    </div>
+    <div id="sr-toolbar" class="hidden flex-shrink-0 flex items-center gap-1 px-4 sm:px-6 py-1.5 border-b border-border/50 bg-charcoal/50">
+      <button data-cmd="bold" onclick="seExecFmt('bold')" title="Bold (Ctrl+B)" class="fs-tool-btn font-bold">B</button>
+      <button data-cmd="italic" onclick="seExecFmt('italic')" title="Italic (Ctrl+I)" class="fs-tool-btn italic">I</button>
+      <button data-cmd="underline" onclick="seExecFmt('underline')" title="Underline (Ctrl+U)" class="fs-tool-btn underline">U</button>
     </div>
     <div class="flex-1 flex min-h-0">
       <!-- Reading column -->
       <div id="se-reader-scroll" class="flex-1 overflow-y-auto thin-scroll">
-        <div class="max-w-3xl mx-auto px-4 sm:px-10 py-8 sm:py-12">
+        <div class="max-w-3xl mx-auto px-4 sm:px-10 py-8 sm:py-12 relative">
+          <div id="se-comment-overlay" class="pointer-events-none absolute inset-0 z-[9]"></div>
           <div id="se-reader-content" class="min-h-[50vh]"></div>
         </div>
       </div>
@@ -770,19 +789,120 @@
       return raw.split(/\n{2,}/).map(par => `<p>${escHtml(par.trim()).replace(/\n/g, '<br>')}</p>`).join('');
     }
     let _seChapterId = null;
+    // ── Edit access (request → admin approval → same fully-mirrored
+    // editable editor writer/admin get, instead of read-only). ────────
+    let _seEditStatus = null; // null | 'pending' | 'approved' | 'denied' | 'revoked'
+
+    function _updateSrAccessUI() {
+      const badge = $('sr-access-badge'), reqBtn = $('sr-request-btn'), toolbar = $('sr-toolbar'), content = $('se-reader-content');
+      if (_seEditStatus === 'approved') {
+        badge.textContent = 'Editing';
+        badge.className = 'text-[9px] font-bold uppercase tracking-wide text-emerald-300 bg-emerald-400/10 border border-emerald-400/25 rounded-full px-2 py-0.5 flex-shrink-0';
+        reqBtn.classList.add('hidden');
+        toolbar.classList.remove('hidden');
+        content.contentEditable = 'true';
+      } else {
+        toolbar.classList.add('hidden');
+        content.contentEditable = 'false';
+        if (_seEditStatus === 'pending') {
+          badge.textContent = 'Access requested';
+          badge.className = 'text-[9px] font-bold uppercase tracking-wide text-gold bg-gold/10 border border-gold/25 rounded-full px-2 py-0.5 flex-shrink-0';
+          reqBtn.classList.add('hidden');
+        } else {
+          badge.textContent = 'Read only';
+          badge.className = 'text-[9px] font-bold uppercase tracking-wide text-muted border border-border rounded-full px-2 py-0.5 flex-shrink-0';
+          reqBtn.classList.remove('hidden');
+        }
+      }
+    }
+    async function requestSeEditAccess() {
+      if (!_seChapterId) return;
+      const btn = $('sr-request-btn');
+      btn.disabled = true; btn.textContent = 'Requesting…';
+      const { data, error } = await db.rpc('se_request_chapter_edit_access', { p_chapter_id: _seChapterId });
+      btn.disabled = false; btn.textContent = 'Request Edit Access';
+      if (error) { toast(error.message); return; }
+      _seEditStatus = data;
+      _updateSrAccessUI();
+      toast('Request sent — the admin will review it.');
+    }
+    function seExecFmt(cmd) {
+      document.execCommand(cmd, false, null);
+      $('se-reader-content').focus();
+      _updateSrToolbarState();
+    }
+    function _updateSrToolbarState() {
+      ['bold', 'italic', 'underline'].forEach(cmd => {
+        const btn = document.querySelector('#sr-toolbar .fs-tool-btn[data-cmd="' + cmd + '"]');
+        if (btn) btn.classList.toggle('active', document.queryCommandState(cmd));
+      });
+    }
+
+    // ── Autosave (edit mode only) — writes go through se_save_chapter_content,
+    // which re-checks approved access server-side on every save. ─────
+    let _seAsTimer = null, _seAsUnsaved = false, _seAsInFlight = false;
+    function _seAsSetStatus(state) {
+      const el = $('sr-autosave');
+      if (!el) return;
+      if (state === 'saved')        { el.textContent = '✓ Saved';      el.style.color = 'rgba(74,222,128,0.65)'; el.classList.remove('hidden'); }
+      else if (state === 'saving')  { el.textContent = '• Saving…';    el.style.color = 'rgba(122,122,122,0.7)'; el.classList.remove('hidden'); }
+      else if (state === 'unsaved') { el.textContent = '• Unsaved';    el.style.color = 'rgba(201,168,76,0.6)';  el.classList.remove('hidden'); }
+      else el.classList.add('hidden');
+    }
+    function _seWordCount() {
+      const text = ($('se-reader-content').innerText || '').trim();
+      return text ? text.split(/\s+/).length : 0;
+    }
+    async function _seDoAutoSave() {
+      if (_seAsInFlight || !_seChapterId || _seEditStatus !== 'approved') return;
+      const html  = $('se-reader-content').innerHTML;
+      const inner = ($('se-reader-content').innerText || '').trim();
+      if (!inner) return;
+      _seAsInFlight = true;
+      _seAsSetStatus('saving');
+      const { error } = await db.rpc('se_save_chapter_content', { p_chapter_id: _seChapterId, p_content: html, p_word_count: _seWordCount() });
+      _seAsInFlight = false;
+      if (!error) { _seAsUnsaved = false; _seAsSetStatus('saved'); }
+      else { _seAsSetStatus('unsaved'); toast('Save failed: ' + error.message); }
+    }
+    let _seOverlayRaf = null;
+    $('se-reader-content')?.addEventListener('input', () => {
+      if (_seEditStatus !== 'approved') return;
+      _seAsUnsaved = true;
+      _seAsSetStatus('unsaved');
+      clearTimeout(_seAsTimer);
+      _seAsTimer = setTimeout(_seDoAutoSave, 2500);
+      if (_seOverlayRaf) cancelAnimationFrame(_seOverlayRaf);
+      _seOverlayRaf = requestAnimationFrame(_renderCommentsVisual);
+    });
+    $('se-reader-content')?.addEventListener('keyup', _updateSrToolbarState);
+    $('se-reader-content')?.addEventListener('mouseup', _updateSrToolbarState);
+    window.addEventListener('resize', () => { if (_seEditStatus === 'approved') _renderCommentsVisual(); }, { passive: true });
+
     async function openSeReader(chapterId, titleFallback) {
       _seChapterId = chapterId;
       _seActiveCommentId = null;
+      _seEditStatus = null;
       $('sr-title').textContent = titleFallback || 'Chapter';
       $('se-reader-content').innerHTML = '<p class="text-muted/50 italic">Loading…</p>';
+      $('se-reader-content').contentEditable = 'false';
+      $('sr-toolbar').classList.add('hidden');
+      $('sr-request-btn').classList.add('hidden');
+      $('se-comment-overlay').innerHTML = '';
       $('se-comments-list').innerHTML = '';
       $('se-comments-empty').classList.add('hidden');
       $('se-comments-fab').classList.add('hidden');
       $('se-reader').classList.remove('hidden');
       document.body.style.overflow = 'hidden';
       seJoinPresence(chapterId);
+      _seAsSetStatus(null);
 
-      const { data, error } = await db.rpc('get_se_chapter_content', { p_chapter_id: chapterId });
+      const [{ data, error }, accessRes] = await Promise.all([
+        db.rpc('get_se_chapter_content', { p_chapter_id: chapterId }),
+        db.rpc('get_se_chapter_edit_access', { p_chapter_id: chapterId }),
+      ]);
+      _seEditStatus = accessRes?.error ? null : (accessRes?.data || null);
+      _updateSrAccessUI();
       const row = Array.isArray(data) ? data[0] : data;
       if (error) {
         console.error('get_se_chapter_content:', error);
@@ -798,6 +918,8 @@
       subscribeChapterComments(chapterId);
     }
     function closeSeReader() {
+      if (_seAsUnsaved) _seDoAutoSave(); // fire-and-forget
+      clearTimeout(_seAsTimer);
       $('se-reader').classList.add('hidden');
       document.body.style.overflow = '';
       seLeavePresence();
@@ -806,6 +928,7 @@
       _hideCommentTrigger();
       _seChapterId = null;
       _seComments = [];
+      _seEditStatus = null;
     }
 
     // Presence-only join on the same collab channel writers/admin use, so her
@@ -877,6 +1000,50 @@
       }
       return last ? { node: last, offset: last.nodeValue.length } : null;
     }
+    function _rangeFromOffsets(root, start, end) {
+      const s = _pointAt(root, start), e = _pointAt(root, Math.max(start, end));
+      if (!s || !e) return null;
+      const r = document.createRange();
+      r.setStart(s.node, s.offset); r.setEnd(e.node, e.offset);
+      return r;
+    }
+    // Once edit access is approved, #se-reader-content becomes contenteditable
+    // and autosaves — same as writer/admin, wrapping the DOM in <mark> is no
+    // longer safe (a stray edit could leak markup into what gets saved), so
+    // highlights switch to the same transparent overlay technique they use.
+    function _renderCommentOverlaySe() {
+      const root = $('se-reader-content'), overlay = $('se-comment-overlay');
+      if (!root || !overlay) return;
+      overlay.innerHTML = '';
+      const parentRect = overlay.getBoundingClientRect();
+      _seComments.filter(c => !c.parent_id && c.start_offset != null).forEach(c => {
+        const range = _rangeFromOffsets(root, c.start_offset, c.end_offset);
+        if (!range) return;
+        [...range.getClientRects()].forEach(r => {
+          const mark = document.createElement('div');
+          mark.className = 'chapter-highlight-ov' + (c.resolved ? ' resolved' : '') + (c.id === _seActiveCommentId ? ' active' : '');
+          mark.dataset.commentId = c.id;
+          mark.style.left = (r.left - parentRect.left) + 'px';
+          mark.style.top = (r.top - parentRect.top) + 'px';
+          mark.style.width = r.width + 'px';
+          mark.style.height = r.height + 'px';
+          overlay.appendChild(mark);
+        });
+      });
+    }
+    // Dispatcher: read-only chapters keep the DOM-wrapped <mark> highlights
+    // (safe there since nothing is ever saved); once she has edit access the
+    // overlay takes over instead.
+    function _renderCommentsVisual() {
+      if (_seEditStatus === 'approved') {
+        $('se-comment-overlay').classList.remove('hidden');
+        _renderCommentOverlaySe();
+      } else {
+        $('se-comment-overlay').classList.add('hidden');
+        $('se-comment-overlay').innerHTML = '';
+        _renderHighlights();
+      }
+    }
     function _wrapRange(root, start, end, commentId) {
       if (end <= start) return;
       const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
@@ -944,9 +1111,23 @@
       function onUp() {
         setTimeout(() => {
           const sel = window.getSelection();
-          if (!sel || sel.isCollapsed || sel.rangeCount === 0) { _hideCommentTrigger(); return; }
+          if (!sel || sel.rangeCount === 0) { _hideCommentTrigger(); return; }
           const range = sel.getRangeAt(0);
-          if (!root.contains(range.commonAncestorContainer) || !range.toString().trim()) { _hideCommentTrigger(); return; }
+          if (!root.contains(range.commonAncestorContainer)) { _hideCommentTrigger(); return; }
+          if (sel.isCollapsed) {
+            _hideCommentTrigger();
+            // In edit mode the highlight overlay can't intercept clicks itself
+            // (pointer-events:none, so typing/caret placement keeps working) —
+            // detect a click on a highlighted comment the same way writer/admin
+            // do: check whether the click offset falls inside a comment range.
+            if (_seEditStatus === 'approved') {
+              const { start } = _rangeOffsets(root, range);
+              const hit = _seComments.find(c => !c.parent_id && c.start_offset != null && start >= c.start_offset && start < c.end_offset);
+              if (hit) focusComment(hit.id);
+            }
+            return;
+          }
+          if (!range.toString().trim()) { _hideCommentTrigger(); return; }
           const { start, end } = _rangeOffsets(root, range);
           _sePendingRange = { start, end, quoted: range.toString() };
           _positionCommentTrigger(range.getBoundingClientRect());
@@ -1008,7 +1189,7 @@
       const card = document.getElementById('se-compose-card');
       const btn  = card?.querySelector('button:last-child');
       if (btn) { btn.disabled = true; btn.textContent = 'Posting…'; }
-      const { error } = await db.rpc('se_post_comment', {
+      const { error } = await db.rpc('post_chapter_comment', {
         p_chapter_id: _seChapterId, p_start_offset: start, p_end_offset: end,
         p_quoted_text: quoted, p_body: body,
       });
@@ -1032,21 +1213,16 @@
       await loadChapterComments(_seChapterId);
     }
 
-    function _authorLabel(c) {
-      if (c.author_role === 'senior_editor') return 'God Mother';
-      if (c.author_role === 'admin') return 'Editor';
-      return 'Writer';
-    }
     function _threadHtml(root) {
       const replies = _seComments.filter(c => c.parent_id === root.id).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
       const isActive = root.id === _seActiveCommentId;
-      const canManage = root.reviewer_id === currentUserId;
+      const canManage = root.is_own;
       return `
         <div class="se-comment-card ${isActive ? 'active' : ''} ${root.resolved ? 'resolved' : ''}" data-thread-id="${root.id}" onclick="focusComment('${root.id}')">
           ${root.quoted_text ? `<p class="se-comment-quote">"${escHtml(root.quoted_text.length > 140 ? root.quoted_text.slice(0, 140) + '…' : root.quoted_text)}"</p>` : ''}
-          <div class="flex items-start justify-between gap-2 mb-1">
-            <span class="text-[11px] font-semibold text-gold">${_authorLabel(root)}</span>
-            ${canManage ? `<div class="flex items-center gap-1 flex-shrink-0" onclick="event.stopPropagation()">
+          <div class="flex items-start gap-2 mb-1">
+            ${root.is_own ? '' : `<span class="text-[11px] font-semibold text-gold">${escHtml(root.author_label)}</span>`}
+            ${canManage ? `<div class="flex items-center gap-1 flex-shrink-0 ml-auto" onclick="event.stopPropagation()">
               <button onclick="toggleResolve('${root.id}', ${!root.resolved})" title="${root.resolved ? 'Reopen' : 'Resolve'}" class="text-muted hover:text-white p-0.5">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               </button>
@@ -1058,7 +1234,7 @@
           <p class="text-white/80 text-xs leading-relaxed mb-2">${escHtml(root.body)}</p>
           ${replies.map(r => `
             <div class="mt-2 pl-3 border-l border-border">
-              <span class="text-[10px] font-semibold text-white/60">${_authorLabel(r)}</span>
+              ${r.is_own ? '' : `<span class="text-[10px] font-semibold text-white/60">${escHtml(r.author_label)}</span>`}
               <p class="text-white/70 text-xs leading-relaxed">${escHtml(r.body)}</p>
             </div>`).join('')}
           ${root.resolved ? `<p class="text-[10px] text-muted mt-2">✓ Resolved</p>` : `
@@ -1084,13 +1260,9 @@
       }
     }
     async function loadChapterComments(chapterId) {
-      const { data, error } = await db.from('comments')
-        .select('id, parent_id, body, resolved, reviewer_id, author_role, start_offset, end_offset, quoted_text, created_at')
-        .eq('chapter_id', chapterId)
-        .not('start_offset', 'is', null)
-        .order('start_offset', { ascending: true });
+      const { data, error } = await db.rpc('get_chapter_comments', { p_chapter_id: chapterId });
       _seComments = error ? [] : (data ?? []);
-      _renderHighlights();
+      _renderCommentsVisual();
       _renderCommentPanel();
     }
     async function submitReply(rootId, inputEl) {
@@ -1099,7 +1271,7 @@
       const root = _seComments.find(c => c.id === rootId);
       if (!root) return;
       inputEl.disabled = true;
-      const { error } = await db.rpc('se_post_comment', {
+      const { error } = await db.rpc('post_chapter_comment', {
         p_chapter_id: _seChapterId, p_start_offset: root.start_offset, p_end_offset: root.end_offset,
         p_quoted_text: root.quoted_text, p_body: body, p_parent_id: rootId,
       });
@@ -1107,21 +1279,26 @@
       await loadChapterComments(_seChapterId);
     }
     async function toggleResolve(id, resolved) {
-      const { error } = await db.from('comments').update({ resolved, updated_at: new Date().toISOString() }).eq('id', id);
+      const { error } = await db.rpc('set_comment_resolved', { p_id: id, p_resolved: resolved });
       if (error) { toast(error.message); return; }
       await loadChapterComments(_seChapterId);
     }
     async function deleteRootComment(id) {
       if (!confirm('Delete this comment and its replies?')) return;
-      const { error } = await db.from('comments').delete().eq('id', id);
+      const { error } = await db.rpc('delete_own_comment', { p_id: id });
       if (error) { toast(error.message); return; }
       await loadChapterComments(_seChapterId);
     }
     function focusComment(id) {
       _seActiveCommentId = id;
-      const root = $('se-reader-content');
-      root.querySelectorAll('mark.chapter-highlight').forEach(m => m.classList.toggle('active', m.dataset.commentId === id));
-      root.querySelector(`mark.chapter-highlight[data-comment-id="${id}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      if (_seEditStatus === 'approved') {
+        _renderCommentOverlaySe();
+        $('se-comment-overlay').querySelector(`[data-comment-id="${id}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      } else {
+        const root = $('se-reader-content');
+        root.querySelectorAll('mark.chapter-highlight').forEach(m => m.classList.toggle('active', m.dataset.commentId === id));
+        root.querySelector(`mark.chapter-highlight[data-comment-id="${id}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }
       if (window.innerWidth < 1024) {
         const c = _seComments.find(x => x.id === id);
         if (!c) return;

@@ -70,6 +70,17 @@
     .collab-follow-btn{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:5px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.6);transition:all .15s;}
     .collab-follow-btn:hover{color:#fff;border-color:rgba(255,255,255,0.25);}
     .collab-follow-btn[data-on="1"]{color:#C82333;border-color:rgba(200,35,51,0.45);background:rgba(200,35,51,0.12);}
+    /* ── Chapter comments (overlay — never touches editable content DOM) ── */
+    .chapter-highlight-ov{position:absolute;background:rgba(201,168,76,0.28);border-radius:2px;pointer-events:none;transition:background .15s;}
+    .chapter-highlight-ov.active{background:rgba(201,168,76,0.5);}
+    .chapter-highlight-ov.resolved{background:rgba(122,122,122,0.16);}
+    #acmt-comment-trigger{position:fixed;z-index:96;display:none;transform:translate(-50%,-100%);}
+    #acmt-comment-trigger button{display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:999px;background:#C9A84C;color:#0D0B09;font-size:11px;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,0.45);border:none;cursor:pointer;white-space:nowrap;}
+    #acmt-comment-trigger button:hover{background:#E2C97E;}
+    .acmt-card{border-radius:14px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.03);padding:12px 14px;transition:border-color .2s,background .2s;}
+    .acmt-card.active{border-color:rgba(201,168,76,0.5);background:rgba(201,168,76,0.07);}
+    .acmt-card.resolved{opacity:.55;}
+    .acmt-quote{font-size:11px;color:rgba(201,168,76,0.85);border-left:2px solid rgba(201,168,76,0.4);padding-left:8px;margin-bottom:7px;line-height:1.5;font-style:italic;}
     @keyframes typingBounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
     .typing-dot { width:7px;height:7px;border-radius:50%;background:rgba(106,106,106,0.65);animation:typingBounce 1.1s ease-in-out infinite;flex-shrink:0; }
     @media (max-width:767px) { #admin-chat-fs-btn { display:none !important; } }
@@ -953,6 +964,10 @@
           <h2 class="font-serif text-2xl sm:text-3xl text-white mb-1">Senior Editor Notes</h2>
           <p class="text-muted text-sm">Chapter recommendations from your Senior Editor. Nothing here has reached the writer — review her note, then use the chapter's own Approve / Request Revision to act officially.</p>
         </div>
+        <div id="se-edit-requests-block" class="hidden mb-8">
+          <h3 class="text-white text-sm font-semibold mb-3">Edit Access Requests</h3>
+          <div id="se-edit-requests-list" class="space-y-3"></div>
+        </div>
         <div id="senotes-list" class="space-y-4"></div>
         <div id="senotes-empty" class="hidden text-center py-16">
           <div class="w-14 h-14 rounded-2xl bg-surface border border-border flex items-center justify-center mx-auto mb-4">
@@ -1095,6 +1110,20 @@
         </button>
       </div>
     </div>
+    <!-- Row 1b: Approve / Request Revision — lives here now, not a separate read view -->
+    <div class="flex-shrink-0 flex items-center gap-2 px-4 py-2 border-b border-border/50 bg-charcoal/50">
+      <button id="fs-approve-btn" onclick="approveChapter(selectedChapter?.id)"
+              class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-400/10 hover:bg-emerald-400/20 border border-emerald-400/30 hover:border-emerald-400/60 text-emerald-400 text-xs font-semibold rounded-lg transition-all duration-200 disabled:opacity-30 disabled:pointer-events-none">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        Approve
+      </button>
+      <button id="fs-reject-btn" onclick="doReject(selectedChapter?.id)"
+              class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-crimson/10 hover:bg-crimson/20 border border-crimson/30 hover:border-crimson/60 text-red-400 text-xs font-semibold rounded-lg transition-all duration-200 disabled:opacity-30 disabled:pointer-events-none">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        Request Revision
+      </button>
+      <span id="fs-chapter-status" class="text-muted text-xs ml-1"></span>
+    </div>
     <!-- Row 2: Formatting toolbar -->
     <div class="flex-shrink-0 flex items-center gap-1 px-4 py-1.5 border-b border-border/50 bg-charcoal/60">
       <button data-cmd="bold"      onclick="adminExecFmt('bold')"      title="Bold (Ctrl+B)"      class="fs-tool-btn font-bold">B</button>
@@ -1106,14 +1135,52 @@
       <span id="admin-fs-wc-mobile" class="ml-auto text-muted text-xs tabular-nums sm:hidden">0 words</span>
     </div>
     <div id="admin-fs-error" class="hidden flex-shrink-0 px-4 py-2 bg-red-400/10 border-b border-red-400/20 text-xs text-red-400"></div>
-    <div class="flex-1 min-h-0 overflow-y-auto thin-scroll">
-      <div class="max-w-3xl mx-auto px-4 sm:px-10 py-8 sm:py-12 relative">
-        <div id="admin-fs-collab-overlay" class="pointer-events-none absolute inset-0 z-10"></div>
-        <div id="admin-fs-content" contenteditable="true" spellcheck="true"
-             class="min-h-[65vh] outline-none"
-             data-placeholder="Chapter content…"
-             style="font-family:'Poppins',system-ui,sans-serif;font-size:16px;font-weight:300;line-height:1.9;color:rgba(255,255,255,0.88);caret-color:#C9A84C;letter-spacing:0.01em;"></div>
+    <div class="flex-1 flex min-h-0">
+      <div class="flex-1 overflow-y-auto thin-scroll">
+        <div class="max-w-3xl mx-auto px-4 sm:px-10 py-8 sm:py-12 relative">
+          <div id="admin-fs-collab-overlay" class="pointer-events-none absolute inset-0 z-10"></div>
+          <div id="admin-fs-comment-overlay" class="pointer-events-none absolute inset-0 z-[9]"></div>
+          <div id="admin-fs-content" contenteditable="true" spellcheck="true"
+               class="min-h-[65vh] outline-none"
+               data-placeholder="Chapter content…"
+               style="font-family:'Poppins',system-ui,sans-serif;font-size:16px;font-weight:300;line-height:1.9;color:rgba(255,255,255,0.88);caret-color:#C9A84C;letter-spacing:0.01em;"></div>
+        </div>
       </div>
+      <!-- Comments panel (desktop) -->
+      <div id="acmt-panel" class="hidden lg:flex flex-col w-[340px] flex-shrink-0 border-l border-border bg-charcoal/40">
+        <div class="flex-shrink-0 px-5 py-4 border-b border-border/60">
+          <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted">Comments</p>
+        </div>
+        <div id="acmt-list" class="flex-1 overflow-y-auto thin-scroll px-4 py-4 space-y-3"></div>
+        <p id="acmt-empty" class="text-muted/50 text-xs text-center py-10 px-5 leading-relaxed">Highlight any text to leave a comment.</p>
+      </div>
+    </div>
+
+    <!-- Mobile: comment count FAB -->
+    <button id="acmt-fab" onclick="openMobileCommentsList()" class="lg:hidden hidden fixed bottom-5 right-5 z-[92] w-12 h-12 rounded-full bg-crimson text-white shadow-2xl shadow-black/50 flex items-center justify-center">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+      <span id="acmt-fab-count" class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-gold text-obsidian text-[10px] font-bold flex items-center justify-center"></span>
+    </button>
+  </div>
+
+  <!-- Floating "+ Comment" trigger -->
+  <div id="acmt-comment-trigger">
+    <button onclick="openCommentComposerAdmin()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+      Comment
+    </button>
+  </div>
+
+  <!-- Mobile comment popup / bottom sheet -->
+  <div id="acmt-sheet" class="hidden fixed inset-0 z-[97] flex flex-col justify-end lg:hidden" style="background:rgba(0,0,0,0.6)">
+    <div class="bg-charcoal rounded-t-2xl border-t border-border max-h-[80vh] flex flex-col" style="padding-bottom:env(safe-area-inset-bottom)">
+      <div class="flex-shrink-0 flex items-center justify-between px-5 py-4 border-b border-border/60">
+        <p id="acmt-sheet-title" class="text-sm font-semibold text-white">Comments</p>
+        <button onclick="closeCommentSheet()" class="w-7 h-7 rounded-full border border-border flex items-center justify-center text-muted hover:text-white transition-colors">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div id="acmt-sheet-body" class="flex-1 overflow-y-auto thin-scroll px-4 py-4 space-y-3"></div>
     </div>
   </div>
 
@@ -2254,33 +2321,12 @@
       const chapter = (typeof idOrObj === 'object') ? idOrObj : _adminChapReg.get(idOrObj);
       if (!chapter) return;
       selectedChapter = { ...chapter };
-      showView('view-chapter');
-      $('viewer-chapter-num').textContent   = `Chapter ${chapter.chapter_number}`;
-      $('viewer-chapter-title').textContent = chapter.title ?? '(Untitled)';
-      $('viewer-chapter-meta').textContent  = `${(chapter.word_count||0).toLocaleString()} words · ${chapter.status.replace('_',' ')}`;
-      $('chapter-content').innerHTML = '<p class="text-muted text-sm animate-pulse">Loading…</p>';
-      $('general-comment-input').value = '';
-      $('admin-chapter-edit-mode').classList.add('hidden');
-      $('chapter-content').classList.remove('hidden');
-      $('admin-edit-btn').textContent = '';
-      $('admin-edit-btn').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit';
-      $('approve-btn').onclick = () => approveChapter(chapter.id);
-      $('reject-btn').onclick  = () => doReject(chapter.id);
-      const canApprove = chapter.status === 'submitted' || chapter.status === 'revision_requested';
-      const canReject  = chapter.status === 'submitted';
-      $('approve-btn').disabled = !canApprove;
-      $('reject-btn').disabled  = !canReject;
-      $('approve-btn').classList.toggle('opacity-40', !canApprove);
-      $('reject-btn').classList.toggle('opacity-40',  !canReject);
-      const [{ data: full }, { data: comments }] = await Promise.all([
-        db.from('chapters').select('content, content_snapshot').eq('id', chapter.id).single(),
-        db.from('comments').select('id, paragraph_ref, body, resolved, reviewer_id, created_at').eq('chapter_id', chapter.id).order('created_at', { ascending: true }),
-      ]);
+      // Straight into the real editor — no separate read-only view. Approve /
+      // Request Revision and comments all live there now.
+      const { data: full } = await db.from('chapters').select('content, content_snapshot').eq('id', chapter.id).single();
       selectedChapter.content = full?.content ?? '';
       selectedChapter.content_snapshot = full?.content_snapshot ?? null;
-      allComments = sortComments(comments ?? []);
-      renderChapterContent(selectedChapter.content, selectedChapter.content_snapshot);
-      renderCommentThread();
+      openAdminFSEditor();
     }
 
     // ── ADMIN CHAPTER EDIT ───────────────────────────────────────────
@@ -2515,8 +2561,298 @@
       role: 'admin',
       getUserId: () => currentUserId,
       getUserName: () => 'Editor', // writers always see the admin as "Editor", never a personal name
-      onContentApplied: () => updateAdminFsWc(),
+      onContentApplied: () => { updateAdminFsWc(); _renderCommentOverlayAdmin(); },
     });
+
+    // ── Chapter comments (Google-Docs style, overlay-based) ─────────
+    // Same system as the writer side — #admin-fs-content is editable and
+    // autosaved, so highlights are drawn as a transparent,
+    // pointer-events:none overlay positioned via Range.getClientRects(),
+    // never by wrapping the content's own DOM. Admin can moderate and
+    // reply to any comment, including the Senior Editor's — only writers
+    // are blocked from replying to her notes (enforced server-side).
+    let _acmtChapterId = null;
+    let _acmtComments = [];
+    let _acmtActiveId = null;
+    let _acmtPendingRange = null;
+    let _acmtSheetMode = null;
+    let _acmtCh = null;
+
+    function _rangeOffsets(root, range) {
+      const pre = document.createRange();
+      pre.selectNodeContents(root);
+      pre.setEnd(range.startContainer, range.startOffset);
+      const start = pre.toString().length;
+      return { start, end: start + range.toString().length };
+    }
+    function _pointAt(root, offset) {
+      const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+      let node, last = null, acc = 0;
+      while ((node = w.nextNode())) {
+        const len = node.nodeValue.length;
+        if (acc + len >= offset) return { node, offset: Math.max(0, Math.min(len, offset - acc)) };
+        acc += len; last = node;
+      }
+      return last ? { node: last, offset: last.nodeValue.length } : null;
+    }
+    function _rangeFromOffsets(root, start, end) {
+      const s = _pointAt(root, start), e = _pointAt(root, Math.max(start, end));
+      if (!s || !e) return null;
+      const r = document.createRange();
+      r.setStart(s.node, s.offset); r.setEnd(e.node, e.offset);
+      return r;
+    }
+    function _renderCommentOverlayAdmin() {
+      const root = $('admin-fs-content'), overlay = $('admin-fs-comment-overlay');
+      if (!root || !overlay) return;
+      overlay.innerHTML = '';
+      const parentRect = overlay.getBoundingClientRect();
+      _acmtComments.filter(c => !c.parent_id && c.start_offset != null).forEach(c => {
+        const range = _rangeFromOffsets(root, c.start_offset, c.end_offset);
+        if (!range) return;
+        [...range.getClientRects()].forEach(r => {
+          const mark = document.createElement('div');
+          mark.className = 'chapter-highlight-ov' + (c.resolved ? ' resolved' : '') + (c.id === _acmtActiveId ? ' active' : '');
+          mark.dataset.commentId = c.id;
+          mark.style.left = (r.left - parentRect.left) + 'px';
+          mark.style.top = (r.top - parentRect.top) + 'px';
+          mark.style.width = r.width + 'px';
+          mark.style.height = r.height + 'px';
+          overlay.appendChild(mark);
+        });
+      });
+    }
+
+    function _positionCommentTriggerAdmin(rect) {
+      const el = $('acmt-comment-trigger');
+      el.style.left = (rect.left + rect.width / 2) + 'px';
+      el.style.top = (rect.top - 8) + 'px';
+      el.style.display = 'block';
+    }
+    function _hideCommentTriggerAdmin() { $('acmt-comment-trigger').style.display = 'none'; _acmtPendingRange = null; }
+    (function () {
+      const root = $('admin-fs-content');
+      function onUp() {
+        setTimeout(() => {
+          const sel = window.getSelection();
+          if (!sel || sel.rangeCount === 0) { _hideCommentTriggerAdmin(); return; }
+          const range = sel.getRangeAt(0);
+          if (!root.contains(range.commonAncestorContainer)) { _hideCommentTriggerAdmin(); return; }
+          if (sel.isCollapsed) {
+            _hideCommentTriggerAdmin();
+            // Simple click (not a drag-select): if it landed on a highlighted
+            // comment, focus it — this is how comments open on an editable
+            // surface, since the overlay itself can't intercept clicks
+            // without also blocking normal cursor placement/typing.
+            const { start } = _rangeOffsets(root, range);
+            const hit = _acmtComments.find(c => !c.parent_id && c.start_offset != null && start >= c.start_offset && start < c.end_offset);
+            if (hit) focusCommentAdmin(hit.id);
+            return;
+          }
+          if (!range.toString().trim()) { _hideCommentTriggerAdmin(); return; }
+          const { start, end } = _rangeOffsets(root, range);
+          _acmtPendingRange = { start, end, quoted: range.toString() };
+          _positionCommentTriggerAdmin(range.getBoundingClientRect());
+        }, 10);
+      }
+      root.addEventListener('mouseup', onUp);
+      root.addEventListener('touchend', onUp);
+      document.addEventListener('mousedown', (e) => {
+        if (e.target.closest('#acmt-comment-trigger') || e.target.closest('#admin-fs-content')
+            || e.target.closest('#acmt-panel') || e.target.closest('#acmt-sheet')) return;
+        _hideCommentTriggerAdmin();
+      });
+    })();
+
+    function _composeCardHtmlAdmin(quoted) {
+      const snippet = quoted ? (quoted.length > 140 ? quoted.slice(0, 140) + '…' : quoted) : '';
+      return `
+        <div class="acmt-card" id="acmt-compose-card">
+          ${snippet ? `<p class="acmt-quote">"${escHtml(snippet)}"</p>` : ''}
+          <textarea id="acmt-compose-input" rows="3" placeholder="Leave a comment…" class="w-full bg-obsidian border border-border text-white placeholder-muted/60 text-xs rounded-lg px-3 py-2.5 resize-y mb-2.5"></textarea>
+          <div class="flex items-center justify-end gap-2">
+            <button onclick="cancelCommentComposerAdmin()" class="px-3 py-1.5 border border-border text-muted hover:text-white text-[11px] rounded-lg transition-colors">Cancel</button>
+            <button onclick="postComposedCommentAdmin()" class="px-3.5 py-1.5 bg-gold hover:bg-gold-light text-obsidian text-[11px] font-bold rounded-lg transition-colors">Post</button>
+          </div>
+        </div>`;
+    }
+    function openCommentComposerAdmin() {
+      if (!_acmtPendingRange) return;
+      const draft = { ..._acmtPendingRange };
+      _hideCommentTriggerAdmin();
+      window.getSelection()?.removeAllRanges();
+      const html = _composeCardHtmlAdmin(draft.quoted);
+      if (window.innerWidth < 1024) {
+        _acmtSheetMode = 'compose';
+        $('acmt-sheet-title').textContent = 'New Comment';
+        $('acmt-sheet-body').innerHTML = html;
+        $('acmt-sheet').classList.remove('hidden');
+      } else {
+        const list = $('acmt-list');
+        list.insertAdjacentHTML('afterbegin', html);
+        list.scrollTop = 0;
+      }
+      _acmtPendingRange = draft;
+      setTimeout(() => document.getElementById('acmt-compose-input')?.focus(), 60);
+    }
+    function cancelCommentComposerAdmin() {
+      _acmtPendingRange = null;
+      document.getElementById('acmt-compose-card')?.remove();
+      if (_acmtSheetMode === 'compose') closeCommentSheet();
+    }
+    async function postComposedCommentAdmin() {
+      const input = document.getElementById('acmt-compose-input');
+      const body = input?.value.trim();
+      if (!body || !_acmtPendingRange || !_acmtChapterId) return;
+      const { start, end, quoted } = _acmtPendingRange;
+      const card = document.getElementById('acmt-compose-card');
+      const btn  = card?.querySelector('button:last-child');
+      if (btn) { btn.disabled = true; btn.textContent = 'Posting…'; }
+      const { error } = await db.rpc('post_chapter_comment', {
+        p_chapter_id: _acmtChapterId, p_start_offset: start, p_end_offset: end,
+        p_quoted_text: quoted, p_body: body,
+      });
+      if (error) {
+        console.error('postComposedCommentAdmin:', error);
+        if (btn) { btn.disabled = false; btn.textContent = 'Post'; }
+        let errEl = card?.querySelector('.acmt-compose-err');
+        if (card && !errEl) {
+          errEl = document.createElement('p');
+          errEl.className = 'acmt-compose-err text-[11px] text-red-400 mt-2';
+          card.querySelector('.flex.items-center.justify-end')?.insertAdjacentElement('beforebegin', errEl);
+        }
+        if (errEl) errEl.textContent = error.message;
+        showToast('Comment failed to post: ' + error.message);
+        return;
+      }
+      _acmtPendingRange = null;
+      document.getElementById('acmt-compose-card')?.remove();
+      if (_acmtSheetMode === 'compose') closeCommentSheet();
+      await loadChapterCommentsUiAdmin(_acmtChapterId);
+    }
+
+    // Admin can moderate and reply to any comment, including the Senior
+    // Editor's own notes — the reply restriction only applies to writers.
+    function _threadHtmlAdmin(root) {
+      const replies = _acmtComments.filter(c => c.parent_id === root.id).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      const isActive = root.id === _acmtActiveId;
+      return `
+        <div class="acmt-card ${isActive ? 'active' : ''} ${root.resolved ? 'resolved' : ''}" data-thread-id="${root.id}" onclick="focusCommentAdmin('${root.id}')">
+          ${root.quoted_text ? `<p class="acmt-quote">"${escHtml(root.quoted_text.length > 140 ? root.quoted_text.slice(0, 140) + '…' : root.quoted_text)}"</p>` : ''}
+          <div class="flex items-start gap-2 mb-1">
+            ${root.is_own ? '' : `<span class="text-[11px] font-semibold text-gold">${escHtml(root.author_label)}</span>`}
+            <div class="flex items-center gap-1 flex-shrink-0 ml-auto" onclick="event.stopPropagation()">
+              <button onclick="toggleCommentResolvedAdmin('${root.id}', ${!root.resolved})" title="${root.resolved ? 'Reopen' : 'Resolve'}" class="text-muted hover:text-white p-0.5">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </button>
+              <button onclick="deleteCommentAdmin('${root.id}')" title="Delete" class="text-muted hover:text-red-300 p-0.5">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg>
+              </button>
+            </div>
+          </div>
+          <p class="text-white/80 text-xs leading-relaxed mb-2">${escHtml(root.body)}</p>
+          ${replies.map(r => `
+            <div class="mt-2 pl-3 border-l border-border">
+              ${r.is_own ? '' : `<span class="text-[10px] font-semibold text-white/60">${escHtml(r.author_label)}</span>`}
+              <p class="text-white/70 text-xs leading-relaxed">${escHtml(r.body)}</p>
+            </div>`).join('')}
+          ${root.resolved ? `<p class="text-[10px] text-muted mt-2">✓ Resolved</p>` : `
+          <div class="mt-2.5 flex items-center gap-1.5" onclick="event.stopPropagation()">
+            <input type="text" placeholder="Reply…" class="flex-1 bg-obsidian border border-border text-white placeholder-muted/60 text-[11px] rounded-lg px-2.5 py-1.5" onkeydown="if(event.key==='Enter'){event.preventDefault();submitCommentReplyAdmin('${root.id}', this)}"/>
+          </div>`}
+        </div>`;
+    }
+    function _renderCommentPanelAdmin() {
+      const roots = _acmtComments.filter(c => !c.parent_id);
+      const html = roots.map(_threadHtmlAdmin).join('');
+      $('acmt-list').innerHTML = html;
+      $('acmt-empty').classList.toggle('hidden', roots.length > 0);
+      const fab = $('acmt-fab'), fabCount = $('acmt-fab-count');
+      if (roots.length) {
+        fab.classList.remove('hidden');
+        const openCount = roots.filter(r => !r.resolved).length;
+        fabCount.textContent = openCount;
+        fabCount.classList.toggle('hidden', openCount === 0);
+      } else fab.classList.add('hidden');
+      if (_acmtSheetMode === 'all') {
+        $('acmt-sheet-body').innerHTML = html || '<p class="text-muted/50 text-xs text-center py-8">No comments yet.</p>';
+      }
+    }
+    async function loadChapterCommentsUiAdmin(chapterId) {
+      const { data, error } = await db.rpc('get_chapter_comments', { p_chapter_id: chapterId });
+      _acmtComments = error ? [] : (data ?? []);
+      _renderCommentOverlayAdmin();
+      _renderCommentPanelAdmin();
+    }
+    async function submitCommentReplyAdmin(rootId, inputEl) {
+      const body = inputEl.value.trim();
+      if (!body) return;
+      const root = _acmtComments.find(c => c.id === rootId);
+      if (!root) return;
+      inputEl.disabled = true;
+      const { error } = await db.rpc('post_chapter_comment', {
+        p_chapter_id: _acmtChapterId, p_start_offset: root.start_offset, p_end_offset: root.end_offset,
+        p_quoted_text: root.quoted_text, p_body: body, p_parent_id: rootId,
+      });
+      if (error) { showToast(error.message); inputEl.disabled = false; return; }
+      await loadChapterCommentsUiAdmin(_acmtChapterId);
+    }
+    async function toggleCommentResolvedAdmin(id, resolved) {
+      const { error } = await db.rpc('set_comment_resolved', { p_id: id, p_resolved: resolved });
+      if (error) { showToast(error.message); return; }
+      await loadChapterCommentsUiAdmin(_acmtChapterId);
+    }
+    async function deleteCommentAdmin(id) {
+      if (!confirm('Delete this comment and its replies?')) return;
+      const { error } = await db.rpc('delete_own_comment', { p_id: id });
+      if (error) { showToast(error.message); return; }
+      await loadChapterCommentsUiAdmin(_acmtChapterId);
+    }
+    function focusCommentAdmin(id) {
+      _acmtActiveId = id;
+      _renderCommentOverlayAdmin();
+      const overlay = $('admin-fs-comment-overlay');
+      overlay.querySelector(`[data-comment-id="${id}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      if (window.innerWidth < 1024) {
+        const c = _acmtComments.find(x => x.id === id);
+        if (!c) return;
+        _acmtSheetMode = 'thread';
+        $('acmt-sheet-title').textContent = 'Comment';
+        $('acmt-sheet-body').innerHTML = _threadHtmlAdmin(c);
+        $('acmt-sheet').classList.remove('hidden');
+      } else {
+        document.querySelectorAll('.acmt-card').forEach(card => card.classList.toggle('active', card.dataset.threadId === id));
+        document.querySelector(`.acmt-card[data-thread-id="${id}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+    function openMobileCommentsList() {
+      _acmtSheetMode = 'all';
+      $('acmt-sheet-title').textContent = 'Comments';
+      const roots = _acmtComments.filter(c => !c.parent_id);
+      $('acmt-sheet-body').innerHTML = roots.length ? roots.map(_threadHtmlAdmin).join('') : '<p class="text-muted/50 text-xs text-center py-8">No comments yet.</p>';
+      $('acmt-sheet').classList.remove('hidden');
+    }
+    function closeCommentSheet() { _acmtSheetMode = null; $('acmt-sheet').classList.add('hidden'); }
+
+    function subscribeChapterCommentsAdmin(chapterId) {
+      unsubscribeChapterCommentsAdmin();
+      _acmtCh = db.channel('comments-realtime:' + chapterId)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'comments', filter: 'chapter_id=eq.' + chapterId }, () => {
+          loadChapterCommentsUiAdmin(chapterId);
+        })
+        .subscribe();
+    }
+    function unsubscribeChapterCommentsAdmin() {
+      if (_acmtCh) { try { db.removeChannel(_acmtCh); } catch (_) {} _acmtCh = null; }
+    }
+    // Keep overlay aligned while the admin types (offsets don't drift within
+    // this editing session, but the visual layout reflows on every keystroke).
+    let _acmtOverlayRaf = null;
+    $('admin-fs-content')?.addEventListener('input', () => {
+      if (_acmtOverlayRaf) cancelAnimationFrame(_acmtOverlayRaf);
+      _acmtOverlayRaf = requestAnimationFrame(_renderCommentOverlayAdmin);
+    });
+    window.addEventListener('resize', () => { if (_acmtChapterId) _renderCommentOverlayAdmin(); }, { passive: true });
 
     // Keep the full-screen editor sized to the *visible* viewport so the
     // header/toolbar stay put when the mobile keyboard opens.
@@ -2540,6 +2876,14 @@
       };
     }
 
+    function _updateFsApproveRejectButtons() {
+      const s = selectedChapter?.status;
+      const canApprove = s === 'submitted' || s === 'revision_requested';
+      const canReject  = s === 'submitted';
+      $('fs-approve-btn').disabled = !canApprove;
+      $('fs-reject-btn').disabled  = !canReject;
+      $('fs-chapter-status').textContent = s ? s.replace('_', ' ') : '';
+    }
     function openAdminFSEditor() {
       $('admin-fs-label').textContent = selectedChapter
         ? 'Chapter ' + selectedChapter.chapter_number + (selectedChapter.title ? ' — ' + selectedChapter.title : '')
@@ -2548,6 +2892,7 @@
       $('admin-fs-error').classList.add('hidden');
       document.execCommand('defaultParagraphSeparator', false, 'p');
       updateAdminFsWc();
+      _updateFsApproveRejectButtons();
       // Reset auto-save state
       _adminAsUnsaved = false;
       clearTimeout(_adminAsTimer);
@@ -2559,12 +2904,29 @@
       _adminFsVVUnbind = _bindEditorViewport('admin-fullscreen-editor');
       if (selectedChapter?.id) adminCollab.join(selectedChapter.id);
       else adminCollab.leave();
-      setTimeout(() => { $('admin-fs-content').focus(); }, 60);
+
+      // Chapter comments
+      _acmtChapterId = selectedChapter?.id || null;
+      _acmtComments = []; _acmtActiveId = null; _acmtPendingRange = null;
+      $('admin-fs-comment-overlay').innerHTML = '';
+      $('acmt-list').innerHTML = ''; $('acmt-empty').classList.add('hidden'); $('acmt-fab').classList.add('hidden');
+      if (_acmtChapterId) {
+        loadChapterCommentsUiAdmin(_acmtChapterId);
+        subscribeChapterCommentsAdmin(_acmtChapterId);
+      } else {
+        unsubscribeChapterCommentsAdmin();
+      }
+
+      setTimeout(() => { $('admin-fs-content').focus(); _renderCommentOverlayAdmin(); }, 60);
     }
 
     function adminFsClose() {
       if (_adminAsUnsaved) _adminDoAutoSave(); // fire-and-forget
       adminCollab.leave();
+      unsubscribeChapterCommentsAdmin();
+      closeCommentSheet();
+      _hideCommentTriggerAdmin();
+      _acmtChapterId = null; _acmtComments = [];
       if (_adminFsVVUnbind) { _adminFsVVUnbind(); _adminFsVVUnbind = null; }
       $('admin-fullscreen-editor').classList.add('hidden');
       $('admin-chat-float')?.classList.remove('hidden');
@@ -3039,9 +3401,7 @@
       if (selectedChapter?.id === chapterId) {
         selectedChapter.status = 'approved';
         selectedChapter.content_snapshot = null;
-        $('viewer-chapter-meta').textContent = `${(selectedChapter.word_count||0).toLocaleString()} words · approved`;
-        $('approve-btn').disabled = true; $('reject-btn').disabled = true;
-        $('approve-btn').classList.add('opacity-40'); $('reject-btn').classList.add('opacity-40');
+        _updateFsApproveRejectButtons();
       }
       refreshChapterList();
     }
@@ -3117,15 +3477,14 @@
         if (snapshot) {
           selectedChapter.content          = snapshot;
           selectedChapter.content_snapshot = null;
+          // The writer's edited version was discarded in favor of the
+          // pre-edit snapshot — reflect that in the editor they're looking
+          // at right now, not just in the database.
+          $('admin-fs-content').innerHTML = adminContentToEditable(selectedChapter.content);
+          updateAdminFsWc();
         }
-        const wc = updatePayload.word_count ?? chapterData?.word_count ?? 0;
-        $('viewer-chapter-meta').textContent = wc.toLocaleString() + ' words · revision requested';
-        $('approve-btn').disabled = false; $('reject-btn').disabled = true;
-        $('approve-btn').classList.remove('opacity-40'); $('reject-btn').classList.add('opacity-40');
-        const { data: fresh } = await db.from('comments').select('id, paragraph_ref, body, resolved, reviewer_id, created_at').eq('chapter_id', id).order('created_at', { ascending: true });
-        allComments = fresh ?? [];
-        renderChapterContent(selectedChapter.content, null);
-        renderCommentThread();
+        _updateFsApproveRejectButtons();
+        if (_acmtChapterId === id) loadChapterCommentsUiAdmin(id);
       }
       refreshChapterList();
     }
@@ -3765,12 +4124,39 @@
       approve:    { label: 'Recommends: Approve', cls: 'text-emerald-300 bg-emerald-400/10 border-emerald-400/25' },
       needs_work: { label: 'Recommends: Changes', cls: 'text-red-300 bg-red-400/10 border-red-400/25' },
     };
+    let _seEditReqReg = {}; // chapter_id → request row, for admin edit-access decisions
     async function loadAdminSeNotes() {
-      const { data, error } = await db.rpc('get_admin_se_recommendations');
+      const [{ data, error }, { data: reqData, error: reqError }] = await Promise.all([
+        db.rpc('get_admin_se_recommendations'),
+        db.rpc('get_admin_se_edit_requests'),
+      ]);
       const rows = error ? [] : (data ?? []);
+      const reqRows = reqError ? [] : (reqData ?? []);
       _seNotesReg = {};
       rows.forEach(r => { _seNotesReg[r.batch_id] = r; });
-      $('senotes-empty').classList.toggle('hidden', rows.length > 0);
+      _seEditReqReg = {};
+      reqRows.forEach(r => { _seEditReqReg[r.chapter_id] = r; });
+
+      $('se-edit-requests-block').classList.toggle('hidden', reqRows.length === 0);
+      $('se-edit-requests-list').innerHTML = reqRows.map(r => `
+        <div class="rounded-2xl border border-gold/25 bg-gold/[0.04] p-5">
+          <div class="flex items-start justify-between gap-3 mb-3">
+            <div class="min-w-0">
+              <p class="text-white text-sm font-semibold truncate">${escHtml(r.book_title)}</p>
+              <p class="text-muted text-xs">${escHtml(r.writer_name)} · Chapter ${escHtml(r.chapter_number)}${r.chapter_title ? ' — ' + escHtml(r.chapter_title) : ''}</p>
+            </div>
+            <span class="flex-shrink-0 text-[9px] font-bold uppercase tracking-wide border rounded-full px-2 py-0.5 text-gold bg-gold/10 border-gold/25">Wants to edit</span>
+          </div>
+          <div class="flex items-center gap-2.5">
+            <button onclick="decideSeEditAccess('${r.chapter_id}', true)" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gold hover:bg-gold-light text-obsidian text-xs font-bold rounded-lg transition-colors">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Grant Edit Access
+            </button>
+            <button onclick="decideSeEditAccess('${r.chapter_id}', false)" class="px-4 py-2 border border-border hover:border-red-400/40 text-muted hover:text-red-300 text-xs font-semibold rounded-lg transition-colors">Deny</button>
+          </div>
+        </div>`).join('');
+
+      $('senotes-empty').classList.toggle('hidden', rows.length > 0 || reqRows.length > 0);
       $('senotes-list').innerHTML = rows.map(r => {
         const st = SE_REC_STYLE[r.recommendation] || SE_REC_STYLE.approve;
         const chapters = (r.chapter_numbers || []).join(', ');
@@ -3793,9 +4179,16 @@
           </div>
         </div>`;
       }).join('');
+      const total = rows.length + reqRows.length;
       const badge = $('tab-senotes-badge');
-      badge.textContent = rows.length || '';
-      badge.classList.toggle('hidden', !rows.length);
+      badge.textContent = total || '';
+      badge.classList.toggle('hidden', !total);
+    }
+    async function decideSeEditAccess(chapterId, approve) {
+      const { error } = await db.rpc('admin_decide_se_edit_access', { p_chapter_id: chapterId, p_approve: approve });
+      if (error) { showToast('Error: ' + error.message); return; }
+      showToast(approve ? 'Edit access granted.' : 'Request denied.');
+      loadAdminSeNotes();
     }
     async function jumpToSeBatch(batchId) {
       const r = _seNotesReg[batchId];
