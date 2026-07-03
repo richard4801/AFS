@@ -1008,7 +1008,7 @@
       const card = document.getElementById('se-compose-card');
       const btn  = card?.querySelector('button:last-child');
       if (btn) { btn.disabled = true; btn.textContent = 'Posting…'; }
-      const { error } = await db.rpc('se_post_comment', {
+      const { error } = await db.rpc('post_chapter_comment', {
         p_chapter_id: _seChapterId, p_start_offset: start, p_end_offset: end,
         p_quoted_text: quoted, p_body: body,
       });
@@ -1032,20 +1032,15 @@
       await loadChapterComments(_seChapterId);
     }
 
-    function _authorLabel(c) {
-      if (c.author_role === 'senior_editor') return 'God Mother';
-      if (c.author_role === 'admin') return 'Editor';
-      return 'Writer';
-    }
     function _threadHtml(root) {
       const replies = _seComments.filter(c => c.parent_id === root.id).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
       const isActive = root.id === _seActiveCommentId;
-      const canManage = root.reviewer_id === currentUserId;
+      const canManage = root.is_own;
       return `
         <div class="se-comment-card ${isActive ? 'active' : ''} ${root.resolved ? 'resolved' : ''}" data-thread-id="${root.id}" onclick="focusComment('${root.id}')">
           ${root.quoted_text ? `<p class="se-comment-quote">"${escHtml(root.quoted_text.length > 140 ? root.quoted_text.slice(0, 140) + '…' : root.quoted_text)}"</p>` : ''}
           <div class="flex items-start justify-between gap-2 mb-1">
-            <span class="text-[11px] font-semibold text-gold">${_authorLabel(root)}</span>
+            <span class="text-[11px] font-semibold text-gold">${escHtml(root.author_label)}</span>
             ${canManage ? `<div class="flex items-center gap-1 flex-shrink-0" onclick="event.stopPropagation()">
               <button onclick="toggleResolve('${root.id}', ${!root.resolved})" title="${root.resolved ? 'Reopen' : 'Resolve'}" class="text-muted hover:text-white p-0.5">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -1058,7 +1053,7 @@
           <p class="text-white/80 text-xs leading-relaxed mb-2">${escHtml(root.body)}</p>
           ${replies.map(r => `
             <div class="mt-2 pl-3 border-l border-border">
-              <span class="text-[10px] font-semibold text-white/60">${_authorLabel(r)}</span>
+              <span class="text-[10px] font-semibold text-white/60">${escHtml(r.author_label)}</span>
               <p class="text-white/70 text-xs leading-relaxed">${escHtml(r.body)}</p>
             </div>`).join('')}
           ${root.resolved ? `<p class="text-[10px] text-muted mt-2">✓ Resolved</p>` : `
@@ -1084,11 +1079,7 @@
       }
     }
     async function loadChapterComments(chapterId) {
-      const { data, error } = await db.from('comments')
-        .select('id, parent_id, body, resolved, reviewer_id, author_role, start_offset, end_offset, quoted_text, created_at')
-        .eq('chapter_id', chapterId)
-        .not('start_offset', 'is', null)
-        .order('start_offset', { ascending: true });
+      const { data, error } = await db.rpc('get_chapter_comments', { p_chapter_id: chapterId });
       _seComments = error ? [] : (data ?? []);
       _renderHighlights();
       _renderCommentPanel();
@@ -1099,7 +1090,7 @@
       const root = _seComments.find(c => c.id === rootId);
       if (!root) return;
       inputEl.disabled = true;
-      const { error } = await db.rpc('se_post_comment', {
+      const { error } = await db.rpc('post_chapter_comment', {
         p_chapter_id: _seChapterId, p_start_offset: root.start_offset, p_end_offset: root.end_offset,
         p_quoted_text: root.quoted_text, p_body: body, p_parent_id: rootId,
       });
@@ -1107,13 +1098,13 @@
       await loadChapterComments(_seChapterId);
     }
     async function toggleResolve(id, resolved) {
-      const { error } = await db.from('comments').update({ resolved, updated_at: new Date().toISOString() }).eq('id', id);
+      const { error } = await db.rpc('set_comment_resolved', { p_id: id, p_resolved: resolved });
       if (error) { toast(error.message); return; }
       await loadChapterComments(_seChapterId);
     }
     async function deleteRootComment(id) {
       if (!confirm('Delete this comment and its replies?')) return;
-      const { error } = await db.from('comments').delete().eq('id', id);
+      const { error } = await db.rpc('delete_own_comment', { p_id: id });
       if (error) { toast(error.message); return; }
       await loadChapterComments(_seChapterId);
     }
