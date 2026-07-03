@@ -37,11 +37,8 @@
     .collab-chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:rgba(255,255,255,0.78);background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:999px;padding:2px 9px;}
     .collab-dot{width:6px;height:6px;border-radius:50%;box-shadow:0 0 6px currentColor;flex-shrink:0;}
     /* ── Highlight comments ─────────────────────────────────────── */
-    mark.chapter-highlight{background:rgba(201,168,76,0.28);color:inherit;border-radius:2px;padding:0 1px;cursor:pointer;transition:background .15s;box-decoration-break:clone;-webkit-box-decoration-break:clone;}
-    mark.chapter-highlight:hover{background:rgba(201,168,76,0.42);}
-    mark.chapter-highlight.active{background:rgba(201,168,76,0.58);}
-    mark.chapter-highlight.resolved{background:rgba(122,122,122,0.16);}
-    mark.chapter-highlight.resolved:hover{background:rgba(122,122,122,0.26);}
+    /* Background is set inline per-comment (role color × resolved/active state) — see CMT_ROLE. */
+    mark.chapter-highlight{color:inherit;border-radius:2px;padding:0 1px;cursor:pointer;transition:background .15s;box-decoration-break:clone;-webkit-box-decoration-break:clone;}
     #se-comment-trigger{position:fixed;z-index:96;display:none;transform:translate(-50%,-100%);}
     #se-comment-trigger button{display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:999px;background:#C9A84C;color:#0D0B09;font-size:11px;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,0.45);border:none;cursor:pointer;white-space:nowrap;}
     #se-comment-trigger button:hover{background:#E2C97E;}
@@ -54,9 +51,8 @@
        use — content becomes contenteditable + autosaved, so highlights
        can no longer be safely drawn by wrapping the DOM in <mark>. */
     #se-reader-content[contenteditable="true"]{outline:none;caret-color:#C9A84C;}
-    .chapter-highlight-ov{position:absolute;background:rgba(201,168,76,0.28);border-radius:2px;pointer-events:none;transition:background .15s;}
-    .chapter-highlight-ov.active{background:rgba(201,168,76,0.5);}
-    .chapter-highlight-ov.resolved{background:rgba(122,122,122,0.16);}
+    /* Background is set inline per-comment (role color × resolved/active state) — see CMT_ROLE. */
+    .chapter-highlight-ov{position:absolute;border-radius:2px;pointer-events:none;transition:background .15s;}
     .fs-tool-btn{padding:6px 11px;min-width:32px;min-height:32px;border-radius:5px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.6);background:transparent;border:1px solid transparent;cursor:pointer;transition:all .15s;line-height:1.8;}
     .fs-tool-btn:hover{background:rgba(255,255,255,0.07);border-color:rgba(255,255,255,0.12);color:#fff;}
     .fs-tool-btn.active{background:rgba(201,168,76,0.18);border-color:rgba(201,168,76,0.4);color:#C9A84C;}
@@ -987,6 +983,23 @@
     let _seSheetMode = null;
     let _seCommentsCh = null;
 
+    // Per-role comment coloring — same identity everywhere: writer stays
+    // gold, admin ("Editor") is crimson/red, Senior Editor ("God Mother")
+    // is purple. Matches SE_ROLE_COLOR's hex values above; rgba variants
+    // computed once here for label text, quote borders, and highlights.
+    function _cmtRgba(hex, a) {
+      const n = parseInt(hex.slice(1), 16);
+      return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+    }
+    const CMT_ROLE = Object.fromEntries(Object.entries(SE_ROLE_COLOR).map(([role, hex]) => [role, {
+      label: hex,
+      text: _cmtRgba(hex, 0.85),
+      border: _cmtRgba(hex, 0.4),
+      bg: _cmtRgba(hex, 0.28),
+      bgActive: _cmtRgba(hex, 0.5),
+    }]));
+    const CMT_RESOLVED_BG = 'rgba(122,122,122,0.16)';
+
     function _rangeOffsets(root, range) {
       const pre = document.createRange();
       pre.selectNodeContents(root);
@@ -1023,9 +1036,12 @@
       _seComments.filter(c => !c.parent_id && c.start_offset != null).forEach(c => {
         const range = _rangeFromOffsets(root, c.start_offset, c.end_offset);
         if (!range) return;
+        const colors = CMT_ROLE[c.author_role] || CMT_ROLE.writer;
+        const bg = c.resolved ? CMT_RESOLVED_BG : (c.id === _seActiveCommentId ? colors.bgActive : colors.bg);
         [...range.getClientRects()].forEach(r => {
           const mark = document.createElement('div');
-          mark.className = 'chapter-highlight-ov' + (c.resolved ? ' resolved' : '') + (c.id === _seActiveCommentId ? ' active' : '');
+          mark.className = 'chapter-highlight-ov';
+          mark.style.background = bg;
           mark.dataset.commentId = c.id;
           mark.style.left = (r.left - parentRect.left) + 'px';
           mark.style.top = (r.top - parentRect.top) + 'px';
@@ -1093,8 +1109,8 @@
       });
       root.querySelectorAll('mark.chapter-highlight').forEach(m => {
         const c = _seComments.find(x => x.id === m.dataset.commentId);
-        if (c?.resolved) m.classList.add('resolved');
-        if (m.dataset.commentId === _seActiveCommentId) m.classList.add('active');
+        const colors = CMT_ROLE[c?.author_role] || CMT_ROLE.writer;
+        m.style.background = c?.resolved ? CMT_RESOLVED_BG : (m.dataset.commentId === _seActiveCommentId ? colors.bgActive : colors.bg);
       });
     }
     $('se-reader-content')?.addEventListener('click', (e) => {
@@ -1154,9 +1170,10 @@
 
     function _composeCardHtml(quoted) {
       const snippet = quoted ? (quoted.length > 140 ? quoted.slice(0, 140) + '…' : quoted) : '';
+      const c = CMT_ROLE.senior_editor;
       return `
         <div class="se-comment-card" id="se-compose-card">
-          ${snippet ? `<p class="se-comment-quote">"${escHtml(snippet)}"</p>` : ''}
+          ${snippet ? `<p class="se-comment-quote" style="color:${c.text};border-left-color:${c.border}">"${escHtml(snippet)}"</p>` : ''}
           <textarea id="se-compose-input" rows="3" placeholder="Leave a note for the writer…" class="w-full bg-obsidian border border-border text-white placeholder-muted/60 text-xs rounded-lg px-3 py-2.5 resize-y mb-2.5"></textarea>
           <div class="flex items-center justify-end gap-2">
             <button onclick="cancelComposer()" class="px-3 py-1.5 border border-border text-muted hover:text-white text-[11px] rounded-lg transition-colors">Cancel</button>
@@ -1224,11 +1241,12 @@
       const replies = _seComments.filter(c => c.parent_id === root.id).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
       const isActive = root.id === _seActiveCommentId;
       const canManage = root.is_own;
+      const rootColors = CMT_ROLE[root.author_role] || CMT_ROLE.writer;
       return `
         <div class="se-comment-card ${isActive ? 'active' : ''} ${root.resolved ? 'resolved' : ''}" data-thread-id="${root.id}" onclick="focusComment('${root.id}')">
-          ${root.quoted_text ? `<p class="se-comment-quote">"${escHtml(root.quoted_text.length > 140 ? root.quoted_text.slice(0, 140) + '…' : root.quoted_text)}"</p>` : ''}
+          ${root.quoted_text ? `<p class="se-comment-quote" style="color:${rootColors.text};border-left-color:${rootColors.border}">"${escHtml(root.quoted_text.length > 140 ? root.quoted_text.slice(0, 140) + '…' : root.quoted_text)}"</p>` : ''}
           <div class="flex items-start gap-2 mb-1">
-            ${root.is_own ? '' : `<span class="text-[11px] font-semibold text-gold">${escHtml(root.author_label)}</span>`}
+            ${root.is_own ? '' : `<span class="text-[11px] font-semibold" style="color:${rootColors.label}">${escHtml(root.author_label)}</span>`}
             ${canManage ? `<div class="flex items-center gap-1 flex-shrink-0 ml-auto" onclick="event.stopPropagation()">
               <button onclick="toggleResolve('${root.id}', ${!root.resolved})" title="${root.resolved ? 'Reopen' : 'Resolve'}" class="text-muted hover:text-white p-0.5">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -1241,7 +1259,7 @@
           <p class="text-white/80 text-xs leading-relaxed mb-2">${escHtml(root.body)}</p>
           ${replies.map(r => `
             <div class="mt-2 pl-3 border-l border-border">
-              ${r.is_own ? '' : `<span class="text-[10px] font-semibold text-white/60">${escHtml(r.author_label)}</span>`}
+              ${r.is_own ? '' : `<span class="text-[10px] font-semibold" style="color:${(CMT_ROLE[r.author_role] || CMT_ROLE.writer).label}">${escHtml(r.author_label)}</span>`}
               <p class="text-white/70 text-xs leading-relaxed">${escHtml(r.body)}</p>
             </div>`).join('')}
           ${root.resolved ? `<p class="text-[10px] text-muted mt-2">✓ Resolved</p>` : `
@@ -1303,7 +1321,7 @@
         $('se-comment-overlay').querySelector(`[data-comment-id="${id}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
       } else {
         const root = $('se-reader-content');
-        root.querySelectorAll('mark.chapter-highlight').forEach(m => m.classList.toggle('active', m.dataset.commentId === id));
+        _renderHighlights();
         root.querySelector(`mark.chapter-highlight[data-comment-id="${id}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
       }
       if (window.innerWidth < 1024) {
