@@ -969,7 +969,9 @@
       host.classList.remove('hidden'); host.classList.add('flex');
       host.innerHTML = others.map(m => {
         const color = SE_ROLE_COLOR[m.role] || '#9A9A9A';
-        const label = m.role === 'admin' ? 'Editor' : (m.role === 'senior_editor' ? 'God Mother' : (m.name || 'Writer'));
+        // This chip renders in the Senior Editor's own reader — she should see
+        // admin as "Admin", not the "Editor" label writers see him as.
+        const label = m.role === 'admin' ? 'Admin' : (m.role === 'senior_editor' ? 'God Mother' : 'Writer');
         return `<span class="collab-chip" style="--cc:${color}"><span class="collab-dot" style="background:${color};color:${color}"></span>${escHtml(label)}</span>`;
       }).join('');
     }

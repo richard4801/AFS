@@ -1093,7 +1093,9 @@
         <span class="hidden sm:inline">Back</span>
       </button>
       <div class="w-px h-4 bg-border flex-shrink-0"></div>
-      <span id="admin-fs-label" class="text-xs text-muted/70 truncate flex-1 min-w-0"></span>
+      <span id="admin-fs-chapnum" class="text-xs text-muted/70 flex-shrink-0"></span>
+      <input id="admin-fs-title" type="text" placeholder="Chapter title…"
+             class="flex-1 min-w-0 bg-transparent text-white text-sm placeholder-muted focus:outline-none border-none"/>
       <div class="ml-auto flex items-center gap-2 flex-shrink-0">
         <div id="admin-fs-collab-peers" class="hidden items-center gap-1.5 mr-0.5"></div>
         <button id="admin-fs-follow-btn" onclick="adminCollab.toggleFollow()" data-on="0" title="Follow the writer's cursor"
@@ -2343,7 +2345,24 @@
       const t = $('admin-fs-content').innerText || $('admin-fs-content').textContent || '';
       return t.trim() ? t.trim().split(/\s+/).length : 0;
     }
-    function updateAdminFsWc() { $('admin-fs-wc').textContent = adminFsWc().toLocaleString() + ' words'; }
+    function _wordsIn(text) { return text.trim() ? text.trim().split(/\s+/).length : 0; }
+    // When there's an active (non-collapsed) selection inside the editor,
+    // show its own word count against the total, Google-Docs style.
+    function _adminFsSelectionWordCount() {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return null;
+      const range = sel.getRangeAt(0);
+      const root = $('admin-fs-content');
+      if (!root || !root.contains(range.commonAncestorContainer)) return null;
+      return _wordsIn(range.toString());
+    }
+    function updateAdminFsWc() {
+      const total = adminFsWc();
+      const selCount = _adminFsSelectionWordCount();
+      const t = selCount ? `${selCount.toLocaleString()} of ${total.toLocaleString()} words selected` : `${total.toLocaleString()} words`;
+      $('admin-fs-wc').textContent = t;
+      const m = $('admin-fs-wc-mobile'); if (m) m.textContent = t;
+    }
 
     // ── LIVE CHAPTER COLLABORATION (Supabase Realtime) ──────────────
     // Mirror of the writer-side engine: live content mirror + presence
@@ -2989,9 +3008,8 @@
       $('fs-chapter-status').textContent = s ? s.replace('_', ' ') : '';
     }
     function openAdminFSEditor() {
-      $('admin-fs-label').textContent = selectedChapter
-        ? 'Chapter ' + selectedChapter.chapter_number + (selectedChapter.title ? ' — ' + selectedChapter.title : '')
-        : 'Chapter';
+      $('admin-fs-chapnum').textContent = selectedChapter ? 'Ch. ' + selectedChapter.chapter_number : '';
+      $('admin-fs-title').value = selectedChapter?.title || '';
       $('admin-fs-content').innerHTML = adminContentToEditable(selectedChapter?.content ?? '');
       $('admin-fs-error').classList.add('hidden');
       document.execCommand('defaultParagraphSeparator', false, 'p');
@@ -3066,20 +3084,24 @@
 
     async function _adminDoAutoSave() {
       if (_adminAsInFlight || !selectedChapter?.id) return;
+      const title = $('admin-fs-title').value.trim() || null;
       const html  = $('admin-fs-content').innerHTML;
       const inner = ($('admin-fs-content').innerText || '').trim();
       if (!inner) return;
       _adminAsInFlight = true;
       _adminAsSetStatus('saving');
       const words = adminFsWc();
-      const { error } = await db.from('chapters').update({ content: html, word_count: words, updated_at: new Date().toISOString() }).eq('id', selectedChapter.id);
+      const { error } = await db.from('chapters').update({ title, content: html, word_count: words, updated_at: new Date().toISOString() }).eq('id', selectedChapter.id);
       _adminAsInFlight = false;
       if (!error) {
         _adminAsUnsaved = false;
         selectedChapter.content = html;
+        selectedChapter.title = title;
         _adminAsSetStatus('saved');
       } else {
+        console.error('_adminDoAutoSave:', error);
         _adminAsSetStatus('unsaved');
+        showToast('Save failed: ' + error.message);
       }
     }
 
@@ -3091,8 +3113,14 @@
       _adminAsTimer = setTimeout(_adminDoAutoSave, 2500);
       adminCollab.onLocalInput();
     });
-    $('admin-fs-content').addEventListener('keyup', () => { updateAdminFsToolbar(); adminCollab.onLocalCaret(); });
-    $('admin-fs-content').addEventListener('mouseup', () => { updateAdminFsToolbar(); adminCollab.onLocalCaret(); });
+    $('admin-fs-title').addEventListener('input', () => {
+      _adminAsUnsaved = true;
+      _adminAsSetStatus('unsaved');
+      clearTimeout(_adminAsTimer);
+      _adminAsTimer = setTimeout(_adminDoAutoSave, 2500);
+    });
+    $('admin-fs-content').addEventListener('keyup', () => { updateAdminFsToolbar(); updateAdminFsWc(); adminCollab.onLocalCaret(); });
+    $('admin-fs-content').addEventListener('mouseup', () => { updateAdminFsToolbar(); updateAdminFsWc(); adminCollab.onLocalCaret(); });
     $('admin-fs-content').addEventListener('keydown', e => {
       const mod = e.ctrlKey || e.metaKey;
       if (mod && e.key === 'b') { e.preventDefault(); adminExecFmt('bold'); }

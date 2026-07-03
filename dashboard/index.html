@@ -1597,7 +1597,8 @@
       }
 
       // Hide next-month arrow if we're already on current month
-      $('cal-next').classList.toggle('opacity-30 pointer-events-none', isCurrentMonth);
+      $('cal-next').classList.toggle('opacity-30', isCurrentMonth);
+      $('cal-next').classList.toggle('pointer-events-none', isCurrentMonth);
     }
 
     // ── STATS RENDER ───────────────────────────────────────────
@@ -2226,7 +2227,11 @@
         const { error } = await db.from('chapters').update({ title, content: html, word_count: words, updated_at: new Date().toISOString() }).eq('id', editingChapter.id);
         _asInFlight = false;
         if (!error) { _asUnsaved = false; _originalChapterContent = html; _asSetStatus('saved', statusEl); }
-        else { _asSetStatus('unsaved', statusEl); }
+        else {
+          console.error('_doAutoSave:', error);
+          _asSetStatus('unsaved', statusEl);
+          showToast('Save failed: ' + error.message);
+        }
       } else {
         const content = $('editor-content')?.value ?? '';
         const title   = $('editor-chapter-title')?.value?.trim() || null;
@@ -2964,7 +2969,24 @@
       const t = $('fs-content').innerText || $('fs-content').textContent || '';
       return t.trim() ? t.trim().split(/\s+/).length : 0;
     }
-    function updateFSWordCount() { const t = fswc().toLocaleString() + ' words'; $('fs-word-count').textContent = t; const m=$('fs-word-count-mobile'); if(m) m.textContent = t; }
+    function _wordsIn(text) { return text.trim() ? text.trim().split(/\s+/).length : 0; }
+    // When there's an active (non-collapsed) selection inside the editor,
+    // show its own word count against the total, Google-Docs style.
+    function _fsSelectionWordCount() {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return null;
+      const range = sel.getRangeAt(0);
+      const root = $('fs-content');
+      if (!root || !root.contains(range.commonAncestorContainer)) return null;
+      return _wordsIn(range.toString());
+    }
+    function updateFSWordCount() {
+      const total = fswc();
+      const selCount = _fsSelectionWordCount();
+      const t = selCount ? `${selCount.toLocaleString()} of ${total.toLocaleString()} words selected` : `${total.toLocaleString()} words`;
+      $('fs-word-count').textContent = t;
+      const m = $('fs-word-count-mobile'); if (m) m.textContent = t;
+    }
 
     // ── LIVE CHAPTER COLLABORATION (Supabase Realtime) ──────────────
     // Bidirectional live mirror + presence + spotlight caret. Active
@@ -3727,8 +3749,8 @@
     // Debounced listeners — word count and toolbar state don't need to fire on every keystroke
     let _fsWcTimer, _fsTbTimer;
     $('fs-content').addEventListener('input', () => { clearTimeout(_fsWcTimer); _fsWcTimer = setTimeout(updateFSWordCount, 300); _scheduleAutoSave(true); writerCollab.onLocalInput(); });
-    $('fs-content').addEventListener('keyup',   () => { clearTimeout(_fsTbTimer); _fsTbTimer = setTimeout(updateFSToolbar,   150); writerCollab.onLocalCaret(); });
-    $('fs-content').addEventListener('mouseup', () => { updateFSToolbar(); writerCollab.onLocalCaret(); });
+    $('fs-content').addEventListener('keyup',   () => { clearTimeout(_fsTbTimer); _fsTbTimer = setTimeout(() => { updateFSToolbar(); updateFSWordCount(); }, 150); writerCollab.onLocalCaret(); });
+    $('fs-content').addEventListener('mouseup', () => { updateFSToolbar(); updateFSWordCount(); writerCollab.onLocalCaret(); });
     $('fs-content').addEventListener('keydown', e => {
       const mod = e.ctrlKey || e.metaKey;
       if (mod && e.key === 'b') { e.preventDefault(); execFmt('bold'); }
