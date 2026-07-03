@@ -37,6 +37,13 @@
     .thin-scroll::-webkit-scrollbar { width:4px; height:4px; }
     .thin-scroll::-webkit-scrollbar-thumb { background:#2E2E2E; border-radius:4px; }
     .hairline { height:1px; background:linear-gradient(90deg,transparent,rgba(183,159,222,0.35),transparent); }
+    /* Badge "coming online" reveal — starts dull/off, same dead-gray
+       language the writer gem uses pre-rank, then lights up smoothly once
+       she's actually in the dashboard, like it's reacting to her presence. */
+    .se-gem-wrap { filter:grayscale(0.9) brightness(0.5); opacity:0.55; transition:filter 1.8s cubic-bezier(.4,0,.2,1), opacity 1.8s cubic-bezier(.4,0,.2,1); }
+    .se-gem-wrap.se-lit { filter:none; opacity:1; }
+    .se-avatar-ring { border-color:rgba(255,255,255,0.15); transition:border-color 1.8s cubic-bezier(.4,0,.2,1); }
+    .se-avatar-ring.se-lit { border-color:#B79FDE; }
     [x-cloak]{display:none!important;}
     #se-reader-content, #se-reader-content p { font-family:'Lora',Georgia,serif; font-size:17px; font-weight:400; line-height:1.95; letter-spacing:0.01em; color:rgba(255,255,255,0.80); }
     #se-reader-content p { margin-bottom:1.4em; }
@@ -177,7 +184,7 @@
         <div class="flex items-center gap-3">
           <div id="se-badge" class="flex items-center gap-2">
             <div class="relative flex-shrink-0 w-8 h-8">
-              <div class="absolute left-1/2 -translate-x-1/2 z-10 pointer-events-none" style="top:-10px; line-height:0;">
+              <div id="se-gem" class="se-gem-wrap absolute left-1/2 -translate-x-1/2 z-10 pointer-events-none" style="top:-10px; line-height:0;">
                 <svg viewBox="0 0 40 40" width="18" height="18" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 1px 2px rgba(0,0,0,0.45))">
                   <polygon points="2.9,14.4 20,2 20,11 11.4,17.2" fill="#C9A6F5"/>
                   <polygon points="20,2 37.1,14.4 28.6,17.2 20,11" fill="#A97FE0"/>
@@ -197,7 +204,7 @@
                   <polygon points="20,2 37.1,14.4 30.6,34.6 9.4,34.6 2.9,14.4" fill="none" stroke="#3D1F70" stroke-width="1.1" stroke-linejoin="round"/>
                 </svg>
               </div>
-              <div class="w-8 h-8 rounded-full bg-surface border-2 flex items-center justify-center select-none" style="border-color:#B79FDE;">
+              <div id="se-avatar-ring" class="se-avatar-ring w-8 h-8 rounded-full bg-surface border-2 flex items-center justify-center select-none">
                 <span class="text-xs font-semibold text-white/80">C</span>
               </div>
               <!-- Mobile: rank pill straddling the bottom of the avatar, same placement as the writer's nav-rank-text-mobile -->
@@ -694,6 +701,14 @@
       loadAll();
       if (currentUserId) initSeChat(currentUserId);
       _initSeBooksLiveRefresh();
+
+      // Badge starts dormant (same dull look the writer gem has pre-rank)
+      // and lights up shortly after she's actually in — reads as the badge
+      // reacting to her presence rather than just appearing pre-lit.
+      setTimeout(() => {
+        $('se-gem')?.classList.add('se-lit');
+        $('se-avatar-ring')?.classList.add('se-lit');
+      }, 550);
 
       if (currentUserId) {
         const { data: prof } = await db.from('profiles').select('onboarded').eq('id', currentUserId).maybeSingle();
