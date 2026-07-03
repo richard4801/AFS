@@ -601,6 +601,7 @@
       $('app').classList.remove('hidden');
       loadAll();
       if (currentUserId) initSeChat(currentUserId);
+      _initSeBooksLiveRefresh();
     }
     async function loadAll() {
       await Promise.all([loadReviewQueue(), loadMyPrompts(), loadBoard(), loadBooks()]);
@@ -757,9 +758,28 @@
           <div class="relative aspect-[2/3] rounded-lg overflow-hidden bg-charcoal border border-border">
             ${b.cover_url ? `<img src="${escHtml(b.cover_url)}" alt="" class="absolute inset-0 w-full h-full object-cover"/>` : `<div class="absolute inset-0 flex items-center justify-center"><span class="font-serif text-2xl text-muted/40">${escHtml((b.title||'?')[0])}</span></div>`}
             <div class="absolute inset-0" style="background:linear-gradient(to top,rgba(13,11,9,0.6),transparent 45%)"></div>
+            <span class="absolute top-1 left-1 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-blue-500 text-white leading-tight">Signed</span>
           </div>
           <p class="text-white/80 text-[11px] mt-1.5 leading-tight line-clamp-2">${escHtml(b.title)}</p>
         </button>`).join('');
+    }
+
+    // A book only ever enters her list the moment admin signs it — unlike
+    // the writer/admin dashboards, which patch an existing card in place,
+    // a newly-signed book has to appear here for the first time. Realtime
+    // is attempted (best-effort — depends on her RLS visibility into
+    // public.books, which get_se_books() itself bypasses via SECURITY
+    // DEFINER so it isn't guaranteed), backed up by a guaranteed refetch
+    // whenever she returns to the tab, so a signed book always shows up
+    // without requiring a manual reload.
+    function _initSeBooksLiveRefresh() {
+      try {
+        db.channel('se-books-signed')
+          .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'books' }, () => loadBooks())
+          .subscribe();
+      } catch (_) {}
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') loadBooks(); });
+      window.addEventListener('focus', () => loadBooks());
     }
 
     // ── Book detail + chapter-level recommendations ──

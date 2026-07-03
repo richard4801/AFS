@@ -970,6 +970,14 @@
         <span class="typing-dot" style="animation-delay:320ms"></span>
       </div>
     </div>
+    <!-- Reply / edit context strip -->
+    <div id="chat-context" style="display:none" class="flex-shrink-0 flex items-center gap-2 px-3.5 py-2 border-t border-border/50 bg-charcoal/50">
+      <div class="flex-1 min-w-0">
+        <p id="chat-context-label" class="text-[9px] font-bold uppercase tracking-wide text-gold"></p>
+        <p id="chat-context-preview" class="text-muted text-[11px] truncate"></p>
+      </div>
+      <button onclick="_chatClearContext()" class="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-full text-muted hover:text-white text-sm leading-none">×</button>
+    </div>
     <!-- Input -->
     <div class="flex-shrink-0 border-t border-border/50 bg-charcoal/30 p-3" style="padding-bottom:max(12px,env(safe-area-inset-bottom))">
       <div class="flex items-end gap-2">
@@ -2583,6 +2591,7 @@
     }
 
     async function initChat(userId) {
+      _chatBindGestures('chat-messages');
       // INSERT subscription — receive new messages
       _chatSub = db.channel('writer-chat-' + userId)
         .on('postgres_changes', {
@@ -2596,7 +2605,8 @@
         })
         .subscribe();
 
-      // UPDATE subscription — catch read receipts on messages I sent
+      // UPDATE subscription — catch read receipts on messages I sent, and
+      // any edits the admin makes to their own already-sent messages.
       db.channel('writer-receipts-' + userId)
         .on('postgres_changes', {
           event: 'UPDATE', schema: 'public', table: 'messages',
@@ -2605,6 +2615,13 @@
           if (!payload.new.read_at) return;
           const idx = _chatMessages.findIndex(m => m.id === payload.new.id);
           if (idx !== -1) { _chatMessages[idx].read_at = payload.new.read_at; if (_chatOpen) _renderChatMessages(); }
+        })
+        .on('postgres_changes', {
+          event: 'UPDATE', schema: 'public', table: 'messages',
+          filter: 'recipient_id=eq.' + userId,
+        }, payload => {
+          const idx = _chatMessages.findIndex(m => m.id === payload.new.id);
+          if (idx !== -1) { _chatMessages[idx] = payload.new; if (_chatOpen) _renderChatMessages(); }
         })
         .subscribe();
 
@@ -2700,6 +2717,7 @@
           + '</div>';
         return;
       }
+      const byId = Object.fromEntries(_chatMessages.map(m => [m.id, m]));
       let lastDate = '';
       const html = _chatMessages.map(m => {
         const isSent   = m.sent_as ? (m.sent_as === 'writer') : (m.sender_id === currentUserId);
@@ -2719,12 +2737,20 @@
           : 'bg-[#252525] border border-border/40 rounded-2xl rounded-bl-sm mr-10';
         const textCls   = isSent ? 'text-obsidian' : 'text-white';
         const timeCls   = isSent ? 'text-obsidian/50' : 'text-muted/40';
+        const parent = m.parent_id ? byId[m.parent_id] : null;
+        const quote = parent
+          ? '<div class="mb-1.5 pl-2 border-l-2 ' + (isSent ? 'border-obsidian/25' : 'border-gold/40') + '">'
+            + '<p class="' + (isSent ? 'text-obsidian/60' : 'text-muted') + ' text-[10.5px] truncate max-w-[220px]">' + escHtml(parent.body) + '</p></div>'
+          : '';
+        const edited = m.edited_at ? '<span class="' + timeCls + ' text-[9px] italic ml-1">edited</span>' : '';
         return dateSep
-          + '<div class="flex ' + (isSent ? 'justify-end' : 'justify-start') + '">'
-          + '<div class="' + bubbleCls + ' px-3.5 py-2.5 max-w-[88%] sm:max-w-[80%]">'
+          + '<div class="chat-row flex ' + (isSent ? 'justify-end' : 'justify-start') + '" data-msg-id="' + m.id + '" data-sent="' + (isSent ? '1' : '0') + '">'
+          + '<div class="chat-bubble ' + bubbleCls + ' px-3.5 py-2.5 max-w-[88%] sm:max-w-[80%]">'
+          + quote
           + '<p class="' + textCls + ' text-[13px] leading-relaxed break-words" style="white-space:pre-wrap">' + escHtml(m.body) + '</p>'
           + '<div class="flex items-center gap-1 mt-1 ' + (isSent ? 'justify-end' : 'justify-start') + '">'
           + '<span class="' + timeCls + ' text-[10px]">' + timeStr + '</span>'
+          + edited
           + (isSent ? tick : '')
           + '</div>'
           + '</div>'
@@ -2734,16 +2760,159 @@
       container.scrollTop = container.scrollHeight;
     }
 
+    // ── Reply / edit context (mirrors the admin↔Senior Editor private chat) ──
+    let _chatReplyTo   = null;
+    let _chatEditingId = null;
+    function _chatReplyToMessage(id) {
+      const m = _chatMessages.find(x => x.id === id);
+      if (!m) return;
+      _chatEditingId = null;
+      _chatReplyTo = m;
+      $('chat-context-label').textContent = 'Replying';
+      $('chat-context-preview').textContent = m.body;
+      $('chat-context').style.display = 'flex';
+      $('chat-input')?.focus();
+    }
+    function _chatEditMessage(id) {
+      const m = _chatMessages.find(x => x.id === id);
+      if (!m) return;
+      _chatReplyTo = null;
+      _chatEditingId = id;
+      $('chat-context-label').textContent = 'Editing message';
+      $('chat-context-preview').textContent = m.body;
+      $('chat-context').style.display = 'flex';
+      const input = $('chat-input');
+      input.value = m.body;
+      input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 112) + 'px';
+      input.focus();
+    }
+    function _chatClearContext() {
+      _chatReplyTo = null;
+      _chatEditingId = null;
+      $('chat-context').style.display = 'none';
+    }
+
+    // ── Gesture-based reply/edit (right-click menu, double-click, mobile
+    // swipe) — same interaction model as the admin↔Senior Editor chat. ──
+    let _chatMenuEl = null;
+    function _chatShowMenu(msgId, isSent, x, y) {
+      _chatCloseMenu();
+      const el = document.createElement('div');
+      el.className = 'fixed z-[10001] bg-charcoal border border-border rounded-lg shadow-xl shadow-black/60 py-1 min-w-[132px] text-[12.5px] overflow-hidden';
+      el.innerHTML = (isSent ? '<button class="w-full text-left px-3 py-1.5 text-white/80 hover:bg-white/5 transition-colors" data-act="edit">Edit message</button>' : '')
+        + '<button class="w-full text-left px-3 py-1.5 text-white/80 hover:bg-white/5 transition-colors" data-act="quote">Quote in reply</button>';
+      document.body.appendChild(el);
+      const r = el.getBoundingClientRect();
+      el.style.left = Math.min(x, window.innerWidth - r.width - 8) + 'px';
+      el.style.top  = Math.min(y, window.innerHeight - r.height - 8) + 'px';
+      el.addEventListener('click', e => {
+        const act = e.target.closest('[data-act]')?.dataset.act;
+        if (act === 'edit') _chatEditMessage(msgId);
+        else if (act === 'quote') _chatReplyToMessage(msgId);
+        _chatCloseMenu();
+      });
+      _chatMenuEl = el;
+      setTimeout(() => document.addEventListener('click', _chatCloseMenu, { once: true, capture: true }), 0);
+    }
+    function _chatCloseMenu() {
+      if (_chatMenuEl) { _chatMenuEl.remove(); _chatMenuEl = null; }
+    }
+    function _chatBindGestures(containerId) {
+      const container = $(containerId);
+      if (!container || container._gesturesBound) return;
+      container._gesturesBound = true;
+
+      // Block the native browser menu inside the message list. The custom
+      // one only opens when the right-click lands exactly on a bubble —
+      // not the row gutter around it, not date separators.
+      container.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        const bubble = e.target.closest('.chat-bubble');
+        const row = bubble?.closest('.chat-row');
+        if (!row) return;
+        _chatShowMenu(row.dataset.msgId, row.dataset.sent === '1', e.clientX, e.clientY);
+      });
+
+      // Desktop: double-click the empty space beside a bubble (not the
+      // text itself, so normal word-selection double-click still works)
+      // to quote/reply to it in one motion.
+      container.addEventListener('dblclick', e => {
+        const row = e.target.closest('.chat-row');
+        if (!row || e.target.closest('.chat-bubble')) return;
+        _chatReplyToMessage(row.dataset.msgId);
+      });
+
+      // Mobile: drag a bubble inward (own → left, sender's → right) to
+      // quote/reply; hold still past the same duration to bring up the
+      // same menu as desktop right-click, so editing stays reachable.
+      let touch = null;
+      container.addEventListener('touchstart', e => {
+        const bubble = e.target.closest('.chat-bubble');
+        const row = bubble?.closest('.chat-row');
+        if (!row || !bubble) return;
+        const t = e.touches[0];
+        touch = { row, bubble, sent: row.dataset.sent === '1', startX: t.clientX, startY: t.clientY, dx: 0, dragging: false, firedMenu: false };
+        touch.longPress = setTimeout(() => {
+          if (touch && !touch.dragging) { _chatShowMenu(row.dataset.msgId, touch.sent, t.clientX, t.clientY); touch.firedMenu = true; }
+        }, 500);
+      }, { passive: true });
+      container.addEventListener('touchmove', e => {
+        if (!touch) return;
+        const t = e.touches[0];
+        const dx = t.clientX - touch.startX, dy = t.clientY - touch.startY;
+        if (!touch.dragging && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) {
+          touch.dragging = true;
+          clearTimeout(touch.longPress);
+        }
+        if (touch.dragging) {
+          e.preventDefault();
+          const clamped = Math.max(-72, Math.min(72, touch.sent ? Math.min(0, dx) : Math.max(0, dx)));
+          touch.dx = clamped;
+          touch.bubble.style.transition = 'none';
+          touch.bubble.style.transform = 'translateX(' + clamped + 'px)';
+        }
+      }, { passive: false });
+      const endTouch = e => {
+        if (!touch) return;
+        clearTimeout(touch.longPress);
+        if (touch.dragging) {
+          touch.bubble.style.transition = 'transform .18s ease';
+          touch.bubble.style.transform = '';
+          if (Math.abs(touch.dx) > 52) _chatReplyToMessage(touch.row.dataset.msgId);
+        }
+        if (touch.firedMenu) e.preventDefault();
+        touch = null;
+      };
+      container.addEventListener('touchend', endTouch, { passive: false });
+      container.addEventListener('touchcancel', endTouch);
+    }
+
     async function sendChatMessage() {
       const input = $('chat-input');
       const body = input?.value?.trim();
-      if (!body || !_chatAdminId || !currentUserId) return;
+      if (!body || !currentUserId) return;
+
+      if (_chatEditingId) {
+        const id = _chatEditingId;
+        input.value = ''; input.style.height = 'auto';
+        _chatClearContext();
+        const { data, error } = await db.rpc('edit_message', { p_id: id, p_body: body }).single();
+        if (error) { showToast('Edit failed: ' + error.message); return; }
+        const idx = _chatMessages.findIndex(m => m.id === id);
+        if (idx !== -1 && data) { _chatMessages[idx] = data; _renderChatMessages(); }
+        return;
+      }
+
+      if (!_chatAdminId) return;
+      const parentId = _chatReplyTo?.id || null;
       input.value = '';
       input.style.height = 'auto';
+      _chatClearContext();
       const { data, error } = await db.rpc('send_message', {
         p_recipient_id: _chatAdminId,
         p_body: body,
         p_sent_as: 'writer',
+        p_parent_id: parentId,
       }).single();
       if (error) { showToast('Send failed: ' + error.message); input.value = body; return; }
       if (data) { _chatMessages.push(data); _renderChatMessages(); }
