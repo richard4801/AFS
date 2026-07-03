@@ -52,7 +52,10 @@ RETURNS TABLE (id uuid, chapter_number int, title text, status text, word_count 
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
 BEGIN
   IF NOT public.is_senior_editor() THEN RAISE EXCEPTION 'Senior Editors only.'; END IF;
-  IF NOT EXISTS (SELECT 1 FROM public.books WHERE id = p_book_id AND is_signed = true) THEN
+  -- Qualified with the "b" alias: this function's RETURNS TABLE declares an
+  -- output column named "id", which plpgsql exposes as a variable throughout
+  -- the function body — a bare "id" here is ambiguous against that variable.
+  IF NOT EXISTS (SELECT 1 FROM public.books b WHERE b.id = p_book_id AND b.is_signed = true) THEN
     RAISE EXCEPTION 'Book not found.';
   END IF;
   RETURN QUERY
