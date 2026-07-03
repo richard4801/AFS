@@ -72,7 +72,7 @@
     .collab-follow-btn[data-on="1"]{color:#C82333;border-color:rgba(200,35,51,0.45);background:rgba(200,35,51,0.12);}
     /* ── Chapter comments (overlay — never touches editable content DOM) ── */
     /* Background is set inline per-comment (role color × resolved/active state) — see CMT_ROLE. */
-    .chapter-highlight-ov{position:absolute;border-radius:2px;pointer-events:none;transition:background .15s;}
+    .chapter-highlight-ov{position:absolute;box-sizing:border-box;border-radius:2px;pointer-events:none;transition:background .15s,border-color .15s;}
     #acmt-comment-trigger{position:fixed;z-index:296;display:none;transform:translate(-50%,-100%);}
     #acmt-comment-trigger button{display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:999px;background:#C9A84C;color:#0D0B09;font-size:11px;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,0.45);border:none;cursor:pointer;white-space:nowrap;}
     #acmt-comment-trigger button:hover{background:#E2C97E;}
@@ -1103,10 +1103,6 @@
         </button>
         <span id="admin-fs-wc" class="text-muted text-xs tabular-nums hidden sm:block">0 words</span>
         <span id="admin-fs-autosave" class="hidden text-xs mr-0.5" style="color:rgba(122,122,122,0.7)"></span>
-        <button onclick="saveAdminFSEdit()"
-                class="px-3 py-1.5 bg-gold hover:bg-gold-light text-obsidian text-xs font-semibold rounded-lg transition-colors">
-          Save Changes
-        </button>
       </div>
     </div>
     <!-- Row 1b: Approve / Request Revision — lives here now, not a separate read view -->
@@ -2560,7 +2556,7 @@
       role: 'admin',
       getUserId: () => currentUserId,
       getUserName: () => 'Editor', // writers always see the admin as "Editor", never a personal name
-      onContentApplied: () => { updateAdminFsWc(); _renderCommentOverlayAdmin(); },
+      onContentApplied: () => { updateAdminFsWc(); _acmtLastText = _plainText($('admin-fs-content')); _renderCommentOverlayAdmin(); },
     });
 
     // ── Chapter comments (Google-Docs style, overlay-based) ─────────
@@ -2576,6 +2572,7 @@
     let _acmtPendingRange = null;
     let _acmtSheetMode = null;
     let _acmtCh = null;
+    let _acmtLastText = '';
 
     // Per-role comment coloring — same identity everywhere: writer stays
     // gold, admin ("Editor") is crimson/red, Senior Editor ("God Mother")
@@ -2617,6 +2614,36 @@
       r.setStart(s.node, s.offset); r.setEnd(e.node, e.offset);
       return r;
     }
+    function _plainText(root) {
+      const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+      let s = '', node;
+      while ((node = w.nextNode())) s += node.nodeValue;
+      return s;
+    }
+    // Comment offsets are captured against the text at the moment they were
+    // posted — typing anywhere in the document shifts everything after that
+    // point, so without this a highlight silently drifts onto whatever text
+    // now occupies its old character range. Diff the text before/after each
+    // edit and shift (or, for edits landing inside a highlight, grow) every
+    // comment's offsets to keep each highlight pinned to the same words.
+    function _adjustOffsetsForEdit(comments, oldText, newText) {
+      if (oldText === newText) return;
+      const maxCommon = Math.min(oldText.length, newText.length);
+      let prefix = 0;
+      while (prefix < maxCommon && oldText[prefix] === newText[prefix]) prefix++;
+      let suffix = 0;
+      const maxSuffix = maxCommon - prefix;
+      while (suffix < maxSuffix && oldText[oldText.length - 1 - suffix] === newText[newText.length - 1 - suffix]) suffix++;
+      const editStart = prefix, editOldEnd = oldText.length - suffix;
+      const delta = newText.length - oldText.length;
+      comments.forEach(c => {
+        if (c.start_offset == null || c.end_offset == null) return;
+        if (c.end_offset <= editStart) return;
+        if (c.start_offset >= editOldEnd) { c.start_offset += delta; c.end_offset += delta; return; }
+        if (c.start_offset >= editStart) c.start_offset = editStart;
+        c.end_offset = Math.max(c.start_offset, c.end_offset + delta);
+      });
+    }
     function _renderCommentOverlayAdmin() {
       const root = $('admin-fs-content'), overlay = $('admin-fs-comment-overlay');
       if (!root || !overlay) return;
@@ -2626,11 +2653,14 @@
         const range = _rangeFromOffsets(root, c.start_offset, c.end_offset);
         if (!range) return;
         const colors = CMT_ROLE[c.author_role] || CMT_ROLE.writer;
-        const bg = c.resolved ? CMT_RESOLVED_BG : (c.id === _acmtActiveId ? colors.bgActive : colors.bg);
+        const isActive = c.id === _acmtActiveId;
+        const bg = c.resolved ? CMT_RESOLVED_BG : (isActive ? colors.bgActive : colors.bg);
+        const borderColor = c.resolved ? 'rgba(122,122,122,0.55)' : colors.label;
         [...range.getClientRects()].forEach(r => {
           const mark = document.createElement('div');
           mark.className = 'chapter-highlight-ov';
           mark.style.background = bg;
+          mark.style.borderBottom = (isActive ? '2.5px' : '2px') + ' solid ' + borderColor;
           mark.dataset.commentId = c.id;
           mark.style.left = (r.left - parentRect.left) + 'px';
           mark.style.top = (r.top - parentRect.top) + 'px';
@@ -2804,6 +2834,8 @@
     async function loadChapterCommentsUiAdmin(chapterId) {
       const { data, error } = await db.rpc('get_chapter_comments', { p_chapter_id: chapterId });
       _acmtComments = error ? [] : (data ?? []);
+      const root = $('admin-fs-content');
+      _acmtLastText = root ? _plainText(root) : '';
       _renderCommentOverlayAdmin();
       _renderCommentPanelAdmin();
     }
@@ -2868,10 +2900,16 @@
     function unsubscribeChapterCommentsAdmin() {
       if (_acmtCh) { try { db.removeChannel(_acmtCh); } catch (_) {} _acmtCh = null; }
     }
-    // Keep overlay aligned while the admin types (offsets don't drift within
-    // this editing session, but the visual layout reflows on every keystroke).
+    // Keep overlay aligned while the admin types — both the visual reflow AND
+    // the underlying offsets, which otherwise silently drift onto whatever
+    // text now sits at their old character range as soon as anything is
+    // typed before or inside a highlighted passage.
     let _acmtOverlayRaf = null;
     $('admin-fs-content')?.addEventListener('input', () => {
+      const root = $('admin-fs-content');
+      const newText = _plainText(root);
+      _adjustOffsetsForEdit(_acmtComments, _acmtLastText, newText);
+      _acmtLastText = newText;
       if (_acmtOverlayRaf) cancelAnimationFrame(_acmtOverlayRaf);
       _acmtOverlayRaf = requestAnimationFrame(_renderCommentOverlayAdmin);
     });

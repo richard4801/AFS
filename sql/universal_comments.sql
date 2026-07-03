@@ -22,29 +22,45 @@ RETURNS TABLE (
   created_at timestamptz
 )
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_viewer_role text;
 BEGIN
   -- Qualified with the "pr" alias: this function's RETURNS TABLE declares an
   -- output column named "id", which plpgsql exposes as a variable throughout
   -- the function body — a bare "id" here is ambiguous against that variable.
+  IF EXISTS (SELECT 1 FROM public.profiles pr WHERE pr.id = auth.uid() AND pr.is_admin = true) THEN
+    v_viewer_role := 'admin';
+  ELSIF public.is_senior_editor() THEN
+    v_viewer_role := 'senior_editor';
+  ELSE
+    v_viewer_role := 'writer';
+  END IF;
+
   IF NOT (
-    EXISTS (SELECT 1 FROM public.profiles pr WHERE pr.id = auth.uid() AND pr.is_admin = true)
+    v_viewer_role = 'admin'
     OR EXISTS (
       SELECT 1 FROM public.chapters c JOIN public.books b ON b.id = c.book_id
       WHERE c.id = p_chapter_id AND b.author_id = auth.uid()
     )
-    OR (public.is_senior_editor() AND public.chapter_book_is_signed(p_chapter_id))
+    OR (v_viewer_role = 'senior_editor' AND public.chapter_book_is_signed(p_chapter_id))
   ) THEN
     RAISE EXCEPTION 'Not authorized.';
   END IF;
 
+  -- Identity is masked per-VIEWER, not just per-author: writers and admin
+  -- both see admin as "Editor"; the Senior Editor sees admin as "Admin"
+  -- instead. Only the admin ever sees a writer's real name — the Senior
+  -- Editor sees just the generic "Writer" tag.
   RETURN QUERY
   SELECT cm.id, cm.parent_id, cm.body, cm.resolved,
          cm.start_offset, cm.end_offset, cm.quoted_text,
          COALESCE(cm.author_role, 'writer')::text,
          CASE
            WHEN cm.author_role = 'senior_editor' THEN 'God Mother'
-           WHEN cm.author_role = 'admin'         THEN 'Editor'
-           ELSE COALESCE(p.name, p.email, 'Writer')
+           WHEN cm.author_role = 'admin' THEN
+             CASE WHEN v_viewer_role = 'senior_editor' THEN 'Admin' ELSE 'Editor' END
+           ELSE
+             CASE WHEN v_viewer_role = 'admin' THEN COALESCE(p.name, p.email, 'Writer') ELSE 'Writer' END
          END::text,
          cm.reviewer_id, (cm.reviewer_id = auth.uid()),
          cm.created_at
