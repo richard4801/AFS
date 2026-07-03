@@ -1008,9 +1008,9 @@
       const card = document.getElementById('se-compose-card');
       const btn  = card?.querySelector('button:last-child');
       if (btn) { btn.disabled = true; btn.textContent = 'Posting…'; }
-      const { error } = await db.from('comments').insert({
-        chapter_id: _seChapterId, reviewer_id: currentUserId, author_role: 'senior_editor',
-        start_offset: start, end_offset: end, quoted_text: quoted, body,
+      const { error } = await db.rpc('se_post_comment', {
+        p_chapter_id: _seChapterId, p_start_offset: start, p_end_offset: end,
+        p_quoted_text: quoted, p_body: body,
       });
       if (error) {
         // Keep the draft on screen so nothing is lost and the message is impossible to miss.
@@ -1099,9 +1099,9 @@
       const root = _seComments.find(c => c.id === rootId);
       if (!root) return;
       inputEl.disabled = true;
-      const { error } = await db.from('comments').insert({
-        chapter_id: _seChapterId, reviewer_id: currentUserId, author_role: 'senior_editor',
-        parent_id: rootId, start_offset: root.start_offset, end_offset: root.end_offset, quoted_text: root.quoted_text, body,
+      const { error } = await db.rpc('se_post_comment', {
+        p_chapter_id: _seChapterId, p_start_offset: root.start_offset, p_end_offset: root.end_offset,
+        p_quoted_text: root.quoted_text, p_body: body, p_parent_id: rootId,
       });
       if (error) { toast(error.message); inputEl.disabled = false; return; }
       await loadChapterComments(_seChapterId);

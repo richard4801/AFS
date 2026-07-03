@@ -27,22 +27,29 @@ CREATE INDEX IF NOT EXISTS comments_parent          ON public.comments (parent_i
 -- policies already on this table.
 ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 
+-- Dedicated helper so the policy expressions below never reference the
+-- comments table by name inside its own WITH CHECK/USING clause — takes
+-- the chapter id as a plain parameter instead, which is unambiguous.
+CREATE OR REPLACE FUNCTION public.chapter_book_is_signed(p_chapter_id uuid)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.chapters c JOIN public.books b ON b.id = c.book_id
+    WHERE c.id = p_chapter_id AND b.is_signed = true
+  );
+$$;
+
 DROP POLICY IF EXISTS "comments_se_read" ON public.comments;
 CREATE POLICY "comments_se_read" ON public.comments
   FOR SELECT USING (
-    public.is_senior_editor() AND EXISTS (
-      SELECT 1 FROM public.chapters c JOIN public.books b ON b.id = c.book_id
-      WHERE c.id = comments.chapter_id AND b.is_signed = true
-    )
+    public.is_senior_editor() AND public.chapter_book_is_signed(chapter_id)
   );
 
 DROP POLICY IF EXISTS "comments_se_insert" ON public.comments;
 CREATE POLICY "comments_se_insert" ON public.comments
   FOR INSERT WITH CHECK (
-    public.is_senior_editor() AND reviewer_id = auth.uid() AND EXISTS (
-      SELECT 1 FROM public.chapters c JOIN public.books b ON b.id = c.book_id
-      WHERE c.id = comments.chapter_id AND b.is_signed = true
-    )
+    public.is_senior_editor()
+    AND reviewer_id = auth.uid()
+    AND public.chapter_book_is_signed(chapter_id)
   );
 
 DROP POLICY IF EXISTS "comments_se_update_own" ON public.comments;
@@ -53,6 +60,32 @@ CREATE POLICY "comments_se_update_own" ON public.comments
 DROP POLICY IF EXISTS "comments_se_delete_own" ON public.comments;
 CREATE POLICY "comments_se_delete_own" ON public.comments
   FOR DELETE USING (public.is_senior_editor() AND reviewer_id = auth.uid());
+
+-- ── 2b. RPC-gated insert (primary path — bypasses RLS-insert entirely) ──
+-- Every other SE write in this app (se_recommend_chapters, se_add_prompt,
+-- se_review_book, …) goes through a SECURITY DEFINER RPC rather than a
+-- raw table insert, and all of those have worked reliably. Route comment
+-- posting the same way instead of continuing to debug the direct-insert
+-- RLS policy — the policy above stays in place as a defensive fallback,
+-- but the client now calls this function.
+CREATE OR REPLACE FUNCTION public.se_post_comment(
+  p_chapter_id uuid, p_start_offset int, p_end_offset int, p_quoted_text text,
+  p_body text, p_parent_id uuid DEFAULT NULL
+) RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_id uuid;
+BEGIN
+  IF NOT public.is_senior_editor() THEN RAISE EXCEPTION 'Senior Editors only.'; END IF;
+  IF NOT public.chapter_book_is_signed(p_chapter_id) THEN RAISE EXCEPTION 'Chapter not found.'; END IF;
+  IF p_body IS NULL OR length(trim(p_body)) = 0 THEN RAISE EXCEPTION 'Comment cannot be empty.'; END IF;
+
+  INSERT INTO public.comments (chapter_id, reviewer_id, author_role, start_offset, end_offset, quoted_text, parent_id, body)
+  VALUES (p_chapter_id, auth.uid(), 'senior_editor', p_start_offset, p_end_offset, p_quoted_text, p_parent_id, p_body)
+  RETURNING id INTO v_id;
+
+  RETURN v_id;
+END;
+$$;
 
 -- ── 3. Enable Realtime on comments (non-fatal if already added) ──
 DO $$
