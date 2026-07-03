@@ -77,7 +77,7 @@
     #acmt-comment-trigger button{display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:999px;background:#C9A84C;color:#0D0B09;font-size:11px;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,0.45);border:none;cursor:pointer;white-space:nowrap;}
     #acmt-comment-trigger button:hover{background:#E2C97E;}
     .acmt-card{border-radius:14px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.03);padding:12px 14px;transition:border-color .2s,background .2s;}
-    .acmt-card.active{border-color:rgba(201,168,76,0.5);background:rgba(201,168,76,0.07);}
+    .acmt-card.active{border-color:var(--role-border);background:var(--role-cardbg);}
     .acmt-card.resolved{opacity:.55;}
     .acmt-quote{font-size:11px;color:rgba(201,168,76,0.85);border-left:2px solid rgba(201,168,76,0.4);padding-left:8px;margin-bottom:7px;line-height:1.5;font-style:italic;}
     @keyframes typingBounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
@@ -2587,6 +2587,7 @@
       border: _cmtRgba(hex, 0.4),
       bg: _cmtRgba(hex, 0.28),
       bgActive: _cmtRgba(hex, 0.5),
+      cardBg: _cmtRgba(hex, 0.07),
     }]));
     const CMT_RESOLVED_BG = 'rgba(122,122,122,0.16)';
 
@@ -2624,8 +2625,16 @@
     // posted — typing anywhere in the document shifts everything after that
     // point, so without this a highlight silently drifts onto whatever text
     // now occupies its old character range. Diff the text before/after each
-    // edit and shift (or, for edits landing inside a highlight, grow) every
-    // comment's offsets to keep each highlight pinned to the same words.
+    // edit and shift every comment's offsets to keep each highlight pinned
+    // to the same original words. Typing strictly *inside* a highlight never
+    // joins the new words to the old ones — the inserted span is carved out
+    // as a permanent gap (c._gaps) that rendering skips, splitting the
+    // highlight visually around it instead of growing to absorb it.
+    function _mapOffsetThroughEdit(o, editStart, editOldEnd, delta) {
+      if (o <= editStart) return o;
+      if (o >= editOldEnd) return o + delta;
+      return editStart; // inside the edited/deleted span — collapses to the edit point
+    }
     function _adjustOffsetsForEdit(comments, oldText, newText) {
       if (oldText === newText) return;
       const maxCommon = Math.min(oldText.length, newText.length);
@@ -2638,11 +2647,44 @@
       const delta = newText.length - oldText.length;
       comments.forEach(c => {
         if (c.start_offset == null || c.end_offset == null) return;
-        if (c.end_offset <= editStart) return;
-        if (c.start_offset >= editOldEnd) { c.start_offset += delta; c.end_offset += delta; return; }
-        if (c.start_offset >= editStart) c.start_offset = editStart;
-        c.end_offset = Math.max(c.start_offset, c.end_offset + delta);
+        if (!c._gaps) c._gaps = [];
+        const origStart = c.start_offset, origEnd = c.end_offset;
+        if (origEnd <= editStart) return; // fully before the edit — untouched
+        if (origStart >= editOldEnd) { // fully after the edit — shift
+          c.start_offset += delta; c.end_offset += delta;
+          c._gaps = c._gaps.map(([gs, ge]) => [gs + delta, ge + delta]);
+          return;
+        }
+        const editedInsideRange = origStart < editStart && editOldEnd <= origEnd;
+        c.start_offset = _mapOffsetThroughEdit(origStart, editStart, editOldEnd, delta);
+        c.end_offset = Math.max(c.start_offset, _mapOffsetThroughEdit(origEnd, editStart, editOldEnd, delta));
+        c._gaps = c._gaps
+          .map(([gs, ge]) => [_mapOffsetThroughEdit(gs, editStart, editOldEnd, delta), _mapOffsetThroughEdit(ge, editStart, editOldEnd, delta)])
+          .filter(([gs, ge]) => ge > gs);
+        if (editedInsideRange && delta > 0) c._gaps.push([editStart, editStart + delta]);
+        c._gaps.sort((a, b) => a[0] - b[0]);
+        const merged = [];
+        for (const g of c._gaps) {
+          if (merged.length && g[0] <= merged[merged.length - 1][1]) merged[merged.length - 1][1] = Math.max(merged[merged.length - 1][1], g[1]);
+          else merged.push(g);
+        }
+        c._gaps = merged;
       });
+    }
+    // Splits [start, end) into the sub-ranges that remain after excluding
+    // every gap — one comment can render as several disjoint highlighted
+    // pieces once text has been typed inside it.
+    function _subRangesExcludingGaps(start, end, gaps) {
+      const sorted = (gaps || []).filter(([gs, ge]) => ge > start && gs < end).sort((a, b) => a[0] - b[0]);
+      const out = [];
+      let cursor = start;
+      for (const [gs, ge] of sorted) {
+        const s = Math.max(gs, start), e = Math.min(ge, end);
+        if (s > cursor) out.push([cursor, s]);
+        cursor = Math.max(cursor, e);
+      }
+      if (cursor < end) out.push([cursor, end]);
+      return out;
     }
     function _renderCommentOverlayAdmin() {
       const root = $('admin-fs-content'), overlay = $('admin-fs-comment-overlay');
@@ -2650,23 +2692,23 @@
       overlay.innerHTML = '';
       const parentRect = overlay.getBoundingClientRect();
       _acmtComments.filter(c => !c.parent_id && c.start_offset != null).forEach(c => {
-        const range = _rangeFromOffsets(root, c.start_offset, c.end_offset);
-        if (!range) return;
         const colors = CMT_ROLE[c.author_role] || CMT_ROLE.writer;
         const isActive = c.id === _acmtActiveId;
         const bg = c.resolved ? CMT_RESOLVED_BG : (isActive ? colors.bgActive : colors.bg);
-        const borderColor = c.resolved ? 'rgba(122,122,122,0.55)' : colors.label;
-        [...range.getClientRects()].forEach(r => {
-          const mark = document.createElement('div');
-          mark.className = 'chapter-highlight-ov';
-          mark.style.background = bg;
-          mark.style.borderBottom = (isActive ? '2.5px' : '2px') + ' solid ' + borderColor;
-          mark.dataset.commentId = c.id;
-          mark.style.left = (r.left - parentRect.left) + 'px';
-          mark.style.top = (r.top - parentRect.top) + 'px';
-          mark.style.width = r.width + 'px';
-          mark.style.height = r.height + 'px';
-          overlay.appendChild(mark);
+        _subRangesExcludingGaps(c.start_offset, c.end_offset, c._gaps).forEach(([s, e]) => {
+          const range = _rangeFromOffsets(root, s, e);
+          if (!range) return;
+          [...range.getClientRects()].forEach(r => {
+            const mark = document.createElement('div');
+            mark.className = 'chapter-highlight-ov';
+            mark.style.background = bg;
+            mark.dataset.commentId = c.id;
+            mark.style.left = (r.left - parentRect.left) + 'px';
+            mark.style.top = (r.top - parentRect.top) + 'px';
+            mark.style.width = r.width + 'px';
+            mark.style.height = r.height + 'px';
+            overlay.appendChild(mark);
+          });
         });
       });
     }
@@ -2696,7 +2738,8 @@
             // surface, since the overlay itself can't intercept clicks
             // without also blocking normal cursor placement/typing.
             const { start } = _rangeOffsets(root, range);
-            const hit = _acmtComments.find(c => !c.parent_id && c.start_offset != null && start >= c.start_offset && start < c.end_offset);
+            const hit = _acmtComments.find(c => !c.parent_id && c.start_offset != null && start >= c.start_offset && start < c.end_offset
+              && !(c._gaps || []).some(([gs, ge]) => start >= gs && start < ge));
             if (hit) focusCommentAdmin(hit.id);
             return;
           }
@@ -2790,7 +2833,7 @@
       const isActive = root.id === _acmtActiveId;
       const rootColors = CMT_ROLE[root.author_role] || CMT_ROLE.writer;
       return `
-        <div class="acmt-card ${isActive ? 'active' : ''} ${root.resolved ? 'resolved' : ''}" data-thread-id="${root.id}" onclick="focusCommentAdmin('${root.id}')">
+        <div class="acmt-card ${isActive ? 'active' : ''} ${root.resolved ? 'resolved' : ''}" data-thread-id="${root.id}" onclick="focusCommentAdmin('${root.id}')" style="--role-border:${rootColors.border};--role-cardbg:${rootColors.cardBg}">
           ${root.quoted_text ? `<p class="acmt-quote" style="color:${rootColors.text};border-left-color:${rootColors.border}">"${escHtml(root.quoted_text.length > 140 ? root.quoted_text.slice(0, 140) + '…' : root.quoted_text)}"</p>` : ''}
           <div class="flex items-start gap-2 mb-1">
             ${root.is_own ? '' : `<span class="text-[11px] font-semibold" style="color:${rootColors.label}">${escHtml(root.author_label)}</span>`}
