@@ -426,12 +426,15 @@
   <!-- ══ PRIVATE CHAT WITH ADMIN ══ -->
   <div id="se-chat-panel" class="hidden fixed z-[80] flex flex-col rounded-2xl border border-border bg-surface shadow-2xl shadow-black/70 overflow-hidden" style="right:24px;bottom:96px;width:340px;height:520px;transition:all 0.2s ease;">
     <div class="flex items-center gap-3 px-4 py-3.5 border-b border-border/50 bg-charcoal/40 flex-shrink-0">
-      <div class="w-9 h-9 rounded-full bg-[#B79FDE]/15 border border-[#B79FDE]/30 flex items-center justify-center flex-shrink-0">
-        <span class="text-[13px] font-bold" style="color:#B79FDE">A</span>
+      <div class="relative flex-shrink-0">
+        <div class="w-9 h-9 rounded-full bg-[#B79FDE]/15 border border-[#B79FDE]/30 flex items-center justify-center">
+          <span class="text-[13px] font-bold" style="color:#B79FDE">A</span>
+        </div>
+        <span id="se-chat-status-dot" class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-gray-500 border-2 border-surface"></span>
       </div>
       <div class="flex-1 min-w-0">
         <p class="text-white text-[13px] font-semibold leading-none">Admin</p>
-        <p class="text-muted/60 text-[10px] mt-0.5">Private chat</p>
+        <p id="se-chat-status-text" class="text-muted/60 text-[10px] mt-0.5">Offline</p>
       </div>
       <div class="flex items-center gap-1">
         <button id="se-chat-fs-btn" onclick="toggleSeChatFullscreen()" title="Fullscreen"
@@ -1670,6 +1673,7 @@
 
     async function initSeChat(userId) {
       _seChatBindGestures('se-chat-messages');
+      _initSeChatPresence(userId);
       const { data: cfg } = await db.from('site_config').select('value').eq('key', 'admin_id').maybeSingle();
       _seChatAdminId = cfg?.value || null;
       if (!_seChatAdminId) {
@@ -1719,6 +1723,40 @@
       if (_seChatUnread > 0) { badge.textContent = _seChatUnread > 9 ? '9+' : String(_seChatUnread); badge.classList.remove('hidden'); }
       else badge.classList.add('hidden');
     }
+
+    // ── Online/offline presence — shares the same global "presence-afs"
+    // channel the writer↔admin chat already uses, just tracking her own
+    // role and watching for any admin's role instead.
+    let _seChatPresenceCh = null;
+    let _seChatPresenceUserId = null;
+    let _seChatPresenceReconnectTimer = null;
+    function _setSeChatAdminOnline(online) {
+      const dot = $('se-chat-status-dot'), txt = $('se-chat-status-text');
+      if (dot) dot.className = 'absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-surface ' + (online ? 'bg-emerald-400' : 'bg-gray-500');
+      if (txt) { txt.textContent = online ? 'Online' : 'Offline'; txt.className = online ? 'text-emerald-400/70 text-[10px] mt-0.5' : 'text-muted/60 text-[10px] mt-0.5'; }
+    }
+    function _initSeChatPresence(userId) {
+      _seChatPresenceUserId = userId;
+      if (_seChatPresenceCh) { try { _seChatPresenceCh.unsubscribe(); } catch (_) {} _seChatPresenceCh = null; }
+      _seChatPresenceCh = db.channel('presence-afs')
+        .on('presence', { event: 'sync' }, () => {
+          const all = Object.values(_seChatPresenceCh.presenceState()).flat();
+          _setSeChatAdminOnline(all.some(p => p.role === 'admin'));
+        })
+        .subscribe(async status => {
+          if (status === 'SUBSCRIBED') {
+            await _seChatPresenceCh.track({ userId, role: 'senior_editor' });
+          } else if (status === 'CHANNEL_ERROR' || status === 'CLOSED') {
+            clearTimeout(_seChatPresenceReconnectTimer);
+            _seChatPresenceReconnectTimer = setTimeout(() => _initSeChatPresence(_seChatPresenceUserId), 3000);
+          }
+        });
+    }
+    document.addEventListener('visibilitychange', () => {
+      if (!_seChatPresenceUserId || document.visibilityState !== 'visible') return;
+      if (!_seChatPresenceCh) { _initSeChatPresence(_seChatPresenceUserId); return; }
+      _seChatPresenceCh.track({ userId: _seChatPresenceUserId, role: 'senior_editor' }).catch(() => _initSeChatPresence(_seChatPresenceUserId));
+    });
 
     function _openSeChatPanel() {
       const panel = $('se-chat-panel');
@@ -1911,9 +1949,9 @@
     function _seChatShowMenu(msgId, isSent, x, y) {
       _seChatCloseMenu();
       const el = document.createElement('div');
-      el.className = 'fixed z-[10001] bg-charcoal border border-border rounded-xl shadow-2xl shadow-black/60 py-1.5 min-w-[168px] text-sm';
-      el.innerHTML = (isSent ? '<button class="w-full text-left px-3.5 py-2 text-white/85 hover:bg-white/5 transition-colors" data-act="edit">Edit message</button>' : '')
-        + '<button class="w-full text-left px-3.5 py-2 text-white/85 hover:bg-white/5 transition-colors" data-act="quote">Quote message in reply</button>';
+      el.className = 'fixed z-[10001] bg-charcoal border border-border rounded-lg shadow-xl shadow-black/60 py-1 min-w-[132px] text-[12.5px] overflow-hidden';
+      el.innerHTML = (isSent ? '<button class="w-full text-left px-3 py-1.5 text-white/80 hover:bg-white/5 transition-colors" data-act="edit">Edit message</button>' : '')
+        + '<button class="w-full text-left px-3 py-1.5 text-white/80 hover:bg-white/5 transition-colors" data-act="quote">Quote in reply</button>';
       document.body.appendChild(el);
       const r = el.getBoundingClientRect();
       el.style.left = Math.min(x, window.innerWidth - r.width - 8) + 'px';
@@ -1936,11 +1974,13 @@
       if (!container || container._gesturesBound) return;
       container._gesturesBound = true;
 
-      // Block the native browser menu inside the message list so the
-      // custom one (below) shows instead.
+      // Block the native browser menu inside the message list. The custom
+      // one only opens when the right-click lands exactly on a bubble —
+      // not the row gutter around it, not the date separators.
       container.addEventListener('contextmenu', e => {
         e.preventDefault();
-        const row = e.target.closest('.se-chat-row');
+        const bubble = e.target.closest('.se-chat-bubble');
+        const row = bubble?.closest('.se-chat-row');
         if (!row) return;
         _seChatShowMenu(row.dataset.msgId, row.dataset.sent === '1', e.clientX, e.clientY);
       });
@@ -1959,8 +1999,8 @@
       // same menu as desktop right-click, so editing stays reachable.
       let touch = null;
       container.addEventListener('touchstart', e => {
-        const row = e.target.closest('.se-chat-row');
-        const bubble = row?.querySelector('.se-chat-bubble');
+        const bubble = e.target.closest('.se-chat-bubble');
+        const row = bubble?.closest('.se-chat-row');
         if (!row || !bubble) return;
         const t = e.touches[0];
         touch = { row, bubble, sent: row.dataset.sent === '1', startX: t.clientX, startY: t.clientY, dx: 0, dragging: false, firedMenu: false };
