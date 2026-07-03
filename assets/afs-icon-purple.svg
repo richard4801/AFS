@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="AFS">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="AFS Publishing">
   <defs>
     <radialGradient id="bg" cx="50%" cy="42%" r="75%">
       <stop offset="0%" stop-color="#201A2E"/>
@@ -12,12 +12,11 @@
     </linearGradient>
   </defs>
   <rect width="200" height="200" fill="url(#bg)"/>
-  <!-- Full AFS mark: A, F, S sharing one unified horizontal slash -->
-  <g transform="translate(100,100) scale(1.05) translate(-140,-49)" stroke="url(#purple)" stroke-width="7" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
-    <polyline points="57,84 81,14 105,84"/>
-    <line x1="123" y1="14" x2="123" y2="84"/>
-    <line x1="123" y1="14" x2="159" y2="14"/>
-    <path stroke-linecap="round" d="M 219,21 C 222,13 215,13 202,13 C 183,13 177,24 177,34 C 177,43 186,47 200,49 C 214,51 223,57 223,67 C 223,77 215,85 201,85 C 186,85 177,76 177,67"/>
-    <line x1="57" y1="49" x2="223" y2="49"/>
-  </g>
+  <!-- The app's one AFS Publishing wordmark, unchanged, recolored metallic purple -->
+  <svg x="43" y="73" width="114" height="54" viewBox="15 18 110 52" style="clip-path:path('M0 0 H200 V21 H0 Z M0 26 H200 V54 H0 Z')" aria-label="AFS Publishing">
+    <g transform="translate(20,15)">
+      <text font-family="'Cinzel',Georgia,serif" font-weight="400" fill="url(#purple)" font-size="38" letter-spacing="4" x="0" y="35">AFS</text>
+      <text font-family="'Montserrat',system-ui,sans-serif" font-weight="400" fill="rgba(183,159,222,0.6)" font-size="9" letter-spacing="5" x="2" y="52">Publishing</text>
+    </g>
+  </svg>
 </svg>
