@@ -753,7 +753,13 @@
 
       const { data, error } = await db.rpc('get_se_chapter_content', { p_chapter_id: chapterId });
       const row = Array.isArray(data) ? data[0] : data;
-      if (error || !row) { $('se-reader-content').innerHTML = '<p class="text-red-400 text-sm">Could not load this chapter.</p>'; return; }
+      if (error) {
+        console.error('get_se_chapter_content:', error);
+        $('se-reader-content').innerHTML = '<p class="text-red-400 text-sm">Could not load this chapter: ' + escHtml(error.message) + '</p>';
+        toast('Chapter failed to load: ' + error.message);
+        return;
+      }
+      if (!row) { $('se-reader-content').innerHTML = '<p class="text-red-400 text-sm">Could not load this chapter.</p>'; return; }
       $('sr-title').textContent = row.title || ('Chapter ' + row.chapter_number);
       $('se-reader-content').innerHTML = _seContentHtml(row.content);
 
