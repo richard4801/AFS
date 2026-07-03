@@ -1608,7 +1608,7 @@
     // ── WRITERS SIDEBAR ─────────────────────────────────────────────
     async function loadWritersList() {
       const [{ data: writers }, { data: submittedChapters }, { data: unreadMsgs }] = await Promise.all([
-        db.from('profiles').select('id, name, email, rank').order('name'),
+        db.from('profiles').select('id, name, email, rank').eq('is_senior_editor', false).order('name'),
         db.from('chapters').select('books!inner(author_id)').eq('status', 'submitted'),
         db.from('messages').select('sender_id').eq('recipient_id', currentUserId).is('read_at', null),
       ]);
@@ -3129,7 +3129,7 @@
     let allProfiles = [];
 
     async function loadWriters() {
-      const { data } = await db.from('profiles').select('id, name, email, rank').order('name');
+      const { data } = await db.from('profiles').select('id, name, email, rank').eq('is_senior_editor', false).order('name');
       allProfiles = data || [];
       const select = $('income-writer'), container = $('writer-list');
       if (!data?.length) { container.innerHTML = `<p class="text-muted text-xs px-2 pt-2">No writers found.</p>`; return; }
@@ -3221,7 +3221,7 @@
     async function loadPayoutWriterList() {
       _payoutWritersLoaded = true;
       const container = $('payout-writer-list');
-      const writers = allProfiles.length ? allProfiles : (await db.from('profiles').select('id, name, email, rank').order('name')).data || [];
+      const writers = allProfiles.length ? allProfiles : (await db.from('profiles').select('id, name, email, rank').eq('is_senior_editor', false).order('name')).data || [];
       if (!writers.length) { container.innerHTML = `<p class="text-muted text-xs px-2 pt-2">No writers yet.</p>`; return; }
       container.innerHTML = writers.map(w => `
         <button onclick="selectPayoutWriter('${w.id}')" data-pwid="${w.id}"
