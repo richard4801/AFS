@@ -698,8 +698,17 @@
       $('se-book-modal').classList.remove('hidden');
       document.body.style.overflow = 'hidden';
 
+      $('sb-chapters').innerHTML = '';
+      $('sb-chapters-empty').textContent = 'No chapters submitted yet.';
+      $('sb-chapters-empty').classList.remove('hidden');
       const { data, error } = await db.rpc('get_se_book_chapters', { p_book_id: id });
-      const chapters = error ? [] : (data ?? []);
+      if (error) {
+        console.error('get_se_book_chapters:', error);
+        $('sb-chapters-empty').textContent = 'Could not load chapters: ' + error.message;
+        toast('Chapters failed to load: ' + error.message);
+        return;
+      }
+      const chapters = data ?? [];
       $('sb-chapters-empty').classList.toggle('hidden', chapters.length > 0);
       $('sb-chapters').innerHTML = chapters.map(c => `
         <button onclick="openSeReader('${c.id}','${escHtml(c.title || ('Chapter ' + c.chapter_number))}')" class="w-full flex items-center gap-3 rounded-xl border border-border bg-surface hover:border-gold/30 px-4 py-3 text-left transition-colors">

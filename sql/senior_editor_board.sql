@@ -6,6 +6,9 @@
 -- Every approved, active prompt on the platform, tagged with whether
 -- it's free to claim or currently being developed (with time left).
 -- No writer identity is exposed.
+-- DROP first: Postgres refuses CREATE OR REPLACE when the return column
+-- list changes (this function originally shipped without `brief`).
+DROP FUNCTION IF EXISTS public.get_se_prompt_board();
 CREATE OR REPLACE FUNCTION public.get_se_prompt_board()
 RETURNS TABLE (id uuid, title text, brief text, genre text, banner_url text, claim_state text, expires_at timestamptz)
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
