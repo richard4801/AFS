@@ -58,8 +58,14 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.books b WHERE b.id = p_book_id AND b.is_signed = true) THEN
     RAISE EXCEPTION 'Book not found.';
   END IF;
+  -- Explicit casts: the real chapters.chapter_number / word_count column
+  -- types aren't tracked in this repo (base table was created directly in
+  -- Supabase), so if either is bigint/numeric rather than int, an implicit
+  -- narrowing mismatch throws "structure of query does not match function
+  -- result type". Casting makes this work regardless of the source type.
   RETURN QUERY
-  SELECT c.id, c.chapter_number, c.title, c.status, c.word_count, c.updated_at
+  SELECT c.id::uuid, c.chapter_number::int, c.title::text, c.status::text,
+         c.word_count::int, c.updated_at::timestamptz
   FROM public.chapters c
   WHERE c.book_id = p_book_id AND c.status <> 'draft'
   ORDER BY c.chapter_number ASC;
@@ -72,8 +78,9 @@ RETURNS TABLE (id uuid, title text, content text, chapter_number int, status tex
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
 BEGIN
   IF NOT public.is_senior_editor() THEN RAISE EXCEPTION 'Senior Editors only.'; END IF;
+  -- Same defensive casting as get_se_book_chapters, same reason.
   RETURN QUERY
-  SELECT c.id, c.title, c.content, c.chapter_number, c.status
+  SELECT c.id::uuid, c.title::text, c.content::text, c.chapter_number::int, c.status::text
   FROM public.chapters c
   JOIN public.books b ON b.id = c.book_id
   WHERE c.id = p_chapter_id AND b.is_signed = true;
