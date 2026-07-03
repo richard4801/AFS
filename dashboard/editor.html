@@ -182,6 +182,30 @@
     </main>
   </div>
 
+  <!-- ══ BRIEF READER (read-only, immersive) ══ -->
+  <div id="board-modal" class="hidden fixed inset-0 z-[80] overflow-hidden" style="background:#0D0B09;">
+    <img id="bm-banner" src="" alt="" class="absolute inset-0 w-full h-full object-cover"/>
+    <div class="sm:hidden absolute inset-0 pointer-events-none" style="background:linear-gradient(to top, rgba(13,11,9,0.7) 0%, transparent 42%)"></div>
+    <div class="hidden sm:block absolute inset-0 pointer-events-none" style="background:linear-gradient(to right, transparent 38%, rgba(13,11,9,0.45) 100%)"></div>
+    <button onclick="closeBoardPrompt()" aria-label="Close"
+            class="absolute top-4 right-4 z-30 w-9 h-9 flex items-center justify-center rounded-lg border border-white/15 text-white/80 hover:text-white hover:border-white/30 text-2xl leading-none transition-colors" style="background:rgba(13,11,9,0.5);backdrop-filter:blur(6px)">×</button>
+    <div class="relative h-full w-full flex flex-col sm:flex-row sm:justify-end">
+      <div class="mt-auto sm:mt-0 w-full sm:w-[44%] sm:max-w-[620px] sm:min-w-[400px] h-[74%] sm:h-full flex flex-col min-h-0 border-t sm:border-t-0 sm:border-l border-white/10"
+           style="background:rgba(13,11,9,0.86);backdrop-filter:blur(22px) saturate(1.1);-webkit-backdrop-filter:blur(22px) saturate(1.1);">
+        <div class="flex-shrink-0 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent"></div>
+        <div class="flex-1 overflow-y-auto thin-scroll px-6 sm:px-9 py-7 sm:py-11">
+          <div class="flex items-center flex-wrap gap-2 mb-3">
+            <span id="bm-genre" class="hidden inline-block text-[10px] font-medium tracking-widest uppercase text-gold border border-gold/25 bg-gold/10 rounded-full px-3 py-1"></span>
+            <span id="bm-state" class="text-[10px] font-bold uppercase tracking-wide rounded-full px-2.5 py-1"></span>
+          </div>
+          <h2 id="bm-title" class="font-serif text-2xl sm:text-3xl lg:text-[2.5rem] text-white leading-tight mb-5"></h2>
+          <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-3">The Brief</p>
+          <div id="bm-brief" class="text-white/80 text-[15px] sm:text-base leading-[1.95] space-y-4"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ══ PROMPT EDITOR MODAL ══ -->
   <div id="prompt-modal" class="hidden fixed inset-0 z-[80] flex items-center justify-center p-0 sm:p-6" style="background:rgba(0,0,0,0.75);backdrop-filter:blur(4px)">
     <div class="w-full sm:max-w-lg h-full sm:h-auto sm:max-h-[92vh] bg-charcoal sm:rounded-2xl border border-border flex flex-col overflow-hidden">
@@ -446,9 +470,12 @@
       toast('Withdrawn.'); loadMyPrompts();
     }
 
+    let _boardReg = {};
     async function loadBoard() {
       const { data, error } = await db.rpc('get_se_prompt_board');
       const rows = error ? [] : (data ?? []);
+      _boardReg = {};
+      rows.forEach(p => { _boardReg[p.id] = p; });
       $('board-empty').classList.toggle('hidden', rows.length > 0);
       $('board-grid').innerHTML = rows.map(p => {
         const dev = p.claim_state === 'taken';
@@ -457,18 +484,40 @@
           : `<span class="absolute top-2.5 right-2.5 text-[9px] font-bold uppercase tracking-wide text-emerald-400 bg-emerald-400/10 border border-emerald-400/25 rounded-full px-2 py-0.5">Available</span>`;
         return `
         <div class="rounded-2xl border border-border bg-surface overflow-hidden">
-          <div class="relative aspect-[2/1] bg-charcoal overflow-hidden">
-            ${_bannerBg(p.banner_url)}
-            <div class="absolute inset-0" style="background:linear-gradient(to top,rgba(13,11,9,0.85),transparent 60%)"></div>
-            ${badge}
-            <div class="absolute bottom-0 left-0 right-0 p-3">
-              ${p.genre ? `<span class="inline-block text-[8px] font-semibold tracking-widest uppercase text-gold/90 mb-1">${escHtml(p.genre)}</span>` : ''}
-              <h4 class="font-serif text-white text-base leading-tight">${escHtml(p.title)}</h4>
+          <button onclick="openBoardPrompt('${p.id}')" class="block w-full text-left group">
+            <div class="relative aspect-[2/1] bg-charcoal overflow-hidden">
+              ${_bannerBg(p.banner_url)}
+              <div class="absolute inset-0" style="background:linear-gradient(to top,rgba(13,11,9,0.85),transparent 60%)"></div>
+              ${badge}
+              <div class="absolute bottom-0 left-0 right-0 p-3">
+                ${p.genre ? `<span class="inline-block text-[8px] font-semibold tracking-widest uppercase text-gold/90 mb-1">${escHtml(p.genre)}</span>` : ''}
+                <h4 class="font-serif text-white text-base leading-tight">${escHtml(p.title)}</h4>
+                <span class="inline-block text-[11px] text-gold/90 mt-1.5 group-hover:text-gold transition-colors">View brief →</span>
+              </div>
             </div>
-          </div>
+          </button>
         </div>`;
       }).join('');
     }
+
+    function _briefToHtml(raw) {
+      return String(raw || '').split(/\n{2,}/).map(par => `<p>${escHtml(par.trim()).replace(/\n/g, '<br>')}</p>`).join('');
+    }
+    function openBoardPrompt(id) {
+      const p = _boardReg[id]; if (!p) return;
+      const img = $('bm-banner');
+      if (p.banner_url) { img.src = p.banner_url; img.style.display = ''; } else { img.removeAttribute('src'); img.style.display = 'none'; }
+      const g = $('bm-genre');
+      if (p.genre) { g.textContent = p.genre; g.classList.remove('hidden'); } else g.classList.add('hidden');
+      const st = $('bm-state');
+      if (p.claim_state === 'taken') { st.textContent = 'In development'; st.className = 'text-[10px] font-bold uppercase tracking-wide rounded-full px-2.5 py-1 text-gold bg-gold/10 border border-gold/25'; }
+      else { st.textContent = 'Available'; st.className = 'text-[10px] font-bold uppercase tracking-wide rounded-full px-2.5 py-1 text-emerald-300 bg-emerald-400/10 border border-emerald-400/25'; }
+      $('bm-title').textContent = p.title;
+      $('bm-brief').innerHTML = _briefToHtml(p.brief);
+      $('board-modal').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeBoardPrompt() { $('board-modal').classList.add('hidden'); document.body.style.overflow = ''; }
 
     async function loadBooks() {
       const { data, error } = await db.rpc('get_se_books');
