@@ -9,10 +9,15 @@
   <title>Christine's Studio — Apex Fiction Studio</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
+    // The "gold"/"gold-light" names are inherited from the writer/admin
+    // dashboards' shared class vocabulary (text-gold, bg-gold/10, etc.) —
+    // kept as-is here so every existing gold-* utility across this file
+    // repaints without touching each usage. The values themselves are
+    // Christine's purple, matching her established SE_ROLE_COLOR accent.
     tailwind.config = {
       theme: { extend: {
         colors: { obsidian:'#121212', charcoal:'#1C1C1C', surface:'#242424', border:'#2E2E2E',
-                  gold:'#C9A84C', 'gold-light':'#E2C97E', muted:'#7A7A7A' },
+                  gold:'#B79FDE', 'gold-light':'#D0C0FF', muted:'#7A7A7A' },
         fontFamily: { sans:['Inter','system-ui','sans-serif'], serif:['"DM Serif Display"','Georgia','serif'] },
       } },
     }
@@ -21,14 +26,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&family=Montserrat:wght@400&display=swap" rel="stylesheet"/>
   <style>
-    .form-input:focus { outline:none; border-color:#C9A84C; box-shadow:0 0 0 2px rgba(201,168,76,0.15); }
-    .digit-box { width:44px; height:54px; text-align:center; font-size:1.35rem; font-weight:700; background:#1C1C1C; border:1px solid #2E2E2E; border-radius:10px; color:#fff; transition:border-color .15s, box-shadow .15s; caret-color:#C9A84C; -moz-appearance:textfield; }
+    .form-input:focus { outline:none; border-color:#B79FDE; box-shadow:0 0 0 2px rgba(183,159,222,0.15); }
+    .digit-box { width:44px; height:54px; text-align:center; font-size:1.35rem; font-weight:700; background:#1C1C1C; border:1px solid #2E2E2E; border-radius:10px; color:#fff; transition:border-color .15s, box-shadow .15s; caret-color:#B79FDE; -moz-appearance:textfield; }
     .digit-box::-webkit-outer-spin-button, .digit-box::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
-    .digit-box:focus { outline:none; border-color:#C9A84C; box-shadow:0 0 0 2px rgba(201,168,76,0.15); }
-    .digit-box.filled { border-color:rgba(201,168,76,0.45); }
+    .digit-box:focus { outline:none; border-color:#B79FDE; box-shadow:0 0 0 2px rgba(183,159,222,0.15); }
+    .digit-box.filled { border-color:rgba(183,159,222,0.45); }
     .thin-scroll::-webkit-scrollbar { width:4px; height:4px; }
     .thin-scroll::-webkit-scrollbar-thumb { background:#2E2E2E; border-radius:4px; }
-    .hairline { height:1px; background:linear-gradient(90deg,transparent,rgba(201,168,76,0.35),transparent); }
+    .hairline { height:1px; background:linear-gradient(90deg,transparent,rgba(183,159,222,0.35),transparent); }
     [x-cloak]{display:none!important;}
     #se-reader-content, #se-reader-content p { font-family:'Lora',Georgia,serif; font-size:17px; font-weight:400; line-height:1.95; letter-spacing:0.01em; color:rgba(255,255,255,0.80); }
     #se-reader-content p { margin-bottom:1.4em; }
@@ -53,29 +58,29 @@
     /* Background is set inline per-comment (role color × resolved/active state) — see CMT_ROLE. */
     mark.chapter-highlight{color:inherit;border-radius:2px;padding:0 1px;cursor:pointer;transition:background .15s;box-decoration-break:clone;-webkit-box-decoration-break:clone;}
     #se-comment-trigger{position:fixed;z-index:96;display:none;transform:translate(-50%,-100%);}
-    #se-comment-trigger button{display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:999px;background:#C9A84C;color:#0D0B09;font-size:11px;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,0.45);border:none;cursor:pointer;white-space:nowrap;}
-    #se-comment-trigger button:hover{background:#E2C97E;}
+    #se-comment-trigger button{display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:999px;background:#B79FDE;color:#0D0B09;font-size:11px;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,0.45);border:none;cursor:pointer;white-space:nowrap;}
+    #se-comment-trigger button:hover{background:#D0C0FF;}
     .se-comment-card{border-radius:14px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.03);padding:12px 14px;transition:border-color .2s,background .2s;}
     .se-comment-card.active{border-color:var(--role-border);background:var(--role-cardbg);}
     .se-comment-card.resolved{opacity:.55;}
-    .se-comment-quote{font-size:11px;color:rgba(201,168,76,0.85);border-left:2px solid rgba(201,168,76,0.4);padding-left:8px;margin-bottom:7px;line-height:1.5;font-style:italic;}
+    .se-comment-quote{font-size:11px;color:rgba(183,159,222,0.85);border-left:2px solid rgba(183,159,222,0.4);padding-left:8px;margin-bottom:7px;line-height:1.5;font-style:italic;}
     /* ── Edit mode (once the admin grants edit access) ─────────────
        Same overlay-based highlight technique the writer/admin editors
        use — content becomes contenteditable + autosaved, so highlights
        can no longer be safely drawn by wrapping the DOM in <mark>. */
-    #se-reader-content[contenteditable="true"]{outline:none;caret-color:#C9A84C;}
+    #se-reader-content[contenteditable="true"]{outline:none;caret-color:#B79FDE;}
     /* Background is set inline per-comment (role color × resolved/active state) — see CMT_ROLE. */
     .chapter-highlight-ov{position:absolute;box-sizing:border-box;border-radius:2px;pointer-events:none;transition:background .15s,border-color .15s;}
     .fs-tool-btn{padding:6px 11px;min-width:32px;min-height:32px;border-radius:5px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.6);background:transparent;border:1px solid transparent;cursor:pointer;transition:all .15s;line-height:1.8;}
     .fs-tool-btn:hover{background:rgba(255,255,255,0.07);border-color:rgba(255,255,255,0.12);color:#fff;}
-    .fs-tool-btn.active{background:rgba(201,168,76,0.18);border-color:rgba(201,168,76,0.4);color:#C9A84C;}
+    .fs-tool-btn.active{background:rgba(183,159,222,0.18);border-color:rgba(183,159,222,0.4);color:#B79FDE;}
   </style>
 </head>
 <body class="bg-obsidian text-white font-sans antialiased" style="font-weight:300;">
 
   <div id="afs-glow" class="pointer-events-none fixed inset-0" style="z-index:0;"></div>
   <div id="afs-grid" class="pointer-events-none fixed inset-0"
-       style="z-index:0;background-image:linear-gradient(rgba(201,168,76,0.10) 1px,transparent 1px),linear-gradient(90deg,rgba(201,168,76,0.10) 1px,transparent 1px);background-size:48px 48px;-webkit-mask-image:radial-gradient(circle 520px at -9999px -9999px,black 0%,transparent 70%);mask-image:radial-gradient(circle 520px at -9999px -9999px,black 0%,transparent 70%);"></div>
+       style="z-index:0;background-image:linear-gradient(rgba(183,159,222,0.10) 1px,transparent 1px),linear-gradient(90deg,rgba(183,159,222,0.10) 1px,transparent 1px);background-size:48px 48px;-webkit-mask-image:radial-gradient(circle 520px at -9999px -9999px,black 0%,transparent 70%);mask-image:radial-gradient(circle 520px at -9999px -9999px,black 0%,transparent 70%);"></div>
 
   <!-- ══ PIN GATE ══ -->
   <div id="gate" class="relative z-10 min-h-screen flex items-center justify-center px-4">
@@ -114,7 +119,7 @@
             <p class="text-muted text-sm">We've been expecting you. Set up a private 4-digit PIN — you'll use it each time you sign in.</p>
           </div>
           <div class="flex items-center gap-3 rounded-lg border border-gold/20 bg-gold/[0.05] px-4 py-3 mb-5">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B79FDE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             <div class="min-w-0 flex-1 text-left">
               <p class="text-white/85 text-xs font-medium">Secure setup authorized</p>
               <p class="text-muted text-[11px]">Your studio admin has enabled your access.</p>
@@ -134,7 +139,7 @@
         <!-- error / not-ready -->
         <div id="gate-error" class="hidden text-center">
           <div class="w-11 h-11 rounded-xl bg-gold/10 border border-gold/25 flex items-center justify-center mx-auto mb-4">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B79FDE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
           </div>
           <h1 class="font-serif text-xl text-white mb-1">Just a moment</h1>
           <p id="gate-error-msg" class="text-muted text-sm mb-5"></p>
@@ -426,12 +431,15 @@
   <!-- ══ PRIVATE CHAT WITH ADMIN ══ -->
   <div id="se-chat-panel" class="hidden fixed z-[80] flex flex-col rounded-2xl border border-border bg-surface shadow-2xl shadow-black/70 overflow-hidden" style="right:24px;bottom:96px;width:340px;height:520px;transition:all 0.2s ease;">
     <div class="flex items-center gap-3 px-4 py-3.5 border-b border-border/50 bg-charcoal/40 flex-shrink-0">
-      <div class="w-9 h-9 rounded-full bg-[#B79FDE]/15 border border-[#B79FDE]/30 flex items-center justify-center flex-shrink-0">
-        <span class="text-[13px] font-bold" style="color:#B79FDE">A</span>
+      <div class="relative flex-shrink-0">
+        <div class="w-9 h-9 rounded-full bg-[#B79FDE]/15 border border-[#B79FDE]/30 flex items-center justify-center">
+          <span class="text-[13px] font-bold" style="color:#B79FDE">A</span>
+        </div>
+        <span id="se-chat-status-dot" class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-gray-500 border-2 border-surface"></span>
       </div>
       <div class="flex-1 min-w-0">
         <p class="text-white text-[13px] font-semibold leading-none">Admin</p>
-        <p class="text-muted/60 text-[10px] mt-0.5">Private chat</p>
+        <p id="se-chat-status-text" class="text-muted/60 text-[10px] mt-0.5">Offline</p>
       </div>
       <div class="flex items-center gap-1">
         <button id="se-chat-fs-btn" onclick="toggleSeChatFullscreen()" title="Fullscreen"
@@ -603,7 +611,7 @@
     function _bannerBg(url) {
       return url
         ? `<img src="${escHtml(url)}" alt="" class="absolute inset-0 w-full h-full object-cover"/>`
-        : `<div class="absolute inset-0" style="background:radial-gradient(ellipse at 30% 20%,rgba(201,168,76,0.12),transparent 55%),linear-gradient(135deg,#1C1C1C,#242424)"></div>`;
+        : `<div class="absolute inset-0" style="background:radial-gradient(ellipse at 30% 20%,rgba(183,159,222,0.12),transparent 55%),linear-gradient(135deg,#1C1C1C,#242424)"></div>`;
     }
 
     async function loadReviewQueue() {
@@ -971,7 +979,7 @@
       if (!el) return;
       if (state === 'saved')        { el.textContent = '✓ Saved';      el.style.color = 'rgba(74,222,128,0.65)'; el.classList.remove('hidden'); }
       else if (state === 'saving')  { el.textContent = '• Saving…';    el.style.color = 'rgba(122,122,122,0.7)'; el.classList.remove('hidden'); }
-      else if (state === 'unsaved') { el.textContent = '• Unsaved';    el.style.color = 'rgba(201,168,76,0.6)';  el.classList.remove('hidden'); }
+      else if (state === 'unsaved') { el.textContent = '• Unsaved';    el.style.color = 'rgba(183,159,222,0.6)';  el.classList.remove('hidden'); }
       else el.classList.add('hidden');
     }
     function _seWordCount() {
@@ -1631,7 +1639,7 @@
       const pad = n => String(n).padStart(2,'0');
       const t = h >= 24 ? `${Math.floor(h/24)}d ${h%24}h ${m}m` : `${pad(h)}:${pad(m)}:${pad(sec)}`;
       const hrs = ms/3600000;
-      return { t, c: hrs > 24 ? '#C9A84C' : hrs > 6 ? '#E8B488' : '#F87171' };
+      return { t, c: hrs > 24 ? '#B79FDE' : hrs > 6 ? '#E8B488' : '#F87171' };
     }
     function _tickNow() {
       document.querySelectorAll('[data-countdown][data-expires]').forEach(el => {
@@ -1670,6 +1678,7 @@
 
     async function initSeChat(userId) {
       _seChatBindGestures('se-chat-messages');
+      _initSeChatPresence(userId);
       const { data: cfg } = await db.from('site_config').select('value').eq('key', 'admin_id').maybeSingle();
       _seChatAdminId = cfg?.value || null;
       if (!_seChatAdminId) {
@@ -1719,6 +1728,40 @@
       if (_seChatUnread > 0) { badge.textContent = _seChatUnread > 9 ? '9+' : String(_seChatUnread); badge.classList.remove('hidden'); }
       else badge.classList.add('hidden');
     }
+
+    // ── Online/offline presence — shares the same global "presence-afs"
+    // channel the writer↔admin chat already uses, just tracking her own
+    // role and watching for any admin's role instead.
+    let _seChatPresenceCh = null;
+    let _seChatPresenceUserId = null;
+    let _seChatPresenceReconnectTimer = null;
+    function _setSeChatAdminOnline(online) {
+      const dot = $('se-chat-status-dot'), txt = $('se-chat-status-text');
+      if (dot) dot.className = 'absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-surface ' + (online ? 'bg-emerald-400' : 'bg-gray-500');
+      if (txt) { txt.textContent = online ? 'Online' : 'Offline'; txt.className = online ? 'text-emerald-400/70 text-[10px] mt-0.5' : 'text-muted/60 text-[10px] mt-0.5'; }
+    }
+    function _initSeChatPresence(userId) {
+      _seChatPresenceUserId = userId;
+      if (_seChatPresenceCh) { try { _seChatPresenceCh.unsubscribe(); } catch (_) {} _seChatPresenceCh = null; }
+      _seChatPresenceCh = db.channel('presence-afs')
+        .on('presence', { event: 'sync' }, () => {
+          const all = Object.values(_seChatPresenceCh.presenceState()).flat();
+          _setSeChatAdminOnline(all.some(p => p.role === 'admin'));
+        })
+        .subscribe(async status => {
+          if (status === 'SUBSCRIBED') {
+            await _seChatPresenceCh.track({ userId, role: 'senior_editor' });
+          } else if (status === 'CHANNEL_ERROR' || status === 'CLOSED') {
+            clearTimeout(_seChatPresenceReconnectTimer);
+            _seChatPresenceReconnectTimer = setTimeout(() => _initSeChatPresence(_seChatPresenceUserId), 3000);
+          }
+        });
+    }
+    document.addEventListener('visibilitychange', () => {
+      if (!_seChatPresenceUserId || document.visibilityState !== 'visible') return;
+      if (!_seChatPresenceCh) { _initSeChatPresence(_seChatPresenceUserId); return; }
+      _seChatPresenceCh.track({ userId: _seChatPresenceUserId, role: 'senior_editor' }).catch(() => _initSeChatPresence(_seChatPresenceUserId));
+    });
 
     function _openSeChatPanel() {
       const panel = $('se-chat-panel');
@@ -1911,9 +1954,9 @@
     function _seChatShowMenu(msgId, isSent, x, y) {
       _seChatCloseMenu();
       const el = document.createElement('div');
-      el.className = 'fixed z-[10001] bg-charcoal border border-border rounded-xl shadow-2xl shadow-black/60 py-1.5 min-w-[168px] text-sm';
-      el.innerHTML = (isSent ? '<button class="w-full text-left px-3.5 py-2 text-white/85 hover:bg-white/5 transition-colors" data-act="edit">Edit message</button>' : '')
-        + '<button class="w-full text-left px-3.5 py-2 text-white/85 hover:bg-white/5 transition-colors" data-act="quote">Quote message in reply</button>';
+      el.className = 'fixed z-[10001] bg-charcoal border border-border rounded-lg shadow-xl shadow-black/60 py-1 min-w-[132px] text-[12.5px] overflow-hidden';
+      el.innerHTML = (isSent ? '<button class="w-full text-left px-3 py-1.5 text-white/80 hover:bg-white/5 transition-colors" data-act="edit">Edit message</button>' : '')
+        + '<button class="w-full text-left px-3 py-1.5 text-white/80 hover:bg-white/5 transition-colors" data-act="quote">Quote in reply</button>';
       document.body.appendChild(el);
       const r = el.getBoundingClientRect();
       el.style.left = Math.min(x, window.innerWidth - r.width - 8) + 'px';
@@ -1936,11 +1979,13 @@
       if (!container || container._gesturesBound) return;
       container._gesturesBound = true;
 
-      // Block the native browser menu inside the message list so the
-      // custom one (below) shows instead.
+      // Block the native browser menu inside the message list. The custom
+      // one only opens when the right-click lands exactly on a bubble —
+      // not the row gutter around it, not the date separators.
       container.addEventListener('contextmenu', e => {
         e.preventDefault();
-        const row = e.target.closest('.se-chat-row');
+        const bubble = e.target.closest('.se-chat-bubble');
+        const row = bubble?.closest('.se-chat-row');
         if (!row) return;
         _seChatShowMenu(row.dataset.msgId, row.dataset.sent === '1', e.clientX, e.clientY);
       });
@@ -1959,8 +2004,8 @@
       // same menu as desktop right-click, so editing stays reachable.
       let touch = null;
       container.addEventListener('touchstart', e => {
-        const row = e.target.closest('.se-chat-row');
-        const bubble = row?.querySelector('.se-chat-bubble');
+        const bubble = e.target.closest('.se-chat-bubble');
+        const row = bubble?.closest('.se-chat-row');
         if (!row || !bubble) return;
         const t = e.touches[0];
         touch = { row, bubble, sent: row.dataset.sent === '1', startX: t.clientX, startY: t.clientY, dx: 0, dragging: false, firedMenu: false };
@@ -2039,7 +2084,7 @@
   <script>
     const g = document.getElementById('afs-glow'), gr = document.getElementById('afs-grid');
     function paint(x, y) {
-      g.style.background = `radial-gradient(700px circle at ${x}px ${y}px, rgba(212,175,55,0.055), transparent 40%)`;
+      g.style.background = `radial-gradient(700px circle at ${x}px ${y}px, rgba(183,159,222,0.055), transparent 40%)`;
       const m = `radial-gradient(circle 520px at ${x}px ${y}px, black 0%, transparent 68%)`;
       gr.style.webkitMaskImage = m; gr.style.maskImage = m;
     }
