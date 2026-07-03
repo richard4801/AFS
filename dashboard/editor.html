@@ -36,6 +36,19 @@
     #se-reader-content em, #se-reader-content i { font-style:italic; }
     .collab-chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:rgba(255,255,255,0.78);background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:999px;padding:2px 9px;}
     .collab-dot{width:6px;height:6px;border-radius:50%;box-shadow:0 0 6px currentColor;flex-shrink:0;}
+    /* ── Highlight comments ─────────────────────────────────────── */
+    mark.chapter-highlight{background:rgba(201,168,76,0.28);color:inherit;border-radius:2px;padding:0 1px;cursor:pointer;transition:background .15s;box-decoration-break:clone;-webkit-box-decoration-break:clone;}
+    mark.chapter-highlight:hover{background:rgba(201,168,76,0.42);}
+    mark.chapter-highlight.active{background:rgba(201,168,76,0.58);}
+    mark.chapter-highlight.resolved{background:rgba(122,122,122,0.16);}
+    mark.chapter-highlight.resolved:hover{background:rgba(122,122,122,0.26);}
+    #se-comment-trigger{position:fixed;z-index:96;display:none;transform:translate(-50%,-100%);}
+    #se-comment-trigger button{display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:999px;background:#C9A84C;color:#0D0B09;font-size:11px;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,0.45);border:none;cursor:pointer;white-space:nowrap;}
+    #se-comment-trigger button:hover{background:#E2C97E;}
+    .se-comment-card{border-radius:14px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.03);padding:12px 14px;transition:border-color .2s,background .2s;}
+    .se-comment-card.active{border-color:rgba(201,168,76,0.5);background:rgba(201,168,76,0.07);}
+    .se-comment-card.resolved{opacity:.55;}
+    .se-comment-quote{font-size:11px;color:rgba(201,168,76,0.85);border-left:2px solid rgba(201,168,76,0.4);padding-left:8px;margin-bottom:7px;line-height:1.5;font-style:italic;}
   </style>
 </head>
 <body class="bg-obsidian text-white font-sans antialiased" style="font-weight:300;">
@@ -263,7 +276,7 @@
     </div>
   </div>
 
-  <!-- ══ CHAPTER READER (read-only, presence-visible) ══ -->
+  <!-- ══ CHAPTER READER (read-only, presence-visible, commentable) ══ -->
   <div id="se-reader" class="hidden fixed inset-0 z-[90] bg-obsidian flex flex-col">
     <div class="flex-shrink-0 flex items-center gap-2 px-4 sm:px-6 py-3.5 border-b border-border bg-charcoal/80 backdrop-blur-sm">
       <button onclick="closeSeReader()" class="flex-shrink-0 flex items-center gap-1 text-muted hover:text-white text-xs transition-colors">
@@ -272,12 +285,51 @@
       </button>
       <div class="w-px h-4 bg-border flex-shrink-0"></div>
       <span id="sr-title" class="text-sm text-white/85 truncate flex-1 min-w-0"></span>
+      <div id="sr-collab-peers" class="hidden items-center gap-1.5 flex-shrink-0"></div>
       <span class="text-[9px] font-bold uppercase tracking-wide text-muted border border-border rounded-full px-2 py-0.5 flex-shrink-0">Read only</span>
     </div>
-    <div class="flex-1 overflow-y-auto thin-scroll">
-      <div class="max-w-3xl mx-auto px-4 sm:px-10 py-8 sm:py-12">
-        <div id="se-reader-content" class="min-h-[50vh]"></div>
+    <div class="flex-1 flex min-h-0">
+      <!-- Reading column -->
+      <div id="se-reader-scroll" class="flex-1 overflow-y-auto thin-scroll">
+        <div class="max-w-3xl mx-auto px-4 sm:px-10 py-8 sm:py-12">
+          <div id="se-reader-content" class="min-h-[50vh]"></div>
+        </div>
       </div>
+      <!-- Comments panel (desktop) — stays docked to the right, like Google Docs -->
+      <div id="se-comments-panel" class="hidden lg:flex flex-col w-[340px] flex-shrink-0 border-l border-border bg-charcoal/40">
+        <div class="flex-shrink-0 px-5 py-4 border-b border-border/60">
+          <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted">Comments</p>
+        </div>
+        <div id="se-comments-list" class="flex-1 overflow-y-auto thin-scroll px-4 py-4 space-y-3"></div>
+        <p id="se-comments-empty" class="text-muted/50 text-xs text-center py-10 px-5 leading-relaxed">Highlight any text to leave a comment for the writer.</p>
+      </div>
+    </div>
+
+    <!-- Mobile: comment count FAB opens the sheet with every thread -->
+    <button id="se-comments-fab" onclick="openMobileCommentsList()" class="lg:hidden hidden fixed bottom-5 right-5 z-[92] w-12 h-12 rounded-full bg-gold text-obsidian shadow-2xl shadow-black/50 flex items-center justify-center">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+      <span id="se-comments-fab-count" class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-crimson text-white text-[10px] font-bold flex items-center justify-center"></span>
+    </button>
+  </div>
+
+  <!-- Floating "+ Comment" trigger — appears near an active text selection -->
+  <div id="se-comment-trigger">
+    <button onclick="openCommentComposer()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+      Comment
+    </button>
+  </div>
+
+  <!-- Mobile comment popup / bottom sheet -->
+  <div id="se-comment-sheet" class="hidden fixed inset-0 z-[97] flex flex-col justify-end lg:hidden" style="background:rgba(0,0,0,0.6)">
+    <div class="bg-charcoal rounded-t-2xl border-t border-border max-h-[80vh] flex flex-col" style="padding-bottom:env(safe-area-inset-bottom)">
+      <div class="flex-shrink-0 flex items-center justify-between px-5 py-4 border-b border-border/60">
+        <p id="se-sheet-title" class="text-sm font-semibold text-white">Comments</p>
+        <button onclick="closeCommentSheet()" class="w-7 h-7 rounded-full border border-border flex items-center justify-center text-muted hover:text-white transition-colors">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div id="se-sheet-body" class="flex-1 overflow-y-auto thin-scroll px-4 py-4 space-y-3"></div>
     </div>
   </div>
 
@@ -446,7 +498,10 @@
     async function signOut() { await db.auth.signOut(); location.reload(); }
 
     // ── Dashboard ──
-    function enterDashboard() {
+    let currentUserId = null;
+    async function enterDashboard() {
+      const { data: { user } } = await db.auth.getUser();
+      currentUserId = user?.id || null;
       $('gate').classList.add('hidden');
       $('app').classList.remove('hidden');
       loadAll();
@@ -674,9 +729,15 @@
       if (/<p[\s>]/i.test(raw)) return raw;
       return raw.split(/\n{2,}/).map(par => `<p>${escHtml(par.trim()).replace(/\n/g, '<br>')}</p>`).join('');
     }
+    let _seChapterId = null;
     async function openSeReader(chapterId, titleFallback) {
+      _seChapterId = chapterId;
+      _seActiveCommentId = null;
       $('sr-title').textContent = titleFallback || 'Chapter';
       $('se-reader-content').innerHTML = '<p class="text-muted/50 italic">Loading…</p>';
+      $('se-comments-list').innerHTML = '';
+      $('se-comments-empty').classList.add('hidden');
+      $('se-comments-fab').classList.add('hidden');
       $('se-reader').classList.remove('hidden');
       document.body.style.overflow = 'hidden';
       seJoinPresence(chapterId);
@@ -686,17 +747,28 @@
       if (error || !row) { $('se-reader-content').innerHTML = '<p class="text-red-400 text-sm">Could not load this chapter.</p>'; return; }
       $('sr-title').textContent = row.title || ('Chapter ' + row.chapter_number);
       $('se-reader-content').innerHTML = _seContentHtml(row.content);
+
+      await loadChapterComments(chapterId);
+      subscribeChapterComments(chapterId);
     }
     function closeSeReader() {
       $('se-reader').classList.add('hidden');
       document.body.style.overflow = '';
       seLeavePresence();
+      unsubscribeChapterComments();
+      closeCommentSheet();
+      _hideCommentTrigger();
+      _seChapterId = null;
+      _seComments = [];
     }
 
     // Presence-only join on the same collab channel writers/admin use, so her
     // "God Mother" chip shows up live while she's reading — no content or
-    // cursor is ever sent from her side (she can't edit).
+    // cursor is ever sent from her side (she can't edit). We also render who
+    // ELSE is present (writer/admin), so she has the same situational
+    // awareness they get of her.
     let _seCh = null;
+    const SE_ROLE_COLOR = { writer: '#C9A84C', admin: '#C82333', senior_editor: '#B79FDE' };
     function seJoinPresence(chapterId) {
       seLeavePresence();
       if (!chapterId) return;
@@ -704,12 +776,318 @@
       _seCh = db.channel('chapter-collab:' + chapterId, {
         config: { presence: { key: clientId }, broadcast: { self: false } },
       });
+      _seCh.on('presence', { event: 'sync' }, () => _renderSePeers(clientId));
       _seCh.subscribe(status => {
         if (status === 'SUBSCRIBED') _seCh.track({ clientId, name: 'God Mother', role: 'senior_editor' });
       });
     }
     function seLeavePresence() {
       if (_seCh) { try { db.removeChannel(_seCh); } catch (_) {} _seCh = null; }
+      $('sr-collab-peers').classList.add('hidden');
+      $('sr-collab-peers').innerHTML = '';
+    }
+    function _renderSePeers(myClientId) {
+      const host = $('sr-collab-peers');
+      if (!host || !_seCh?.presenceState) return;
+      let metas = [];
+      Object.values(_seCh.presenceState()).forEach(arr => arr.forEach(m => metas.push(m)));
+      const others = metas.filter(m => String(m.clientId) !== String(myClientId));
+      if (!others.length) { host.classList.add('hidden'); host.innerHTML = ''; return; }
+      host.classList.remove('hidden'); host.classList.add('flex');
+      host.innerHTML = others.map(m => {
+        const color = SE_ROLE_COLOR[m.role] || '#9A9A9A';
+        const label = m.role === 'admin' ? 'Editor' : (m.role === 'senior_editor' ? 'God Mother' : (m.name || 'Writer'));
+        return `<span class="collab-chip" style="--cc:${color}"><span class="collab-dot" style="background:${color};color:${color}"></span>${escHtml(label)}</span>`;
+      }).join('');
+    }
+
+    // ── Highlight comments (Google-Docs style) ─────────────────────
+    // Offsets are plain-character positions into the reader's rendered
+    // text, using the same convention proven correct by the collaboration
+    // caret system (Range.toString().length / TreeWalker text-node
+    // walking). Content here is static per chapter view (read-only), so
+    // there's no drift between when an offset is captured and when it's
+    // rendered — unlike an editable document, nothing shifts underneath.
+    let _seComments = [];
+    let _seActiveCommentId = null;
+    let _sePendingRange = null;
+    let _seSheetMode = null;
+    let _seCommentsCh = null;
+
+    function _rangeOffsets(root, range) {
+      const pre = document.createRange();
+      pre.selectNodeContents(root);
+      pre.setEnd(range.startContainer, range.startOffset);
+      const start = pre.toString().length;
+      return { start, end: start + range.toString().length };
+    }
+    function _pointAt(root, offset) {
+      const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+      let node, last = null, acc = 0;
+      while ((node = w.nextNode())) {
+        const len = node.nodeValue.length;
+        if (acc + len >= offset) return { node, offset: Math.max(0, Math.min(len, offset - acc)) };
+        acc += len; last = node;
+      }
+      return last ? { node: last, offset: last.nodeValue.length } : null;
+    }
+    function _wrapRange(root, start, end, commentId) {
+      if (end <= start) return;
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+      const hits = [];
+      let node, acc = 0;
+      while ((node = walker.nextNode())) {
+        const len = node.nodeValue.length;
+        const nStart = acc, nEnd = acc + len;
+        if (nEnd > start && nStart < end) hits.push({ node, nStart });
+        acc = nEnd;
+        if (nStart >= end) break;
+      }
+      hits.reverse().forEach(({ node, nStart }) => {
+        const total = node.nodeValue.length;
+        const localStart = Math.max(0, start - nStart);
+        const localEnd   = Math.min(total, end - nStart);
+        if (localEnd <= localStart) return;
+        let target = node;
+        if (localEnd < total) target.splitText(localEnd);
+        if (localStart > 0) target = target.splitText(localStart);
+        const mark = document.createElement('mark');
+        mark.className = 'chapter-highlight';
+        mark.setAttribute('data-comment-id', commentId);
+        target.parentNode.insertBefore(mark, target);
+        mark.appendChild(target);
+      });
+    }
+    function _unwrapHighlights(root) {
+      root.querySelectorAll('mark.chapter-highlight').forEach(m => {
+        const parent = m.parentNode;
+        while (m.firstChild) parent.insertBefore(m.firstChild, m);
+        parent.removeChild(m);
+      });
+      root.normalize();
+    }
+    function _renderHighlights() {
+      const root = $('se-reader-content');
+      if (!root) return;
+      _unwrapHighlights(root);
+      _seComments.filter(c => !c.parent_id).forEach(c => {
+        if (c.start_offset == null || c.end_offset == null) return;
+        _wrapRange(root, c.start_offset, c.end_offset, c.id);
+      });
+      root.querySelectorAll('mark.chapter-highlight').forEach(m => {
+        const c = _seComments.find(x => x.id === m.dataset.commentId);
+        if (c?.resolved) m.classList.add('resolved');
+        if (m.dataset.commentId === _seActiveCommentId) m.classList.add('active');
+      });
+    }
+    $('se-reader-content')?.addEventListener('click', (e) => {
+      const mark = e.target.closest('mark.chapter-highlight');
+      if (mark) focusComment(mark.dataset.commentId);
+    });
+
+    // Selection → floating "+ Comment" trigger
+    function _positionCommentTrigger(rect) {
+      const el = $('se-comment-trigger');
+      el.style.left = (rect.left + rect.width / 2) + 'px';
+      el.style.top = (rect.top - 8) + 'px';
+      el.style.display = 'block';
+    }
+    function _hideCommentTrigger() { $('se-comment-trigger').style.display = 'none'; _sePendingRange = null; }
+    (function () {
+      const root = $('se-reader-content');
+      function onUp() {
+        setTimeout(() => {
+          const sel = window.getSelection();
+          if (!sel || sel.isCollapsed || sel.rangeCount === 0) { _hideCommentTrigger(); return; }
+          const range = sel.getRangeAt(0);
+          if (!root.contains(range.commonAncestorContainer) || !range.toString().trim()) { _hideCommentTrigger(); return; }
+          const { start, end } = _rangeOffsets(root, range);
+          _sePendingRange = { start, end, quoted: range.toString() };
+          _positionCommentTrigger(range.getBoundingClientRect());
+        }, 10);
+      }
+      root.addEventListener('mouseup', onUp);
+      root.addEventListener('touchend', onUp);
+      document.addEventListener('mousedown', (e) => {
+        if (!e.target.closest('#se-comment-trigger') && !e.target.closest('#se-reader-content')) _hideCommentTrigger();
+      });
+    })();
+
+    function _composeCardHtml(quoted) {
+      const snippet = quoted ? (quoted.length > 140 ? quoted.slice(0, 140) + '…' : quoted) : '';
+      return `
+        <div class="se-comment-card" id="se-compose-card">
+          ${snippet ? `<p class="se-comment-quote">"${escHtml(snippet)}"</p>` : ''}
+          <textarea id="se-compose-input" rows="3" placeholder="Leave a note for the writer…" class="w-full bg-obsidian border border-border text-white placeholder-muted/60 text-xs rounded-lg px-3 py-2.5 resize-y mb-2.5"></textarea>
+          <div class="flex items-center justify-end gap-2">
+            <button onclick="cancelComposer()" class="px-3 py-1.5 border border-border text-muted hover:text-white text-[11px] rounded-lg transition-colors">Cancel</button>
+            <button onclick="postComposedComment()" class="px-3.5 py-1.5 bg-gold hover:bg-gold-light text-obsidian text-[11px] font-bold rounded-lg transition-colors">Post</button>
+          </div>
+        </div>`;
+    }
+    function openCommentComposer() {
+      if (!_sePendingRange) return;
+      const draft = { ..._sePendingRange };
+      _hideCommentTrigger();
+      window.getSelection()?.removeAllRanges();
+      const html = _composeCardHtml(draft.quoted);
+      if (window.innerWidth < 1024) {
+        _seSheetMode = 'compose';
+        $('se-sheet-title').textContent = 'New Comment';
+        $('se-sheet-body').innerHTML = html;
+        $('se-comment-sheet').classList.remove('hidden');
+      } else {
+        const list = $('se-comments-list');
+        list.insertAdjacentHTML('afterbegin', html);
+        list.scrollTop = 0;
+      }
+      _sePendingRange = draft;
+      setTimeout(() => document.getElementById('se-compose-input')?.focus(), 60);
+    }
+    function cancelComposer() {
+      _sePendingRange = null;
+      document.getElementById('se-compose-card')?.remove();
+      if (_seSheetMode === 'compose') closeCommentSheet();
+    }
+    async function postComposedComment() {
+      const input = document.getElementById('se-compose-input');
+      const body = input?.value.trim();
+      if (!body || !_sePendingRange || !_seChapterId) return;
+      const { start, end, quoted } = _sePendingRange;
+      const btn = document.getElementById('se-compose-card')?.querySelector('button:last-child');
+      if (btn) { btn.disabled = true; btn.textContent = 'Posting…'; }
+      const { error } = await db.from('comments').insert({
+        chapter_id: _seChapterId, reviewer_id: currentUserId, author_role: 'senior_editor',
+        start_offset: start, end_offset: end, quoted_text: quoted, body,
+      });
+      _sePendingRange = null;
+      document.getElementById('se-compose-card')?.remove();
+      if (_seSheetMode === 'compose') closeCommentSheet();
+      if (error) { toast(error.message); return; }
+      await loadChapterComments(_seChapterId);
+    }
+
+    function _authorLabel(c) {
+      if (c.author_role === 'senior_editor') return 'God Mother';
+      if (c.author_role === 'admin') return 'Editor';
+      return 'Writer';
+    }
+    function _threadHtml(root) {
+      const replies = _seComments.filter(c => c.parent_id === root.id).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      const isActive = root.id === _seActiveCommentId;
+      const canManage = root.reviewer_id === currentUserId;
+      return `
+        <div class="se-comment-card ${isActive ? 'active' : ''} ${root.resolved ? 'resolved' : ''}" data-thread-id="${root.id}" onclick="focusComment('${root.id}')">
+          ${root.quoted_text ? `<p class="se-comment-quote">"${escHtml(root.quoted_text.length > 140 ? root.quoted_text.slice(0, 140) + '…' : root.quoted_text)}"</p>` : ''}
+          <div class="flex items-start justify-between gap-2 mb-1">
+            <span class="text-[11px] font-semibold text-gold">${_authorLabel(root)}</span>
+            ${canManage ? `<div class="flex items-center gap-1 flex-shrink-0" onclick="event.stopPropagation()">
+              <button onclick="toggleResolve('${root.id}', ${!root.resolved})" title="${root.resolved ? 'Reopen' : 'Resolve'}" class="text-muted hover:text-white p-0.5">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </button>
+              <button onclick="deleteRootComment('${root.id}')" title="Delete" class="text-muted hover:text-red-300 p-0.5">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg>
+              </button>
+            </div>` : ''}
+          </div>
+          <p class="text-white/80 text-xs leading-relaxed mb-2">${escHtml(root.body)}</p>
+          ${replies.map(r => `
+            <div class="mt-2 pl-3 border-l border-border">
+              <span class="text-[10px] font-semibold text-white/60">${_authorLabel(r)}</span>
+              <p class="text-white/70 text-xs leading-relaxed">${escHtml(r.body)}</p>
+            </div>`).join('')}
+          ${root.resolved ? `<p class="text-[10px] text-muted mt-2">✓ Resolved</p>` : `
+          <div class="mt-2.5 flex items-center gap-1.5" onclick="event.stopPropagation()">
+            <input type="text" placeholder="Reply…" class="flex-1 bg-obsidian border border-border text-white placeholder-muted/60 text-[11px] rounded-lg px-2.5 py-1.5" onkeydown="if(event.key==='Enter'){event.preventDefault();submitReply('${root.id}', this)}"/>
+          </div>`}
+        </div>`;
+    }
+    function _renderCommentPanel() {
+      const roots = _seComments.filter(c => !c.parent_id);
+      const html = roots.map(_threadHtml).join('');
+      $('se-comments-list').innerHTML = html;
+      $('se-comments-empty').classList.toggle('hidden', roots.length > 0);
+      const fab = $('se-comments-fab'), fabCount = $('se-comments-fab-count');
+      if (roots.length) {
+        fab.classList.remove('hidden');
+        const openCount = roots.filter(r => !r.resolved).length;
+        fabCount.textContent = openCount;
+        fabCount.classList.toggle('hidden', openCount === 0);
+      } else fab.classList.add('hidden');
+      if (_seSheetMode === 'all') {
+        $('se-sheet-body').innerHTML = html || '<p class="text-muted/50 text-xs text-center py-8">No comments yet.</p>';
+      }
+    }
+    async function loadChapterComments(chapterId) {
+      const { data, error } = await db.from('comments')
+        .select('id, parent_id, body, resolved, reviewer_id, author_role, start_offset, end_offset, quoted_text, created_at')
+        .eq('chapter_id', chapterId)
+        .not('start_offset', 'is', null)
+        .order('start_offset', { ascending: true });
+      _seComments = error ? [] : (data ?? []);
+      _renderHighlights();
+      _renderCommentPanel();
+    }
+    async function submitReply(rootId, inputEl) {
+      const body = inputEl.value.trim();
+      if (!body) return;
+      const root = _seComments.find(c => c.id === rootId);
+      if (!root) return;
+      inputEl.disabled = true;
+      const { error } = await db.from('comments').insert({
+        chapter_id: _seChapterId, reviewer_id: currentUserId, author_role: 'senior_editor',
+        parent_id: rootId, start_offset: root.start_offset, end_offset: root.end_offset, quoted_text: root.quoted_text, body,
+      });
+      if (error) { toast(error.message); inputEl.disabled = false; return; }
+      await loadChapterComments(_seChapterId);
+    }
+    async function toggleResolve(id, resolved) {
+      const { error } = await db.from('comments').update({ resolved, updated_at: new Date().toISOString() }).eq('id', id);
+      if (error) { toast(error.message); return; }
+      await loadChapterComments(_seChapterId);
+    }
+    async function deleteRootComment(id) {
+      if (!confirm('Delete this comment and its replies?')) return;
+      const { error } = await db.from('comments').delete().eq('id', id);
+      if (error) { toast(error.message); return; }
+      await loadChapterComments(_seChapterId);
+    }
+    function focusComment(id) {
+      _seActiveCommentId = id;
+      const root = $('se-reader-content');
+      root.querySelectorAll('mark.chapter-highlight').forEach(m => m.classList.toggle('active', m.dataset.commentId === id));
+      root.querySelector(`mark.chapter-highlight[data-comment-id="${id}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      if (window.innerWidth < 1024) {
+        const c = _seComments.find(x => x.id === id);
+        if (!c) return;
+        _seSheetMode = 'thread';
+        $('se-sheet-title').textContent = 'Comment';
+        $('se-sheet-body').innerHTML = _threadHtml(c);
+        $('se-comment-sheet').classList.remove('hidden');
+      } else {
+        document.querySelectorAll('.se-comment-card').forEach(card => card.classList.toggle('active', card.dataset.threadId === id));
+        document.querySelector(`.se-comment-card[data-thread-id="${id}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+    function openMobileCommentsList() {
+      _seSheetMode = 'all';
+      $('se-sheet-title').textContent = 'Comments';
+      const roots = _seComments.filter(c => !c.parent_id);
+      $('se-sheet-body').innerHTML = roots.length ? roots.map(_threadHtml).join('') : '<p class="text-muted/50 text-xs text-center py-8">No comments yet.</p>';
+      $('se-comment-sheet').classList.remove('hidden');
+    }
+    function closeCommentSheet() { _seSheetMode = null; $('se-comment-sheet').classList.add('hidden'); }
+
+    function subscribeChapterComments(chapterId) {
+      unsubscribeChapterComments();
+      _seCommentsCh = db.channel('comments-realtime:' + chapterId)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'comments', filter: 'chapter_id=eq.' + chapterId }, () => {
+          loadChapterComments(chapterId);
+        })
+        .subscribe();
+    }
+    function unsubscribeChapterComments() {
+      if (_seCommentsCh) { try { db.removeChannel(_seCommentsCh); } catch (_) {} _seCommentsCh = null; }
     }
 
     // ── New prompt (Senior Editor) ──
