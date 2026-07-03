@@ -955,7 +955,12 @@
       root.addEventListener('mouseup', onUp);
       root.addEventListener('touchend', onUp);
       document.addEventListener('mousedown', (e) => {
-        if (!e.target.closest('#se-comment-trigger') && !e.target.closest('#se-reader-content')) _hideCommentTrigger();
+        // Once the compose card is open it lives in the comments panel/sheet —
+        // clicking into it (e.g. to type) must NOT wipe the pending draft.
+        // Only dismiss the floating trigger for clicks truly outside all of this.
+        if (e.target.closest('#se-comment-trigger') || e.target.closest('#se-reader-content')
+            || e.target.closest('#se-comments-panel') || e.target.closest('#se-comment-sheet')) return;
+        _hideCommentTrigger();
       });
     })();
 
