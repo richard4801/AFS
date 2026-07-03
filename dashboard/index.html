@@ -4053,11 +4053,20 @@
     // ── PROJECT BRIEF ──────────────────────────────────────────
     let _briefData = null;
 
+    // The "no brief assigned yet" placeholder only matters before a writer's
+    // first project — once they already have a book underway it's just noise,
+    // so it's suppressed from then on. A real brief always shows regardless.
+    async function _showBriefPlaceholderIfNoBooks() {
+      const { count } = await db.from('books')
+        .select('id', { count: 'exact', head: true }).eq('author_id', currentUserId);
+      if (!count) $('brief-placeholder').classList.remove('hidden');
+    }
+
     async function loadBrief() {
       const { data } = await db.from('briefs')
         .select('*').eq('writer_id', currentUserId).eq('status', 'active').maybeSingle();
       if (!data) {
-        $('brief-placeholder').classList.remove('hidden');
+        _showBriefPlaceholderIfNoBooks();
         return;
       }
       _briefData = data;
@@ -4126,7 +4135,7 @@
       if (error) { btn.disabled = false; showToast('Error: ' + error.message); return; }
       _briefData = null;
       $('brief-card').classList.add('hidden');
-      $('brief-placeholder').classList.remove('hidden');
+      _showBriefPlaceholderIfNoBooks();
       showToast('Brief removed.');
     }
 
