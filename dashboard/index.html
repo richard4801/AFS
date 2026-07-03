@@ -3256,10 +3256,11 @@
       function onUp() {
         setTimeout(() => {
           const sel = window.getSelection();
-          if (!sel || sel.rangeCount === 0) { _hideCommentTrigger(); return; }
+          if (!sel || sel.rangeCount === 0) { console.debug('[cmt-debug] no selection/rangeCount 0'); _hideCommentTrigger(); return; }
           const range = sel.getRangeAt(0);
-          if (!root.contains(range.commonAncestorContainer)) { _hideCommentTrigger(); return; }
+          if (!root.contains(range.commonAncestorContainer)) { console.debug('[cmt-debug] range outside #fs-content', range.commonAncestorContainer); _hideCommentTrigger(); return; }
           if (sel.isCollapsed) {
+            console.debug('[cmt-debug] selection collapsed (simple click, not drag-select)');
             _hideCommentTrigger();
             // Simple click (not a drag-select): if it landed on a highlighted
             // comment, focus it — this is how comments open on an editable
@@ -3270,9 +3271,10 @@
             if (hit) focusComment(hit.id);
             return;
           }
-          if (!range.toString().trim()) { _hideCommentTrigger(); return; }
+          if (!range.toString().trim()) { console.debug('[cmt-debug] selection is blank/whitespace-only:', JSON.stringify(range.toString())); _hideCommentTrigger(); return; }
           const { start, end } = _rangeOffsets(root, range);
           _cmtPendingRange = { start, end, quoted: range.toString() };
+          console.debug('[cmt-debug] showing trigger for selection:', JSON.stringify(range.toString()), { start, end });
           _positionCommentTrigger(range.getBoundingClientRect());
         }, 10);
       }
