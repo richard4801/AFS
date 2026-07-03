@@ -18,6 +18,10 @@ ALTER TABLE public.books
   ADD COLUMN IF NOT EXISTS se_reviewed_at   timestamptz;
 
 -- ── 2. Her book wall — now with review state + basic stats ──────
+-- DROP first: this changes the column list of the get_se_books() that
+-- senior_editor.sql originally created (4 columns → 9), and Postgres
+-- refuses CREATE OR REPLACE across a return-type change.
+DROP FUNCTION IF EXISTS public.get_se_books();
 CREATE OR REPLACE FUNCTION public.get_se_books()
 RETURNS TABLE (
   id uuid, title text, cover_url text, updated_at timestamptz,
