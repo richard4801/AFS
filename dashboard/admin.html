@@ -2006,12 +2006,26 @@
       if (_adminChatOpen) { _adminChatOpen = false; $('admin-chat-panel').classList.add('hidden'); }
       $('writer-books-grid').innerHTML = '<div class="skeleton h-64 rounded-2xl col-span-full"></div>';
       updateRankTracker(writer.id);
+      await _loadWriterBooksList(writer.id);
+      openAdminChatFor(writer.id);
+
+      // Live — a new book or status/signed change for this writer shows
+      // up without reselecting them. Re-binds fresh on every selectWriter().
+      if (_writerBooksSub) { try { _writerBooksSub.unsubscribe(); } catch (_) {} _writerBooksSub = null; }
+      _writerBooksSub = db.channel('admin-writer-books-' + writer.id)
+        .on('postgres_changes', {
+          event: '*', schema: 'public', table: 'books',
+          filter: 'author_id=eq.' + writer.id,
+        }, () => _loadWriterBooksList(writer.id))
+        .subscribe();
+    }
+    let _writerBooksSub = null;
+    async function _loadWriterBooksList(writerId) {
       const { data: books } = await db.from('books')
         .select('id, title, description, cover_url, status, is_signed, admin_notes, created_at, views, likes, library_count, locked_from_chapter')
-        .eq('author_id', writer.id)
+        .eq('author_id', writerId)
         .order('created_at', { ascending: false });
       renderWriterBooks(books ?? []);
-      openAdminChatFor(writer.id);
     }
 
     // ── RANK MANAGEMENT ─────────────────────────────────────────
@@ -2233,6 +2247,12 @@
           event: '*', schema: 'public', table: 'chapters',
           filter: 'book_id=eq.' + book.id,
         }, () => refreshChapterList())
+        // edit_requests can't be filtered by book (Realtime only supports
+        // single-column equality, and this join is by chapter_id IN a
+        // book's chapters) — re-check membership for the open book instead.
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'edit_requests' }, async () => {
+          if (selectedBook?.id === book.id) renderEditRequests(await loadEditRequestsForBook(book.id));
+        })
         .subscribe();
     }
     let _bookChaptersSub = null;
@@ -4061,6 +4081,7 @@
         </button>`).join('');
     }
 
+    let _payoutWriterSub = null;
     async function selectPayoutWriter(writerId) {
       _selectedPayoutWriterId = writerId;
       document.querySelectorAll('.payout-writer-btn').forEach(b => {
@@ -4070,6 +4091,15 @@
       });
       const writer = allProfiles.find(p => p.id === writerId) || { name: '—', email: '' };
       await renderPaymentsForWriter(writerId, writer);
+
+      // Live — if this writer's earnings/payouts change (e.g. recorded
+      // from another admin session) while their panel is open, it
+      // refreshes without reselecting them.
+      if (_payoutWriterSub) { try { _payoutWriterSub.unsubscribe(); } catch (_) {} _payoutWriterSub = null; }
+      _payoutWriterSub = db.channel('admin-writer-payments-' + writerId)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'earnings', filter: 'author_id=eq.' + writerId }, () => renderPaymentsForWriter(writerId, writer))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'payouts', filter: 'writer_id=eq.' + writerId }, () => renderPaymentsForWriter(writerId, writer))
+        .subscribe();
     }
 
     function _fmtPaymentInfo(raw) {
@@ -5302,6 +5332,32 @@
       db.channel('admin-se-notes-live')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'se_chapter_recommendations' }, () => loadAdminSeNotes())
         .on('postgres_changes', { event: '*', schema: 'public', table: 'se_edit_access' }, () => loadAdminSeNotes())
+        .subscribe();
+      // Live — sidebar pending-dots (chapters), new applications badge,
+      // and the contracts section all react without a reload or reselect.
+      db.channel('admin-chapters-live')
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chapters' }, () => loadWritersList())
+        .subscribe();
+      db.channel('admin-applications-live')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'applications' }, () => {
+          _loadPendingBadge();
+          if (_appsLoaded) loadApplications();
+        })
+        .subscribe();
+      db.channel('admin-contracts-live')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'contracts' }, () => {
+          if (_contractsLoaded) loadContractsSection();
+        })
+        .subscribe();
+      db.channel('admin-recent-earnings-live')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'earnings' }, () => loadRecentEarnings())
+        .subscribe();
+      // Live — a writer claiming/releasing a prompt, or a new prompt
+      // submission, refreshes the Prompts tab (review queue, library,
+      // claims) once it's been opened at least once this session.
+      db.channel('admin-prompts-live')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'writing_prompts' }, () => { if (_promptsLoaded) loadAdminPrompts(); })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'prompt_claims' }, () => { if (_promptsLoaded) loadAdminPrompts(); })
         .subscribe();
       await Promise.all([ loadWritersList(), loadWriters(), loadRecentEarnings(), _loadPendingBadge(), loadAdminSeNotes() ]);
       // On mobile, start on the writers list

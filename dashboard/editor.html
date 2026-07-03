@@ -953,7 +953,15 @@
       $('sb-chapters-empty').classList.toggle('hidden', chapters.length > 0);
       $('sb-select-all-btn').classList.toggle('hidden', !chapters.some(c => c.my_recommendation !== 'approve'));
       renderSeChapterList(chapters);
+
+      // Live — a chapter the writer submits or edits while she has this
+      // exact book open shows up without reopening it.
+      if (_seBookChaptersSub) { try { _seBookChaptersSub.unsubscribe(); } catch (_) {} _seBookChaptersSub = null; }
+      _seBookChaptersSub = db.channel('se-book-chapters-' + id)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'chapters', filter: 'book_id=eq.' + id }, () => openSeBook(id))
+        .subscribe();
     }
+    let _seBookChaptersSub = null;
     function renderSeChapterList(chapters) {
       $('sb-chapters').innerHTML = chapters.map(c => {
         const locked = c.my_recommendation === 'approve';
@@ -1005,6 +1013,7 @@
     function closeSeBook() {
       _seCurrentBookId = null; _seSelectedChapters = new Set();
       $('se-book-modal').classList.add('hidden'); document.body.style.overflow = '';
+      if (_seBookChaptersSub) { try { _seBookChaptersSub.unsubscribe(); } catch (_) {} _seBookChaptersSub = null; }
     }
 
     async function submitSeRecommendation(recommendation) {
