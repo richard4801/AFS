@@ -1484,6 +1484,19 @@
       return (data ?? []).reduce((s, c) => s + (c.word_count || 0), 0);
     }
 
+    async function _refreshEarningsStats() {
+      const [earnings30, allTime, totalWords] = await Promise.all([
+        fetchEarnings30Days(currentUserId),
+        fetchAllTimeTotal(currentUserId),
+        fetchTotalWordCount(currentUserId),
+      ]);
+      const monthly = earnings30
+        .filter(r => r.date.startsWith(new Date().toISOString().slice(0, 7)))
+        .reduce((s, r) => s + parseFloat(r.amount_earned), 0);
+      renderStats({ monthly, allTime, totalWords });
+      renderChart(earnings30);
+    }
+
     // ── COMPLIANCE CALENDAR ────────────────────────────────────
     let _calYear   = null;
     let _calMonth  = null; // 0-indexed
@@ -4591,6 +4604,18 @@
       loadBrief();
       loadPayouts();
       loadPrompts();
+
+      // Live — new income, a payout being recorded, or the project brief
+      // being assigned/updated all reflect without a reload.
+      db.channel('writer-earnings-' + currentUserId)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'earnings', filter: 'author_id=eq.' + currentUserId }, () => _refreshEarningsStats())
+        .subscribe();
+      db.channel('writer-payouts-' + currentUserId)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'payouts', filter: 'writer_id=eq.' + currentUserId }, () => loadPayouts())
+        .subscribe();
+      db.channel('writer-brief-' + currentUserId)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'briefs', filter: 'writer_id=eq.' + currentUserId }, () => loadBrief())
+        .subscribe();
       await loadBooks();
       checkContractStatus();
 
