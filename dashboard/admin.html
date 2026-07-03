@@ -964,6 +964,10 @@
           <h2 class="font-serif text-2xl sm:text-3xl text-white mb-1">Senior Editor Notes</h2>
           <p class="text-muted text-sm">Chapter recommendations from your Senior Editor. Nothing here has reached the writer — review her note, then use the chapter's own Approve / Request Revision to act officially.</p>
         </div>
+        <div id="se-edit-requests-block" class="hidden mb-8">
+          <h3 class="text-white text-sm font-semibold mb-3">Edit Access Requests</h3>
+          <div id="se-edit-requests-list" class="space-y-3"></div>
+        </div>
         <div id="senotes-list" class="space-y-4"></div>
         <div id="senotes-empty" class="hidden text-center py-16">
           <div class="w-14 h-14 rounded-2xl bg-surface border border-border flex items-center justify-center mx-auto mb-4">
@@ -2735,9 +2739,9 @@
       return `
         <div class="acmt-card ${isActive ? 'active' : ''} ${root.resolved ? 'resolved' : ''}" data-thread-id="${root.id}" onclick="focusCommentAdmin('${root.id}')">
           ${root.quoted_text ? `<p class="acmt-quote">"${escHtml(root.quoted_text.length > 140 ? root.quoted_text.slice(0, 140) + '…' : root.quoted_text)}"</p>` : ''}
-          <div class="flex items-start justify-between gap-2 mb-1">
-            <span class="text-[11px] font-semibold text-gold">${escHtml(root.author_label)}</span>
-            <div class="flex items-center gap-1 flex-shrink-0" onclick="event.stopPropagation()">
+          <div class="flex items-start gap-2 mb-1">
+            ${root.is_own ? '' : `<span class="text-[11px] font-semibold text-gold">${escHtml(root.author_label)}</span>`}
+            <div class="flex items-center gap-1 flex-shrink-0 ml-auto" onclick="event.stopPropagation()">
               <button onclick="toggleCommentResolvedAdmin('${root.id}', ${!root.resolved})" title="${root.resolved ? 'Reopen' : 'Resolve'}" class="text-muted hover:text-white p-0.5">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               </button>
@@ -2749,7 +2753,7 @@
           <p class="text-white/80 text-xs leading-relaxed mb-2">${escHtml(root.body)}</p>
           ${replies.map(r => `
             <div class="mt-2 pl-3 border-l border-border">
-              <span class="text-[10px] font-semibold text-white/60">${escHtml(r.author_label)}</span>
+              ${r.is_own ? '' : `<span class="text-[10px] font-semibold text-white/60">${escHtml(r.author_label)}</span>`}
               <p class="text-white/70 text-xs leading-relaxed">${escHtml(r.body)}</p>
             </div>`).join('')}
           ${root.resolved ? `<p class="text-[10px] text-muted mt-2">✓ Resolved</p>` : `
@@ -4120,12 +4124,39 @@
       approve:    { label: 'Recommends: Approve', cls: 'text-emerald-300 bg-emerald-400/10 border-emerald-400/25' },
       needs_work: { label: 'Recommends: Changes', cls: 'text-red-300 bg-red-400/10 border-red-400/25' },
     };
+    let _seEditReqReg = {}; // chapter_id → request row, for admin edit-access decisions
     async function loadAdminSeNotes() {
-      const { data, error } = await db.rpc('get_admin_se_recommendations');
+      const [{ data, error }, { data: reqData, error: reqError }] = await Promise.all([
+        db.rpc('get_admin_se_recommendations'),
+        db.rpc('get_admin_se_edit_requests'),
+      ]);
       const rows = error ? [] : (data ?? []);
+      const reqRows = reqError ? [] : (reqData ?? []);
       _seNotesReg = {};
       rows.forEach(r => { _seNotesReg[r.batch_id] = r; });
-      $('senotes-empty').classList.toggle('hidden', rows.length > 0);
+      _seEditReqReg = {};
+      reqRows.forEach(r => { _seEditReqReg[r.chapter_id] = r; });
+
+      $('se-edit-requests-block').classList.toggle('hidden', reqRows.length === 0);
+      $('se-edit-requests-list').innerHTML = reqRows.map(r => `
+        <div class="rounded-2xl border border-gold/25 bg-gold/[0.04] p-5">
+          <div class="flex items-start justify-between gap-3 mb-3">
+            <div class="min-w-0">
+              <p class="text-white text-sm font-semibold truncate">${escHtml(r.book_title)}</p>
+              <p class="text-muted text-xs">${escHtml(r.writer_name)} · Chapter ${escHtml(r.chapter_number)}${r.chapter_title ? ' — ' + escHtml(r.chapter_title) : ''}</p>
+            </div>
+            <span class="flex-shrink-0 text-[9px] font-bold uppercase tracking-wide border rounded-full px-2 py-0.5 text-gold bg-gold/10 border-gold/25">Wants to edit</span>
+          </div>
+          <div class="flex items-center gap-2.5">
+            <button onclick="decideSeEditAccess('${r.chapter_id}', true)" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gold hover:bg-gold-light text-obsidian text-xs font-bold rounded-lg transition-colors">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Grant Edit Access
+            </button>
+            <button onclick="decideSeEditAccess('${r.chapter_id}', false)" class="px-4 py-2 border border-border hover:border-red-400/40 text-muted hover:text-red-300 text-xs font-semibold rounded-lg transition-colors">Deny</button>
+          </div>
+        </div>`).join('');
+
+      $('senotes-empty').classList.toggle('hidden', rows.length > 0 || reqRows.length > 0);
       $('senotes-list').innerHTML = rows.map(r => {
         const st = SE_REC_STYLE[r.recommendation] || SE_REC_STYLE.approve;
         const chapters = (r.chapter_numbers || []).join(', ');
@@ -4148,9 +4179,16 @@
           </div>
         </div>`;
       }).join('');
+      const total = rows.length + reqRows.length;
       const badge = $('tab-senotes-badge');
-      badge.textContent = rows.length || '';
-      badge.classList.toggle('hidden', !rows.length);
+      badge.textContent = total || '';
+      badge.classList.toggle('hidden', !total);
+    }
+    async function decideSeEditAccess(chapterId, approve) {
+      const { error } = await db.rpc('admin_decide_se_edit_access', { p_chapter_id: chapterId, p_approve: approve });
+      if (error) { showToast('Error: ' + error.message); return; }
+      showToast(approve ? 'Edit access granted.' : 'Request denied.');
+      loadAdminSeNotes();
     }
     async function jumpToSeBatch(batchId) {
       const r = _seNotesReg[batchId];

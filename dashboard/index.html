@@ -3357,9 +3357,9 @@
       return `
         <div class="cmt-card ${isActive ? 'active' : ''} ${root.resolved ? 'resolved' : ''}" data-thread-id="${root.id}" onclick="focusComment('${root.id}')">
           ${root.quoted_text ? `<p class="cmt-quote">"${escHtml(root.quoted_text.length > 140 ? root.quoted_text.slice(0, 140) + '…' : root.quoted_text)}"</p>` : ''}
-          <div class="flex items-start justify-between gap-2 mb-1">
-            <span class="text-[11px] font-semibold text-gold">${escHtml(root.author_label)}</span>
-            ${canManage ? `<div class="flex items-center gap-1 flex-shrink-0" onclick="event.stopPropagation()">
+          <div class="flex items-start gap-2 mb-1">
+            ${root.is_own ? '' : `<span class="text-[11px] font-semibold text-gold">${escHtml(root.author_label)}</span>`}
+            ${canManage ? `<div class="flex items-center gap-1 flex-shrink-0 ml-auto" onclick="event.stopPropagation()">
               <button onclick="toggleCommentResolved('${root.id}', ${!root.resolved})" title="${root.resolved ? 'Reopen' : 'Resolve'}" class="text-muted hover:text-white p-0.5">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               </button>
@@ -3371,7 +3371,7 @@
           <p class="text-white/80 text-xs leading-relaxed mb-2">${escHtml(root.body)}</p>
           ${replies.map(r => `
             <div class="mt-2 pl-3 border-l border-border">
-              <span class="text-[10px] font-semibold text-white/60">${escHtml(r.author_label)}</span>
+              ${r.is_own ? '' : `<span class="text-[10px] font-semibold text-white/60">${escHtml(r.author_label)}</span>`}
               <p class="text-white/70 text-xs leading-relaxed">${escHtml(r.body)}</p>
             </div>`).join('')}
           ${root.resolved ? `<p class="text-[10px] text-muted mt-2">✓ Resolved</p>`
