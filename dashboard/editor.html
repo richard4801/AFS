@@ -701,6 +701,7 @@
       loadAll();
       if (currentUserId) initSeChat(currentUserId);
       _initSeBooksLiveRefresh();
+      _initSePromptsRealtime();
 
       // Badge starts dormant (same dull look the writer gem has pre-rank)
       // and lights up shortly after she's actually in — reads as the badge
@@ -719,6 +720,20 @@
     async function loadAll() {
       await Promise.all([loadReviewQueue(), loadMyPrompts(), loadBoard(), loadBooks()]);
       _ensureTicker();
+    }
+
+    // Live prompt loop with admin — a new prompt to review, an admin
+    // decision on one of her own, or a writer claiming/releasing a live
+    // prompt all show up without a reload.
+    function _initSePromptsRealtime() {
+      db.channel('se-prompts-live')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'writing_prompts' }, () => {
+          loadReviewQueue();
+          loadMyPrompts();
+          loadBoard();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'prompt_claims' }, () => loadBoard())
+        .subscribe();
     }
 
     function _briefPreview(t) { const s = String(t || '').replace(/\s+/g, ' ').trim(); return s.length > 160 ? s.slice(0, 160) + '…' : s; }

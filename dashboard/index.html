@@ -9,6 +9,8 @@
   <link rel="icon" type="image/svg+xml" href="../assets/afs-favicon.svg"/>
   <link rel="icon" type="image/png" sizes="32x32" href="../assets/favicon-32.png"/>
   <link rel="apple-touch-icon" sizes="192x192" href="../assets/favicon-192.png"/>
+  <link rel="manifest" href="manifest-writer.json"/>
+  <meta name="theme-color" content="#C9A84C"/>
   <title>Dashboard — Apex Fiction Studio</title>
     <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -36,6 +38,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=DM+Serif+Display:ital@0;1&family=Lora:ital,wght@0,400;0,600;1,400&family=Montserrat:wght@400&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
   <style>
+    /* Rank badge "coming online" reveal — starts dull/desaturated and
+       lights up smoothly once she's actually in the dashboard, like it's
+       reacting to her presence. Same technique proven on Christine's
+       dashboard first. */
+    .rank-gem-wrap { filter:grayscale(0.9) brightness(0.5); opacity:0.55; transition:filter 1.8s cubic-bezier(.4,0,.2,1), opacity 1.8s cubic-bezier(.4,0,.2,1); }
+    .rank-gem-wrap.rank-lit { filter:none; opacity:1; }
+    .rank-avatar-ring { transition:border-color 1.8s cubic-bezier(.4,0,.2,1); }
     @keyframes shimmer {
       0%   { background-position: -400px 0; }
       100% { background-position:  400px 0; }
@@ -223,9 +232,9 @@
                 title="Edit profile">
           <!-- Avatar circle; gem floats above via negative top — no height inflation -->
           <div class="relative flex-shrink-0 w-8 h-8">
-            <div id="nav-rank-gem" class="absolute left-1/2 -translate-x-1/2 z-10 pointer-events-none" style="top:-10px; line-height:0;"></div>
+            <div id="nav-rank-gem" class="rank-gem-wrap absolute left-1/2 -translate-x-1/2 z-10 pointer-events-none" style="top:-10px; line-height:0;"></div>
             <!-- Avatar: no overflow:hidden — nameplate sits outside as a separate pill -->
-            <div id="nav-avatar" class="w-8 h-8 rounded-full bg-surface border-2 flex items-center justify-center select-none" style="border-color:rgba(255,255,255,0.12);">
+            <div id="nav-avatar" class="rank-avatar-ring w-8 h-8 rounded-full bg-surface border-2 flex items-center justify-center select-none" style="border-color:rgba(255,255,255,0.12);">
               <span id="nav-avatar-initials" class="text-xs font-semibold text-white/80 transition-colors duration-200"></span>
             </div>
             <!-- Rank nameplate: pill tag that straddles the bottom edge of the circle -->
@@ -506,6 +515,11 @@
       </div>
       <div id="payout-list" class="space-y-2"></div>
     </div>
+
+    <p class="text-center text-muted text-xs mt-10 leading-relaxed">
+      Earnings data refreshed daily before 9 AM. Questions?
+      <button onclick="toggleChat()" class="text-gold/70 hover:text-gold transition-colors">Contact your editor.</button>
+    </p>
 
   </div><!-- /section-earnings -->
 
@@ -805,11 +819,6 @@
       </div>
 
     </div><!-- /books-section -->
-
-    <p class="text-center text-muted text-xs mt-10 leading-relaxed">
-      Earnings data refreshed daily before 9 AM. Questions?
-      <a href="mailto:support@apexfictionstudio.com" class="text-gold/70 hover:text-gold transition-colors">Contact your editor.</a>
-    </p>
 
   </div><!-- /section-books -->
 
@@ -1273,6 +1282,23 @@
     </div>
   </div>
 
+  <!-- ══ INSTALL AS APP — dismissible banner, remembers dismissal ══ -->
+  <div id="install-banner" class="hidden fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 sm:w-80 z-[9997] rounded-2xl border border-gold/25 bg-surface shadow-2xl shadow-black/70 p-4">
+    <div class="flex items-start gap-3">
+      <div class="w-9 h-9 rounded-xl bg-gold/10 border border-gold/25 flex items-center justify-center flex-shrink-0">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg>
+      </div>
+      <div class="min-w-0 flex-1">
+        <p class="text-white text-sm font-semibold leading-tight">Install AFS</p>
+        <p class="text-muted text-xs mt-1 leading-relaxed">Add it to your home screen for one-tap access, like a real app.</p>
+        <div class="flex items-center gap-2 mt-3">
+          <button onclick="_installPWA()" class="px-3.5 py-1.5 bg-gold hover:bg-gold-light text-obsidian text-xs font-bold rounded-lg transition-colors">Install</button>
+          <button onclick="_dismissInstallBanner()" class="px-3.5 py-1.5 text-muted hover:text-white text-xs font-medium transition-colors">Not now</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
   <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
@@ -1385,8 +1411,15 @@
       const initials = name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?';
 
       // ── Nav avatar circle ─────────────────────────────────────
+      // Stash the target color; only applied immediately once the badge
+      // has already had its first "coming online" reveal (see the
+      // rank-lit setTimeout at boot) — otherwise the ring would jump to
+      // full color instantly while the gem is still deliberately dim.
       const avatar = $('nav-avatar');
-      if (avatar) avatar.style.borderColor = cfg.ringColor;
+      if (avatar) {
+        avatar.dataset.rankColor = cfg.ringColor;
+        if (avatar.classList.contains('rank-lit')) avatar.style.borderColor = cfg.ringColor;
+      }
       const avatarInitials = $('nav-avatar-initials');
       if (avatarInitials) avatarInitials.textContent = initials;
 
@@ -1699,12 +1732,17 @@
     }
 
     // ── VIEW SWITCHING ─────────────────────────────────────────
+    let _chapterListSub = null;
+    function _teardownChapterListSub() {
+      if (_chapterListSub) { try { _chapterListSub.unsubscribe(); } catch (_) {} _chapterListSub = null; }
+    }
     function showBooksView() {
       $('view-books').classList.remove('hidden');
       $('view-chapters').classList.add('hidden');
       $('view-editor').classList.add('hidden');
       selectedBook = null; editingChapter = null;
       _writerChapterComments = []; _originalChapterContent = ''; _hasExistingSnapshot = false;
+      _teardownChapterListSub();
       loadBooks();
     }
 
@@ -1715,6 +1753,18 @@
       editingChapter = null;
       _writerChapterComments = []; _originalChapterContent = ''; _hasExistingSnapshot = false;
       loadChapters(selectedBook.id);
+      // Live status — a chapter this admin/Christine touches while she's
+      // looking at this exact list (approved, sent back, commented on)
+      // updates without a reload. Re-binds fresh on every entry, so
+      // switching books (or returning here after closing the editor)
+      // always tracks the currently-open book.
+      _teardownChapterListSub();
+      _chapterListSub = db.channel('writer-chapters-' + selectedBook.id)
+        .on('postgres_changes', {
+          event: '*', schema: 'public', table: 'chapters',
+          filter: 'book_id=eq.' + selectedBook.id,
+        }, () => loadChapters(selectedBook.id))
+        .subscribe();
     }
 
     // ── CHAPTER VIEW STATE ─────────────────────────────────────
@@ -2940,6 +2990,24 @@
       renderNotifBadge();
     }
 
+    // Live push — a chapter getting approved/commented/rejected, new
+    // income, or a brief assignment shows up immediately, no reload.
+    function _initNotificationsRealtime(userId) {
+      db.channel('writer-notifs-' + userId)
+        .on('postgres_changes', {
+          event: 'INSERT', schema: 'public', table: 'notifications',
+          filter: 'user_id=eq.' + userId,
+        }, payload => {
+          if (_dismissedNotifIds.has(payload.new.id)) return;
+          if (_notifications.some(n => n.id === payload.new.id)) return;
+          _notifications.unshift(payload.new);
+          renderNotifBadge();
+          if (_notifPanelOpen) renderNotifList();
+          _playChime(true);
+        })
+        .subscribe();
+    }
+
     function renderNotifBadge() {
       const unread = _notifications.filter(n => !n.read).length;
       const badge = $('notif-badge');
@@ -3026,10 +3094,49 @@
     }
 
     async function readNotif(id) {
+      const n = _notifications.find(x => x.id === id);
       await db.from('notifications').update({ read: true }).eq('id', id);
-      _notifications = _notifications.map(n => n.id === id ? { ...n, read: true } : n);
+      _notifications = _notifications.map(x => x.id === id ? { ...x, read: true } : x);
       renderNotifBadge();
       renderNotifList();
+      // Only navigate away when the notification actually points somewhere —
+      // e.g. a chapter got commented on, approved, or sent back for revision.
+      // Purely informational ones just get marked read in place.
+      const dest = n && _notifDestination(n);
+      if (!dest) return;
+      _notifPanelOpen = false;
+      $('notif-panel').classList.add('hidden');
+      dest();
+    }
+
+    function _notifDestination(n) {
+      if (n.chapter_id && (n.type === 'chapter_comment' || n.type === 'chapter_approved' || n.type === 'chapter_rejected')) {
+        return () => _notifGoToChapter(n.chapter_id);
+      }
+      if (n.type === 'income_posted') return () => switchWriterTab('earnings');
+      if (n.type === 'brief_assigned') return () => switchWriterTab('books');
+      return null;
+    }
+
+    async function _notifGoToChapter(chapterId) {
+      // If she's mid-edit somewhere else, save that first — jumping to a
+      // different chapter from a notification shouldn't silently drop it.
+      if (!$('fullscreen-editor').classList.contains('hidden') && _asUnsaved) {
+        await _doAutoSave(true);
+      }
+      const { data: chapter, error } = await db.from('chapters').select('*').eq('id', chapterId).maybeSingle();
+      if (error || !chapter) { showToast('That chapter could not be found — it may have been removed.'); return; }
+      const { data: book } = await db.from('books').select('*').eq('id', chapter.book_id).maybeSingle();
+      if (!book) { showToast('That book could not be found.'); return; }
+      switchWriterTab('books');
+      selectedBook = book;
+      _bookReg.set(book.id, book);
+      $('ch-title').textContent  = book.title;
+      $('ch-status').textContent = 'Status: ' + book.status;
+      if (book.cover_url) { $('ch-cover').src = book.cover_url; $('ch-cover').classList.remove('hidden'); $('ch-cover-placeholder').classList.add('hidden'); }
+      else { $('ch-cover').classList.add('hidden'); $('ch-cover-placeholder').classList.remove('hidden'); }
+      _chapReg.set(chapter.id, chapter);
+      showEditorView(chapter);
     }
 
     async function readNotifOpenChat(id) {
@@ -4400,6 +4507,35 @@
       }).join('');
     }
 
+    // ── INSTALL AS APP ──────────────────────────────────────────────
+    let _deferredInstallPrompt = null;
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      _deferredInstallPrompt = e;
+      if (localStorage.getItem('afs_writer_install_dismissed') === '1') return;
+      $('install-banner')?.classList.remove('hidden');
+    });
+    async function _installPWA() {
+      $('install-banner')?.classList.add('hidden');
+      if (!_deferredInstallPrompt) return;
+      _deferredInstallPrompt.prompt();
+      await _deferredInstallPrompt.userChoice;
+      _deferredInstallPrompt = null;
+    }
+    function _dismissInstallBanner() {
+      $('install-banner')?.classList.add('hidden');
+      localStorage.setItem('afs_writer_install_dismissed', '1');
+    }
+    window.addEventListener('appinstalled', () => {
+      $('install-banner')?.classList.add('hidden');
+      localStorage.setItem('afs_writer_install_dismissed', '1');
+    });
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw-writer.js').catch(() => {});
+      });
+    }
+
     (async () => {
       buildChartSkeleton();
       $('today-date').textContent = new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
@@ -4423,8 +4559,20 @@
       if (_navProfileBtn) _navProfileBtn.classList.remove('hidden');
       _currentPaymentInfo = profile?.payment_info || '';
       initRankProfile(profile);
+      // Badge starts dormant and lights up a beat after she's actually in,
+      // reading as the badge reacting to her presence rather than just
+      // appearing pre-lit. Proven on Christine's dashboard first.
+      setTimeout(() => {
+        $('nav-rank-gem')?.classList.add('rank-lit');
+        const avatar = $('nav-avatar');
+        if (avatar) {
+          if (avatar.dataset.rankColor) avatar.style.borderColor = avatar.dataset.rankColor;
+          avatar.classList.add('rank-lit');
+        }
+      }, 550);
       if (!profile?.onboarded) showOnboardingCard(firstName);
       loadNotifications();
+      _initNotificationsRealtime(currentUserId);
       initChat(currentUserId);
 
       // Auto-start tour for new writers; also trigger via ?tour=1 for testing

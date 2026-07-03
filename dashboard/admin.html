@@ -2222,7 +2222,20 @@
       renderInlineChapterList(_cachedChapters);
       renderTotalWords(_cachedChapters);
       renderEditRequests(editReqs);
+
+      // Live status — a chapter the writer submits or edits while admin
+      // has this exact book open shows up without a reload. Re-binds
+      // fresh on every selectBook() call, so switching books always
+      // tracks the currently-open one.
+      if (_bookChaptersSub) { try { _bookChaptersSub.unsubscribe(); } catch (_) {} _bookChaptersSub = null; }
+      _bookChaptersSub = db.channel('admin-book-chapters-' + book.id)
+        .on('postgres_changes', {
+          event: '*', schema: 'public', table: 'chapters',
+          filter: 'book_id=eq.' + book.id,
+        }, () => refreshChapterList())
+        .subscribe();
     }
+    let _bookChaptersSub = null;
 
     function updateSignedBtn(isSigned) {
       const btn = $('toggle-signed-btn');
@@ -5284,6 +5297,12 @@
       _initAdminReceiptSub();
       _initAdminPresence(currentUserId);
       initSeChat(currentUserId);
+      // Live — a new SE recommendation or edit-access request from
+      // Christine lights up the tab badge without a reload.
+      db.channel('admin-se-notes-live')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'se_chapter_recommendations' }, () => loadAdminSeNotes())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'se_edit_access' }, () => loadAdminSeNotes())
+        .subscribe();
       await Promise.all([ loadWritersList(), loadWriters(), loadRecentEarnings(), _loadPendingBadge(), loadAdminSeNotes() ]);
       // On mobile, start on the writers list
       if (window.innerWidth < 768) _adminShowList();
