@@ -118,9 +118,8 @@
     .collab-follow-btn:hover{color:#fff;border-color:rgba(255,255,255,0.25);}
     .collab-follow-btn[data-on="1"]{color:#C9A84C;border-color:rgba(201,168,76,0.4);background:rgba(201,168,76,0.1);}
     /* ── Chapter comments (overlay — never touches editable content DOM) ── */
-    .chapter-highlight-ov{position:absolute;background:rgba(201,168,76,0.28);border-radius:2px;pointer-events:none;transition:background .15s;}
-    .chapter-highlight-ov.active{background:rgba(201,168,76,0.5);}
-    .chapter-highlight-ov.resolved{background:rgba(122,122,122,0.16);}
+    /* Background is set inline per-comment (role color × resolved/active state) — see CMT_ROLE. */
+    .chapter-highlight-ov{position:absolute;border-radius:2px;pointer-events:none;transition:background .15s;}
     #cmt-comment-trigger{position:fixed;z-index:296;display:none;transform:translate(-50%,-100%);}
     #cmt-comment-trigger button{display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:999px;background:#C9A84C;color:#0D0B09;font-size:11px;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,0.45);border:none;cursor:pointer;white-space:nowrap;}
     #cmt-comment-trigger button:hover{background:#E2C97E;}
@@ -3194,6 +3193,22 @@
     let _cmtSheetMode = null;
     let _cmtCh = null;
 
+    // Per-role comment coloring — same identity everywhere: writer stays
+    // gold, admin ("Editor") is crimson/red, Senior Editor ("God Mother")
+    // is purple. Same hex values as the collab-presence ROLE_COLOR map.
+    function _cmtRgba(hex, a) {
+      const n = parseInt(hex.slice(1), 16);
+      return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+    }
+    const CMT_ROLE = Object.fromEntries(Object.entries({ writer: '#C9A84C', admin: '#C82333', senior_editor: '#B79FDE' }).map(([role, hex]) => [role, {
+      label: hex,
+      text: _cmtRgba(hex, 0.85),
+      border: _cmtRgba(hex, 0.4),
+      bg: _cmtRgba(hex, 0.28),
+      bgActive: _cmtRgba(hex, 0.5),
+    }]));
+    const CMT_RESOLVED_BG = 'rgba(122,122,122,0.16)';
+
     function _rangeOffsets(root, range) {
       const pre = document.createRange();
       pre.selectNodeContents(root);
@@ -3226,9 +3241,12 @@
       _cmtComments.filter(c => !c.parent_id && c.start_offset != null).forEach(c => {
         const range = _rangeFromOffsets(root, c.start_offset, c.end_offset);
         if (!range) return;
+        const colors = CMT_ROLE[c.author_role] || CMT_ROLE.writer;
+        const bg = c.resolved ? CMT_RESOLVED_BG : (c.id === _cmtActiveId ? colors.bgActive : colors.bg);
         [...range.getClientRects()].forEach(r => {
           const mark = document.createElement('div');
-          mark.className = 'chapter-highlight-ov' + (c.resolved ? ' resolved' : '') + (c.id === _cmtActiveId ? ' active' : '');
+          mark.className = 'chapter-highlight-ov';
+          mark.style.background = bg;
           mark.dataset.commentId = c.id;
           mark.style.left = (r.left - parentRect.left) + 'px';
           mark.style.top = (r.top - parentRect.top) + 'px';
@@ -3287,9 +3305,10 @@
 
     function _composeCardHtml(quoted) {
       const snippet = quoted ? (quoted.length > 140 ? quoted.slice(0, 140) + '…' : quoted) : '';
+      const c = CMT_ROLE.writer;
       return `
         <div class="cmt-card" id="cmt-compose-card">
-          ${snippet ? `<p class="cmt-quote">"${escHtml(snippet)}"</p>` : ''}
+          ${snippet ? `<p class="cmt-quote" style="color:${c.text};border-left-color:${c.border}">"${escHtml(snippet)}"</p>` : ''}
           <textarea id="cmt-compose-input" rows="3" placeholder="Leave a comment…" class="w-full bg-obsidian border border-border text-white placeholder-muted/60 text-xs rounded-lg px-3 py-2.5 resize-y mb-2.5"></textarea>
           <div class="flex items-center justify-end gap-2">
             <button onclick="cancelCommentComposer()" class="px-3 py-1.5 border border-border text-muted hover:text-white text-[11px] rounded-lg transition-colors">Cancel</button>
@@ -3359,11 +3378,12 @@
       const isActive = root.id === _cmtActiveId;
       const canManage = root.is_own;
       const canReply = root.author_role !== 'senior_editor';
+      const rootColors = CMT_ROLE[root.author_role] || CMT_ROLE.writer;
       return `
         <div class="cmt-card ${isActive ? 'active' : ''} ${root.resolved ? 'resolved' : ''}" data-thread-id="${root.id}" onclick="focusComment('${root.id}')">
-          ${root.quoted_text ? `<p class="cmt-quote">"${escHtml(root.quoted_text.length > 140 ? root.quoted_text.slice(0, 140) + '…' : root.quoted_text)}"</p>` : ''}
+          ${root.quoted_text ? `<p class="cmt-quote" style="color:${rootColors.text};border-left-color:${rootColors.border}">"${escHtml(root.quoted_text.length > 140 ? root.quoted_text.slice(0, 140) + '…' : root.quoted_text)}"</p>` : ''}
           <div class="flex items-start gap-2 mb-1">
-            ${root.is_own ? '' : `<span class="text-[11px] font-semibold text-gold">${escHtml(root.author_label)}</span>`}
+            ${root.is_own ? '' : `<span class="text-[11px] font-semibold" style="color:${rootColors.label}">${escHtml(root.author_label)}</span>`}
             ${canManage ? `<div class="flex items-center gap-1 flex-shrink-0 ml-auto" onclick="event.stopPropagation()">
               <button onclick="toggleCommentResolved('${root.id}', ${!root.resolved})" title="${root.resolved ? 'Reopen' : 'Resolve'}" class="text-muted hover:text-white p-0.5">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -3376,7 +3396,7 @@
           <p class="text-white/80 text-xs leading-relaxed mb-2">${escHtml(root.body)}</p>
           ${replies.map(r => `
             <div class="mt-2 pl-3 border-l border-border">
-              ${r.is_own ? '' : `<span class="text-[10px] font-semibold text-white/60">${escHtml(r.author_label)}</span>`}
+              ${r.is_own ? '' : `<span class="text-[10px] font-semibold" style="color:${(CMT_ROLE[r.author_role] || CMT_ROLE.writer).label}">${escHtml(r.author_label)}</span>`}
               <p class="text-white/70 text-xs leading-relaxed">${escHtml(r.body)}</p>
             </div>`).join('')}
           ${root.resolved ? `<p class="text-[10px] text-muted mt-2">✓ Resolved</p>`
