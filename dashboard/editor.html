@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script>
+    // Runs before first paint so the splash never flashes in on a regular
+    // browser visit — only when actually launched as the installed app.
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+      document.documentElement.classList.add('pwa-standalone');
+    }
+  </script>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -29,6 +36,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&family=Montserrat:wght@400&display=swap" rel="stylesheet"/>
   <style>
+    /* PWA splash — hidden by default; only shown when html.pwa-standalone
+       is set (installed app launch, detected pre-paint in <head>). */
+    #pwa-splash { display:none; position:fixed; inset:0; z-index:99999; align-items:center; justify-content:center; flex-direction:column; gap:30px; background:radial-gradient(ellipse at 50% 42%, #201A2E 0%, #121212 72%); opacity:1; transition:opacity .5s ease; }
+    html.pwa-standalone #pwa-splash { display:flex; }
+    #pwa-splash.pwa-splash-hide { opacity:0; pointer-events:none; }
+    .pwa-splash-bar { width:120px; height:2px; background:rgba(183,159,222,0.18); border-radius:2px; overflow:hidden; }
+    .pwa-splash-bar-fill { width:40%; height:100%; background:linear-gradient(90deg,transparent,#B79FDE,transparent); animation:pwaSplashSweep 1.3s ease-in-out infinite; }
+    @keyframes pwaSplashSweep { 0% { transform:translateX(-120%); } 100% { transform:translateX(320%); } }
     .form-input:focus { outline:none; border-color:#B79FDE; box-shadow:0 0 0 2px rgba(183,159,222,0.15); }
     .digit-box { width:44px; height:54px; text-align:center; font-size:1.35rem; font-weight:700; background:#1C1C1C; border:1px solid #2E2E2E; border-radius:10px; color:#fff; transition:border-color .15s, box-shadow .15s; caret-color:#B79FDE; -moz-appearance:textfield; }
     .digit-box::-webkit-outer-spin-button, .digit-box::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
@@ -67,7 +82,7 @@
     /* ── Highlight comments ─────────────────────────────────────── */
     /* Background is set inline per-comment (role color × resolved/active state) — see CMT_ROLE. */
     mark.chapter-highlight{color:inherit;border-radius:2px;padding:0 1px;cursor:pointer;transition:background .15s;box-decoration-break:clone;-webkit-box-decoration-break:clone;}
-    #se-comment-trigger{position:fixed;z-index:96;display:none;transform:translate(-50%,-100%);}
+    #se-comment-trigger{position:absolute;z-index:96;display:none;transform:translate(-50%,0);pointer-events:auto;}
     #se-comment-trigger button{display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:999px;background:#B79FDE;color:#0D0B09;font-size:11px;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,0.45);border:none;cursor:pointer;white-space:nowrap;}
     #se-comment-trigger button:hover{background:#D0C0FF;}
     .se-comment-card{border-radius:14px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.03);padding:12px 14px;transition:border-color .2s,background .2s;}
@@ -87,6 +102,27 @@
   </style>
 </head>
 <body class="bg-obsidian text-white font-sans antialiased" style="font-weight:300;">
+
+  <!-- ══ PWA SPLASH — only rendered when launched as the installed app
+       (html.pwa-standalone, set synchronously in <head> before paint), a
+       regular browser visit never sees this at all. ══ -->
+  <div id="pwa-splash">
+    <svg width="180" height="84" viewBox="15 18 110 52" xmlns="http://www.w3.org/2000/svg" aria-label="AFS Publishing">
+      <defs>
+        <linearGradient id="pwa-splash-purple" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%"   stop-color="#E5D4FF"/>
+          <stop offset="30%"  stop-color="#C9A6F5"/>
+          <stop offset="65%"  stop-color="#8F63D1"/>
+          <stop offset="100%" stop-color="#B79FDE"/>
+        </linearGradient>
+      </defs>
+      <g transform="translate(20,15)">
+        <text font-family="'Cinzel',Georgia,serif" font-weight="400" fill="url(#pwa-splash-purple)" font-size="38" letter-spacing="4" x="0" y="35">AFS</text>
+        <text font-family="'Montserrat',system-ui,sans-serif" font-weight="400" fill="rgba(183,159,222,0.65)" font-size="9" letter-spacing="5" x="2" y="52">Publishing</text>
+      </g>
+    </svg>
+    <div class="pwa-splash-bar"><div class="pwa-splash-bar-fill"></div></div>
+  </div>
 
   <div id="afs-glow" class="pointer-events-none fixed inset-0" style="z-index:0;"></div>
   <div id="afs-grid" class="pointer-events-none fixed inset-0"
@@ -378,9 +414,21 @@
     <div class="flex-1 flex min-h-0">
       <!-- Reading column -->
       <div id="se-reader-scroll" class="flex-1 overflow-y-auto thin-scroll">
-        <div class="max-w-3xl mx-auto px-4 sm:px-10 py-8 sm:py-12 relative">
+        <div id="se-reader-content-wrap" class="max-w-3xl mx-auto px-4 sm:px-10 py-8 sm:py-12 relative">
           <div id="se-comment-overlay" class="pointer-events-none absolute inset-0 z-[9]"></div>
           <div id="se-reader-content" class="min-h-[50vh]"></div>
+          <!-- Floating "+ Comment" trigger — anchored inside this same
+               relatively-positioned wrapper (not position:fixed) so it
+               scrolls natively with the highlighted text instead of
+               needing to be re-tracked on scroll. Sits below the
+               selection, not above, so it doesn't collide with the
+               device's native selection toolbar. -->
+          <div id="se-comment-trigger">
+            <button onclick="openCommentComposer()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+              Comment
+            </button>
+          </div>
         </div>
       </div>
       <!-- Comments panel (desktop) — stays docked to the right, like Google Docs -->
@@ -400,13 +448,6 @@
     </button>
   </div>
 
-  <!-- Floating "+ Comment" trigger — appears near an active text selection -->
-  <div id="se-comment-trigger">
-    <button onclick="openCommentComposer()">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-      Comment
-    </button>
-  </div>
 
   <!-- Mobile comment popup / bottom sheet -->
   <div id="se-comment-sheet" class="hidden fixed inset-0 z-[97] flex flex-col justify-end lg:hidden" style="background:rgba(0,0,0,0.6)">
@@ -1497,10 +1538,17 @@
     // Selection → floating "+ Comment" trigger
     function _positionCommentTrigger(rect) {
       const el = $('se-comment-trigger');
+      const wrap = $('se-reader-content-wrap');
       el.style.display = 'block';
-      const margin = 8, w = el.offsetWidth || 110, h = el.offsetHeight || 36;
-      const left = Math.min(Math.max(rect.left + rect.width / 2, w / 2 + margin), window.innerWidth - w / 2 - margin);
-      const top = Math.max(rect.top - 8, h + margin);
+      // Positioned relative to the wrapper (not the viewport) so it scrolls
+      // natively with the highlighted text, and below the selection rather
+      // than above so it doesn't collide with the device's native
+      // selection toolbar on mobile.
+      const wrapRect = wrap.getBoundingClientRect();
+      const margin = 8, gap = 10, w = el.offsetWidth || 110;
+      const rawLeft = (rect.left - wrapRect.left) + rect.width / 2;
+      const left = Math.min(Math.max(rawLeft, w / 2 + margin), wrapRect.width - w / 2 - margin);
+      const top = (rect.bottom - wrapRect.top) + gap;
       el.style.left = left + 'px';
       el.style.top = top + 'px';
     }
@@ -2442,12 +2490,38 @@
     }, { passive: true });
     window.addEventListener('resize', () => { if (_tourActive) _renderTourStep(); }, { passive: true });
 
+    // ── PWA SPLASH ───────────────────────────────────────────────────
+    // Only relevant at all when html.pwa-standalone is set (installed app
+    // launch). A short minimum hold so it reads as a deliberate splash
+    // rather than a flash, then fades once the page has actually loaded.
+    if (document.documentElement.classList.contains('pwa-standalone')) {
+      const _splashShownAt = Date.now();
+      const MIN_SPLASH_MS = 700;
+      const _hideSplash = () => {
+        const el = $('pwa-splash');
+        if (!el) return;
+        const wait = Math.max(0, MIN_SPLASH_MS - (Date.now() - _splashShownAt));
+        setTimeout(() => {
+          el.classList.add('pwa-splash-hide');
+          setTimeout(() => el.remove(), 600);
+        }, wait);
+      };
+      if (document.readyState === 'complete') _hideSplash();
+      else window.addEventListener('load', _hideSplash);
+    }
+
     // ── INSTALL AS APP (Phase 4) ────────────────────────────────────
+    // "Not now" isn't forever — it's a snooze. The banner comes back
+    // after a cooldown so she still gets reminded if she wasn't ready
+    // yet, without nagging every visit. Only a real install silences it.
+    const INSTALL_PROMPT_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
     let _deferredInstallPrompt = null;
     window.addEventListener('beforeinstallprompt', e => {
       e.preventDefault();
       _deferredInstallPrompt = e;
-      if (localStorage.getItem('afs_se_install_dismissed') === '1') return;
+      if (localStorage.getItem('afs_se_installed') === '1') return;
+      const dismissedAt = parseInt(localStorage.getItem('afs_se_install_dismissed_at') || '0', 10);
+      if (dismissedAt && Date.now() - dismissedAt < INSTALL_PROMPT_COOLDOWN_MS) return;
       $('install-banner')?.classList.remove('hidden');
     });
     async function _installPWA() {
@@ -2459,11 +2533,11 @@
     }
     function _dismissInstallBanner() {
       $('install-banner')?.classList.add('hidden');
-      localStorage.setItem('afs_se_install_dismissed', '1');
+      localStorage.setItem('afs_se_install_dismissed_at', String(Date.now()));
     }
     window.addEventListener('appinstalled', () => {
       $('install-banner')?.classList.add('hidden');
-      localStorage.setItem('afs_se_install_dismissed', '1');
+      localStorage.setItem('afs_se_installed', '1');
     });
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
