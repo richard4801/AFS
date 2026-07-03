@@ -3798,9 +3798,22 @@
       badge.classList.toggle('hidden', !rows.length);
     }
     async function jumpToSeBatch(batchId) {
-      const r = _seNotesReg[batchId]; if (!r) return;
+      const r = _seNotesReg[batchId];
+      if (!r) { showToast('Could not find this note — try refreshing SE Notes.'); return; }
+      // switchSection() controls which top-level panel is visible; selectWriter/
+      // selectBook only update the writer/book *view* inside panel-writers, so
+      // without this the selection happens correctly but stays hidden behind
+      // the still-visible SE Notes panel.
+      switchSection('writers');
       await selectWriter(r.writer_id);
+      if (!selectedWriter || selectedWriter.id !== r.writer_id) {
+        showToast('Could not find that writer — they may have been removed.');
+        return;
+      }
       selectBook(r.book_id);
+      if (!selectedBook || selectedBook.id !== r.book_id) {
+        showToast('Could not find that book — it may have been removed.');
+      }
     }
     async function dismissSeBatch(batchId) {
       const { error } = await db.rpc('admin_dismiss_se_batch', { p_batch_id: batchId });
