@@ -76,9 +76,15 @@
     #fs-content:empty::before { content:attr(data-placeholder); color:rgba(122,122,122,0.35); font-style:italic; pointer-events:none; }
     #fs-content, #fs-content p, #fs-content div { font-family:'Lora',Georgia,serif; font-size:17px; font-weight:400; line-height:1.95; letter-spacing:0.01em; color:rgba(255,255,255,0.80); }
     #fs-content p { margin-bottom:1.4em; }
-    #fs-content strong, #fs-content b { font-weight:600; color:rgba(255,255,255,0.92); }
+    /* Belt-and-suspenders against pasted-in inline styles (Google Docs/Word
+       colors, background highlights, stray fonts): every descendant is forced
+       back to the editor's own look, regardless of what markup rode in on a
+       paste. Paste is also sanitized on the way in (see _sanitizePastedHtml),
+       this just guarantees older/already-saved content reads fine too. */
+    #fs-content, #fs-content * { color:rgba(255,255,255,0.80) !important; background-color:transparent !important; font-family:'Lora',Georgia,serif !important; }
+    #fs-content strong, #fs-content b { font-weight:600; color:rgba(255,255,255,0.92) !important; }
     #fs-content em, #fs-content i { font-style:italic; }
-    #fs-content a, #fs-content span, #fs-content font { color:rgba(255,255,255,0.80) !important; text-decoration:none !important; }
+    #fs-content a, #fs-content span, #fs-content font { text-decoration:none !important; }
     @keyframes typingBounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
     .typing-dot { width:7px;height:7px;border-radius:50%;background:rgba(106,106,106,0.65);animation:typingBounce 1.1s ease-in-out infinite;flex-shrink:0; }
     @media (max-width:767px) { #chat-fs-btn { display:none !important; } }
@@ -3740,6 +3746,55 @@
       document.execCommand(cmd, false, null);
       updateFSToolbar();
     }
+
+    // ── Paste sanitizer ───────────────────────────────────────────
+    // Pasting from Google Docs/Word/anywhere else carries inline styles
+    // (text color, background highlights, arbitrary fonts) that can end up
+    // unreadable once the same chapter is viewed somewhere with a different
+    // background — e.g. black text pasted here reads fine in this editor's
+    // own dark theme (CSS forces it back to white) but the raw color is
+    // still sitting in the saved HTML for anyone else's view to inherit.
+    // This strips all inline styling down to plain paragraphs + bold/italic/
+    // underline before it's ever saved, so every future paste is clean
+    // everywhere, no matter where it came from or how it was formatted.
+    function _sanitizePastedHtml(html) {
+      const container = document.createElement('div');
+      container.innerHTML = html;
+      const KEEP_TAGS = new Set(['P', 'BR', 'DIV', 'STRONG', 'B', 'EM', 'I', 'U']);
+      (function walk(node) {
+        [...node.childNodes].forEach(child => {
+          if (child.nodeType !== 1) return; // text nodes pass through untouched
+          const isKept = KEEP_TAGS.has(child.tagName);
+          const style = child.style;
+          // Google Docs frequently carries bold/italic/underline as inline
+          // style on a <span> rather than a semantic tag — detect that
+          // before stripping attributes, so the formatting survives even
+          // though the wrapping <span> itself doesn't.
+          const wantsBold = !isKept && /^(bold|[6-9]00)$/i.test(style?.fontWeight || '');
+          const wantsItalic = !isKept && style?.fontStyle === 'italic';
+          const wantsUnderline = !isKept && (style?.textDecorationLine || style?.textDecoration || '').includes('underline');
+          walk(child); // recurse before unwrapping so children are already clean
+          [...child.attributes].forEach(attr => child.removeAttribute(attr.name));
+          if (child.tagName === 'SCRIPT' || child.tagName === 'STYLE' || child.tagName === 'IMG') { child.remove(); return; }
+          if (!isKept) {
+            let inner = document.createDocumentFragment();
+            while (child.firstChild) inner.appendChild(child.firstChild);
+            if (wantsUnderline) { const u = document.createElement('u'); u.appendChild(inner); inner = u; }
+            if (wantsItalic) { const em = document.createElement('em'); em.appendChild(inner); inner = em; }
+            if (wantsBold) { const strong = document.createElement('strong'); strong.appendChild(inner); inner = strong; }
+            child.replaceWith(inner);
+          }
+        });
+      })(container);
+      return container.innerHTML;
+    }
+    $('fs-content').addEventListener('paste', e => {
+      e.preventDefault();
+      const cd = e.clipboardData || window.clipboardData;
+      const html = cd.getData('text/html');
+      const cleaned = html ? _sanitizePastedHtml(html) : escHtml(cd.getData('text/plain')).replace(/\n/g, '<br>');
+      document.execCommand('insertHTML', false, cleaned || '');
+    });
 
     // Cache toolbar buttons once — avoids querySelector on every keystroke
     const _fsToolBtns = ['bold','italic','underline'].map(cmd =>

@@ -32,8 +32,21 @@
     [x-cloak]{display:none!important;}
     #se-reader-content, #se-reader-content p { font-family:'Lora',Georgia,serif; font-size:17px; font-weight:400; line-height:1.95; letter-spacing:0.01em; color:rgba(255,255,255,0.80); }
     #se-reader-content p { margin-bottom:1.4em; }
-    #se-reader-content strong, #se-reader-content b { font-weight:600; color:rgba(255,255,255,0.92); }
+    /* Belt-and-suspenders against pasted-in inline styles (Google Docs/Word
+       colors, background highlights, stray fonts) that rode in through the
+       writer's or admin's editor: every descendant is forced back to the
+       reader's own look, regardless of what markup produced it. This is what
+       was missing here — writer/admin already had the equivalent override,
+       so a chapter pasted with dark inline text color only showed unreadable
+       on Christine's side.
+       mark.chapter-highlight is excluded from the background reset — its
+       inline background is the deliberate per-role comment-highlight color,
+       not pasted junk. */
+    #se-reader-content, #se-reader-content *:not(mark) { color:rgba(255,255,255,0.80) !important; background-color:transparent !important; font-family:'Lora',Georgia,serif !important; }
+    #se-reader-content mark { color:rgba(255,255,255,0.80) !important; font-family:'Lora',Georgia,serif !important; }
+    #se-reader-content strong, #se-reader-content b { font-weight:600; color:rgba(255,255,255,0.92) !important; }
     #se-reader-content em, #se-reader-content i { font-style:italic; }
+    #se-reader-content a, #se-reader-content span, #se-reader-content font { text-decoration:none !important; }
     .collab-chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:rgba(255,255,255,0.78);background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:999px;padding:2px 9px;}
     .collab-dot{width:6px;height:6px;border-radius:50%;box-shadow:0 0 6px currentColor;flex-shrink:0;}
     /* ── Highlight comments ─────────────────────────────────────── */
@@ -848,6 +861,49 @@
         if (btn) btn.classList.toggle('active', document.queryCommandState(cmd));
       });
     }
+
+    // ── Paste sanitizer ───────────────────────────────────────────
+    // Strips inline styling (colors, backgrounds, stray fonts) from
+    // anything pasted in — e.g. from Google Docs/Word — down to plain
+    // paragraphs + bold/italic/underline, so a chapter always reads fine
+    // everywhere it's viewed. See the matching sanitizer in
+    // dashboard/index.html. Only fires once she has edit access and
+    // se-reader-content is actually contenteditable.
+    function _sanitizePastedHtml(html) {
+      const container = document.createElement('div');
+      container.innerHTML = html;
+      const KEEP_TAGS = new Set(['P', 'BR', 'DIV', 'STRONG', 'B', 'EM', 'I', 'U']);
+      (function walk(node) {
+        [...node.childNodes].forEach(child => {
+          if (child.nodeType !== 1) return;
+          const isKept = KEEP_TAGS.has(child.tagName);
+          const style = child.style;
+          const wantsBold = !isKept && /^(bold|[6-9]00)$/i.test(style?.fontWeight || '');
+          const wantsItalic = !isKept && style?.fontStyle === 'italic';
+          const wantsUnderline = !isKept && (style?.textDecorationLine || style?.textDecoration || '').includes('underline');
+          walk(child);
+          [...child.attributes].forEach(attr => child.removeAttribute(attr.name));
+          if (child.tagName === 'SCRIPT' || child.tagName === 'STYLE' || child.tagName === 'IMG') { child.remove(); return; }
+          if (!isKept) {
+            let inner = document.createDocumentFragment();
+            while (child.firstChild) inner.appendChild(child.firstChild);
+            if (wantsUnderline) { const u = document.createElement('u'); u.appendChild(inner); inner = u; }
+            if (wantsItalic) { const em = document.createElement('em'); em.appendChild(inner); inner = em; }
+            if (wantsBold) { const strong = document.createElement('strong'); strong.appendChild(inner); inner = strong; }
+            child.replaceWith(inner);
+          }
+        });
+      })(container);
+      return container.innerHTML;
+    }
+    $('se-reader-content')?.addEventListener('paste', e => {
+      if ($('se-reader-content').contentEditable !== 'true') return;
+      e.preventDefault();
+      const cd = e.clipboardData || window.clipboardData;
+      const html = cd.getData('text/html');
+      const cleaned = html ? _sanitizePastedHtml(html) : escHtml(cd.getData('text/plain')).replace(/\n/g, '<br>');
+      document.execCommand('insertHTML', false, cleaned || '');
+    });
 
     // ── Autosave (edit mode only) — writes go through se_save_chapter_content,
     // which re-checks approved access server-side on every save. ─────

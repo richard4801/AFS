@@ -57,7 +57,14 @@
     .fs-tool-btn.active { background:rgba(163,22,33,0.18); border-color:rgba(163,22,33,0.4); color:#C82333; }
     #admin-fs-content:empty::before { content:attr(data-placeholder); color:rgba(122,122,122,0.35); font-style:italic; pointer-events:none; }
     #admin-fs-content p { margin-bottom:1.5em; line-height:2.0; font-family:'DM Serif Display',Georgia,serif; font-size:17px; letter-spacing:0.015em; color:rgba(255,255,255,0.88); }
-    #admin-fs-content a, #admin-fs-content span, #admin-fs-content font { color:rgba(255,255,255,0.88) !important; text-decoration:none !important; }
+    /* Belt-and-suspenders against pasted-in inline styles (Google Docs/Word
+       colors, background highlights, stray fonts): every descendant is forced
+       back to the editor's own look, regardless of what markup rode in on a
+       paste. Paste is also sanitized on the way in (see _sanitizePastedHtml),
+       this just guarantees older/already-saved content reads fine too. */
+    #admin-fs-content, #admin-fs-content * { color:rgba(255,255,255,0.88) !important; background-color:transparent !important; font-family:'DM Serif Display',Georgia,serif !important; }
+    #admin-fs-content a, #admin-fs-content span, #admin-fs-content font { text-decoration:none !important; }
+    #chapter-content a, #chapter-content span, #chapter-content font { color:inherit !important; text-decoration:none !important; }
     #chapter-content a, #chapter-content span, #chapter-content font { color:inherit !important; text-decoration:none !important; }
     /* ── Live collaboration (presence + spotlight caret) ─────────── */
     .collab-caret{position:absolute;top:0;left:0;pointer-events:none;z-index:20;will-change:transform;transition:transform .09s cubic-bezier(.33,1,.68,1);}
@@ -3060,6 +3067,47 @@
       $('admin-fs-content').focus();
       updateAdminFsToolbar();
     }
+
+    // ── Paste sanitizer ───────────────────────────────────────────
+    // Strips inline styling (colors, backgrounds, stray fonts) from
+    // anything pasted in — e.g. from Google Docs/Word — down to plain
+    // paragraphs + bold/italic/underline, so a chapter always reads fine
+    // everywhere it's viewed, not just in whichever editor it was pasted
+    // into. See the matching sanitizer in dashboard/index.html.
+    function _sanitizePastedHtml(html) {
+      const container = document.createElement('div');
+      container.innerHTML = html;
+      const KEEP_TAGS = new Set(['P', 'BR', 'DIV', 'STRONG', 'B', 'EM', 'I', 'U']);
+      (function walk(node) {
+        [...node.childNodes].forEach(child => {
+          if (child.nodeType !== 1) return;
+          const isKept = KEEP_TAGS.has(child.tagName);
+          const style = child.style;
+          const wantsBold = !isKept && /^(bold|[6-9]00)$/i.test(style?.fontWeight || '');
+          const wantsItalic = !isKept && style?.fontStyle === 'italic';
+          const wantsUnderline = !isKept && (style?.textDecorationLine || style?.textDecoration || '').includes('underline');
+          walk(child);
+          [...child.attributes].forEach(attr => child.removeAttribute(attr.name));
+          if (child.tagName === 'SCRIPT' || child.tagName === 'STYLE' || child.tagName === 'IMG') { child.remove(); return; }
+          if (!isKept) {
+            let inner = document.createDocumentFragment();
+            while (child.firstChild) inner.appendChild(child.firstChild);
+            if (wantsUnderline) { const u = document.createElement('u'); u.appendChild(inner); inner = u; }
+            if (wantsItalic) { const em = document.createElement('em'); em.appendChild(inner); inner = em; }
+            if (wantsBold) { const strong = document.createElement('strong'); strong.appendChild(inner); inner = strong; }
+            child.replaceWith(inner);
+          }
+        });
+      })(container);
+      return container.innerHTML;
+    }
+    $('admin-fs-content')?.addEventListener('paste', e => {
+      e.preventDefault();
+      const cd = e.clipboardData || window.clipboardData;
+      const html = cd.getData('text/html');
+      const cleaned = html ? _sanitizePastedHtml(html) : escHtml(cd.getData('text/plain')).replace(/\n/g, '<br>');
+      document.execCommand('insertHTML', false, cleaned || '');
+    });
 
     function updateAdminFsToolbar() {
       ['bold','italic','underline'].forEach(cmd => {
