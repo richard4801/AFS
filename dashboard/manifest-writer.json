@@ -5,10 +5,16 @@
   "start_url": "index.html",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#121212",
+  "background_color": "#0D0B09",
   "theme_color": "#C9A84C",
   "orientation": "portrait-primary",
   "icons": [
+    {
+      "src": "../assets/afs-icon-gold.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
     {
       "src": "../assets/favicon-192.png",
       "sizes": "192x192",

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="AFS">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="75%">
+      <stop offset="0%" stop-color="#1C1A14"/>
+      <stop offset="100%" stop-color="#0D0B09"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"  stop-color="#F2E0A0"/>
+      <stop offset="30%" stop-color="#D4AF37"/>
+      <stop offset="65%" stop-color="#8A6018"/>
+      <stop offset="100%" stop-color="#C9A84C"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="200" fill="url(#bg)"/>
+  <g stroke="url(#gold)" stroke-width="13" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+    <polyline points="45,155 100,45 155,155"/>
+    <line x1="63" y1="103" x2="137" y2="103"/>
+  </g>
+</svg>
