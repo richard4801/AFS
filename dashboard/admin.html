@@ -2278,7 +2278,7 @@
     // + spotlight caret. Active typist holds the text; the other side
     // sees keystrokes live and can follow the cursor.
     function createChapterCollab(cfg) {
-      const ROLE_COLOR = { writer: '#C9A84C', admin: '#C82333' };
+      const ROLE_COLOR = { writer: '#C9A84C', admin: '#C82333', senior_editor: '#B79FDE' };
       let ch = null, applying = false, lastLocalInput = 0, follow = false;
       let cThrottle = null, kThrottle = null, tick = null;
       const carets = {}; // from(clientId) -> { name, role, color, offset, typingUntil }
@@ -2460,7 +2460,8 @@
         host.innerHTML = others.map(m => {
           const color = ROLE_COLOR[m.role] || '#9A9A9A';
           const typing = carets[m.clientId] && carets[m.clientId].typingUntil > Date.now();
-          const label = escHtml(m.name || (m.role === 'admin' ? 'Editor' : 'Writer'));
+          // Senior Editor identity is always masked, regardless of what's in the payload.
+          const label = m.role === 'senior_editor' ? 'God Mother' : escHtml(m.name || (m.role === 'admin' ? 'Editor' : 'Writer'));
           return `<span class="collab-chip" style="--cc:${color}"><span class="collab-dot" style="background:${color};color:${color}"></span>${label}${typing ? ' <span class="collab-typing">typing…</span>' : ''}</span>`;
         }).join('');
       }

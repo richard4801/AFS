@@ -19,7 +19,7 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@400&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&family=Montserrat:wght@400&display=swap" rel="stylesheet"/>
   <style>
     .form-input:focus { outline:none; border-color:#C9A84C; box-shadow:0 0 0 2px rgba(201,168,76,0.15); }
     .digit-box { width:44px; height:54px; text-align:center; font-size:1.35rem; font-weight:700; background:#1C1C1C; border:1px solid #2E2E2E; border-radius:10px; color:#fff; transition:border-color .15s, box-shadow .15s; caret-color:#C9A84C; -moz-appearance:textfield; }
@@ -30,6 +30,12 @@
     .thin-scroll::-webkit-scrollbar-thumb { background:#2E2E2E; border-radius:4px; }
     .hairline { height:1px; background:linear-gradient(90deg,transparent,rgba(201,168,76,0.35),transparent); }
     [x-cloak]{display:none!important;}
+    #se-reader-content, #se-reader-content p { font-family:'Lora',Georgia,serif; font-size:17px; font-weight:400; line-height:1.95; letter-spacing:0.01em; color:rgba(255,255,255,0.80); }
+    #se-reader-content p { margin-bottom:1.4em; }
+    #se-reader-content strong, #se-reader-content b { font-weight:600; color:rgba(255,255,255,0.92); }
+    #se-reader-content em, #se-reader-content i { font-style:italic; }
+    .collab-chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:rgba(255,255,255,0.78);background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:999px;padding:2px 9px;}
+    .collab-dot{width:6px;height:6px;border-radius:50%;box-shadow:0 0 6px currentColor;flex-shrink:0;}
   </style>
 </head>
 <body class="bg-obsidian text-white font-sans antialiased" style="font-weight:300;">
@@ -175,7 +181,7 @@
       <!-- Signed books -->
       <section>
         <h2 class="font-serif text-xl sm:text-2xl text-white mb-1">Signed books</h2>
-        <p class="text-muted text-xs mb-4">Every book that's been signed to the studio.</p>
+        <p class="text-muted text-xs mb-4">Open a book to read through its chapters and give your verdict.</p>
         <div id="books-grid" class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4"></div>
         <p id="books-empty" class="hidden text-muted/60 text-sm text-center py-8 rounded-2xl border border-dashed border-border">No signed books yet.</p>
       </section>
@@ -202,6 +208,75 @@
           <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-3">The Brief</p>
           <div id="bm-brief" class="text-white/80 text-[15px] sm:text-base leading-[1.95] space-y-4"></div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ BOOK DETAIL (chapters + review) ══ -->
+  <div id="se-book-modal" class="hidden fixed inset-0 z-[80] bg-obsidian flex flex-col">
+    <div class="flex-shrink-0 flex items-center gap-2 px-4 sm:px-6 py-3.5 border-b border-border bg-charcoal/80 backdrop-blur-sm">
+      <button onclick="closeSeBook()" class="flex-shrink-0 flex items-center gap-1 text-muted hover:text-white text-xs transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+        <span class="hidden sm:inline">Books</span>
+      </button>
+      <div class="w-px h-4 bg-border flex-shrink-0"></div>
+      <span id="sb-title" class="text-sm text-white/85 truncate flex-1 min-w-0"></span>
+    </div>
+    <div class="flex-1 overflow-y-auto thin-scroll">
+      <div class="max-w-3xl mx-auto px-4 sm:px-6 py-7">
+        <div class="flex gap-4 items-start mb-7">
+          <div class="w-20 h-28 flex-shrink-0 rounded-lg overflow-hidden bg-charcoal border border-border relative">
+            <img id="sb-cover" class="hidden absolute inset-0 w-full h-full object-cover" alt=""/>
+            <div id="sb-cover-ph" class="absolute inset-0 flex items-center justify-center"><span class="font-serif text-2xl text-muted/40">?</span></div>
+          </div>
+          <div class="min-w-0 flex-1 pt-1">
+            <h2 id="sb-heading" class="font-serif text-xl sm:text-2xl text-white leading-tight mb-1.5"></h2>
+            <p id="sb-stats" class="text-muted text-xs mb-2"></p>
+            <span id="sb-status" class="inline-block text-[10px] font-bold uppercase tracking-wide rounded-full px-2.5 py-1"></span>
+          </div>
+        </div>
+
+        <div id="sb-note-box" class="hidden rounded-xl border border-border bg-surface px-4 py-3 mb-7">
+          <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted mb-1.5">Your note</p>
+          <p id="sb-note-text" class="text-white/75 text-sm leading-relaxed"></p>
+        </div>
+
+        <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-3">Chapters</p>
+        <div id="sb-chapters" class="space-y-2 mb-9"></div>
+        <p id="sb-chapters-empty" class="hidden text-muted/60 text-sm text-center py-8 rounded-2xl border border-dashed border-border">No chapters submitted yet.</p>
+
+        <div class="rounded-2xl border border-border bg-surface p-5">
+          <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-3">Your Verdict</p>
+          <textarea id="sb-review-note" rows="3" placeholder="Notes for the writer (optional for approval, recommended for changes requested)…"
+                    class="form-input w-full bg-obsidian border border-border text-white placeholder-muted/60 text-sm rounded-lg px-4 py-3 resize-y mb-4"></textarea>
+          <div class="flex flex-wrap gap-3">
+            <button onclick="seReviewBook('approved')" class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-500/90 hover:bg-emerald-500 text-obsidian text-xs font-bold rounded-xl transition-colors">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Approve Book
+            </button>
+            <button onclick="seReviewBook('changes_requested')" class="inline-flex items-center gap-2 px-5 py-2.5 border border-red-400/40 text-red-300 hover:bg-red-400/10 text-xs font-semibold rounded-xl transition-colors">
+              Request Changes
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ CHAPTER READER (read-only, presence-visible) ══ -->
+  <div id="se-reader" class="hidden fixed inset-0 z-[90] bg-obsidian flex flex-col">
+    <div class="flex-shrink-0 flex items-center gap-2 px-4 sm:px-6 py-3.5 border-b border-border bg-charcoal/80 backdrop-blur-sm">
+      <button onclick="closeSeReader()" class="flex-shrink-0 flex items-center gap-1 text-muted hover:text-white text-xs transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+        <span class="hidden sm:inline">Back</span>
+      </button>
+      <div class="w-px h-4 bg-border flex-shrink-0"></div>
+      <span id="sr-title" class="text-sm text-white/85 truncate flex-1 min-w-0"></span>
+      <span class="text-[9px] font-bold uppercase tracking-wide text-muted border border-border rounded-full px-2 py-0.5 flex-shrink-0">Read only</span>
+    </div>
+    <div class="flex-1 overflow-y-auto thin-scroll">
+      <div class="max-w-3xl mx-auto px-4 sm:px-10 py-8 sm:py-12">
+        <div id="se-reader-content" class="min-h-[50vh]"></div>
       </div>
     </div>
   </div>
@@ -519,18 +594,122 @@
     }
     function closeBoardPrompt() { $('board-modal').classList.add('hidden'); document.body.style.overflow = ''; }
 
+    const SE_BOOK_STATUS = {
+      pending:           { label: 'Awaiting your review', cls: 'text-gold bg-gold/10 border border-gold/25' },
+      approved:          { label: 'Approved',              cls: 'text-emerald-300 bg-emerald-400/10 border border-emerald-400/25' },
+      changes_requested: { label: 'Changes requested',     cls: 'text-red-300 bg-red-400/10 border border-red-400/25' },
+    };
+    let _seBookReg = {};
     async function loadBooks() {
       const { data, error } = await db.rpc('get_se_books');
       const rows = error ? [] : (data ?? []);
+      _seBookReg = {};
+      rows.forEach(b => { _seBookReg[b.id] = b; });
       $('books-empty').classList.toggle('hidden', rows.length > 0);
-      $('books-grid').innerHTML = rows.map(b => `
-        <div class="group">
+      $('books-grid').innerHTML = rows.map(b => {
+        const st = SE_BOOK_STATUS[b.se_review_status] || SE_BOOK_STATUS.pending;
+        return `
+        <button onclick="openSeBook('${b.id}')" class="group text-left">
           <div class="relative aspect-[2/3] rounded-lg overflow-hidden bg-charcoal border border-border">
             ${b.cover_url ? `<img src="${escHtml(b.cover_url)}" alt="" class="absolute inset-0 w-full h-full object-cover"/>` : `<div class="absolute inset-0 flex items-center justify-center"><span class="font-serif text-2xl text-muted/40">${escHtml((b.title||'?')[0])}</span></div>`}
-            <span class="absolute top-1.5 left-1.5 text-[8px] font-bold uppercase tracking-wide text-emerald-300 bg-emerald-400/15 border border-emerald-400/25 rounded-full px-1.5 py-0.5">Signed</span>
+            <div class="absolute inset-0" style="background:linear-gradient(to top,rgba(13,11,9,0.6),transparent 45%)"></div>
+            <span class="absolute top-1.5 left-1.5 w-2 h-2 rounded-full flex-shrink-0" style="background:${b.se_review_status === 'approved' ? '#34d399' : b.se_review_status === 'changes_requested' ? '#f87171' : '#C9A84C'}"></span>
           </div>
           <p class="text-white/80 text-[11px] mt-1.5 leading-tight line-clamp-2">${escHtml(b.title)}</p>
-        </div>`).join('');
+          <span class="inline-block mt-1 text-[9px] font-bold uppercase tracking-wide rounded-full px-1.5 py-0.5 ${st.cls}">${st.label}</span>
+        </button>`;
+      }).join('');
+    }
+
+    // ── Book detail + review ──
+    let _seCurrentBookId = null;
+    async function openSeBook(id) {
+      const b = _seBookReg[id]; if (!b) return;
+      _seCurrentBookId = id;
+      $('sb-title').textContent = b.title;
+      $('sb-heading').textContent = b.title;
+      $('sb-stats').textContent = `${b.chapter_count || 0} chapter${b.chapter_count === 1 ? '' : 's'} · ${(b.total_words || 0).toLocaleString()} words`;
+      if (b.cover_url) { $('sb-cover').src = b.cover_url; $('sb-cover').classList.remove('hidden'); $('sb-cover-ph').classList.add('hidden'); }
+      else { $('sb-cover').classList.add('hidden'); $('sb-cover-ph').classList.remove('hidden'); }
+      const st = SE_BOOK_STATUS[b.se_review_status] || SE_BOOK_STATUS.pending;
+      $('sb-status').textContent = st.label;
+      $('sb-status').className = 'inline-block text-[10px] font-bold uppercase tracking-wide rounded-full px-2.5 py-1 ' + st.cls;
+      $('sb-review-note').value = '';
+      if (b.se_review_status === 'changes_requested' && b.se_review_note) {
+        $('sb-note-text').textContent = b.se_review_note;
+        $('sb-note-box').classList.remove('hidden');
+      } else $('sb-note-box').classList.add('hidden');
+
+      $('se-book-modal').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+
+      const { data, error } = await db.rpc('get_se_book_chapters', { p_book_id: id });
+      const chapters = error ? [] : (data ?? []);
+      $('sb-chapters-empty').classList.toggle('hidden', chapters.length > 0);
+      $('sb-chapters').innerHTML = chapters.map(c => `
+        <button onclick="openSeReader('${c.id}','${escHtml(c.title || ('Chapter ' + c.chapter_number))}')" class="w-full flex items-center gap-3 rounded-xl border border-border bg-surface hover:border-gold/30 px-4 py-3 text-left transition-colors">
+          <span class="flex-shrink-0 w-7 h-7 rounded-full bg-charcoal border border-border flex items-center justify-center font-serif text-xs text-gold">${c.chapter_number}</span>
+          <div class="min-w-0 flex-1">
+            <p class="text-white text-sm truncate">${escHtml(c.title || 'Untitled')}</p>
+            <p class="text-muted text-[11px]">${(c.word_count || 0).toLocaleString()} words</p>
+          </div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted flex-shrink-0"><path d="M9 18l6-6-6-6"/></svg>
+        </button>`).join('');
+    }
+    function closeSeBook() { _seCurrentBookId = null; $('se-book-modal').classList.add('hidden'); document.body.style.overflow = ''; }
+
+    async function seReviewBook(decision) {
+      if (!_seCurrentBookId) return;
+      const note = $('sb-review-note').value.trim() || null;
+      const { error } = await db.rpc('se_review_book', { p_book_id: _seCurrentBookId, p_decision: decision, p_note: note });
+      if (error) { toast(error.message); return; }
+      toast(decision === 'approved' ? 'Book approved ✓' : 'Changes requested — the writer will see your note.');
+      closeSeBook();
+      loadBooks();
+    }
+
+    // ── Chapter reader (read-only) + presence-only "God Mother" join ──
+    function _seContentHtml(raw) {
+      if (!raw?.trim()) return '<p class="text-muted/50 italic">Nothing here yet.</p>';
+      if (/<p[\s>]/i.test(raw)) return raw;
+      return raw.split(/\n{2,}/).map(par => `<p>${escHtml(par.trim()).replace(/\n/g, '<br>')}</p>`).join('');
+    }
+    async function openSeReader(chapterId, titleFallback) {
+      $('sr-title').textContent = titleFallback || 'Chapter';
+      $('se-reader-content').innerHTML = '<p class="text-muted/50 italic">Loading…</p>';
+      $('se-reader').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      seJoinPresence(chapterId);
+
+      const { data, error } = await db.rpc('get_se_chapter_content', { p_chapter_id: chapterId });
+      const row = Array.isArray(data) ? data[0] : data;
+      if (error || !row) { $('se-reader-content').innerHTML = '<p class="text-red-400 text-sm">Could not load this chapter.</p>'; return; }
+      $('sr-title').textContent = row.title || ('Chapter ' + row.chapter_number);
+      $('se-reader-content').innerHTML = _seContentHtml(row.content);
+    }
+    function closeSeReader() {
+      $('se-reader').classList.add('hidden');
+      document.body.style.overflow = '';
+      seLeavePresence();
+    }
+
+    // Presence-only join on the same collab channel writers/admin use, so her
+    // "God Mother" chip shows up live while she's reading — no content or
+    // cursor is ever sent from her side (she can't edit).
+    let _seCh = null;
+    function seJoinPresence(chapterId) {
+      seLeavePresence();
+      if (!chapterId) return;
+      const clientId = crypto.randomUUID();
+      _seCh = db.channel('chapter-collab:' + chapterId, {
+        config: { presence: { key: clientId }, broadcast: { self: false } },
+      });
+      _seCh.subscribe(status => {
+        if (status === 'SUBSCRIBED') _seCh.track({ clientId, name: 'God Mother', role: 'senior_editor' });
+      });
+    }
+    function seLeavePresence() {
+      if (_seCh) { try { db.removeChannel(_seCh); } catch (_) {} _seCh = null; }
     }
 
     // ── New prompt (Senior Editor) ──
