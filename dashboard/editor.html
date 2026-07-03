@@ -244,31 +244,29 @@
           </div>
           <div class="min-w-0 flex-1 pt-1">
             <h2 id="sb-heading" class="font-serif text-xl sm:text-2xl text-white leading-tight mb-1.5"></h2>
-            <p id="sb-stats" class="text-muted text-xs mb-2"></p>
-            <span id="sb-status" class="inline-block text-[10px] font-bold uppercase tracking-wide rounded-full px-2.5 py-1"></span>
+            <p id="sb-stats" class="text-muted text-xs"></p>
           </div>
         </div>
 
-        <div id="sb-note-box" class="hidden rounded-xl border border-border bg-surface px-4 py-3 mb-7">
-          <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted mb-1.5">Your note</p>
-          <p id="sb-note-text" class="text-white/75 text-sm leading-relaxed"></p>
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted">Chapters</p>
+          <button id="sb-select-all-btn" onclick="toggleSelectAllChapters()" class="text-[11px] text-gold/80 hover:text-gold transition-colors">Select all</button>
         </div>
-
-        <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-3">Chapters</p>
-        <div id="sb-chapters" class="space-y-2 mb-9"></div>
+        <div id="sb-chapters" class="space-y-2 mb-4"></div>
         <p id="sb-chapters-empty" class="hidden text-muted/60 text-sm text-center py-8 rounded-2xl border border-dashed border-border">No chapters submitted yet.</p>
+        <p class="text-muted/60 text-[11px] mb-9 leading-relaxed">Select one or more chapters and send your recommendation to the admin. Nothing reaches the writer directly — the admin reviews your note and officially approves or requests revision.</p>
 
-        <div class="rounded-2xl border border-border bg-surface p-5">
-          <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-3">Your Verdict</p>
-          <textarea id="sb-review-note" rows="3" placeholder="Notes for the writer (optional for approval, recommended for changes requested)…"
+        <div id="sb-recommend-bar" class="hidden sticky bottom-4 rounded-2xl border border-gold/25 bg-charcoal/95 backdrop-blur-sm shadow-2xl shadow-black/50 p-5">
+          <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-gold mb-3"><span id="sb-selected-count">0</span> chapter selected</p>
+          <textarea id="sb-review-note" rows="3" placeholder="Note for the admin (optional to approve, recommended when flagging changes)…"
                     class="form-input w-full bg-obsidian border border-border text-white placeholder-muted/60 text-sm rounded-lg px-4 py-3 resize-y mb-4"></textarea>
           <div class="flex flex-wrap gap-3">
-            <button onclick="seReviewBook('approved')" class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-500/90 hover:bg-emerald-500 text-obsidian text-xs font-bold rounded-xl transition-colors">
+            <button onclick="submitSeRecommendation('approve')" class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-500/90 hover:bg-emerald-500 text-obsidian text-xs font-bold rounded-xl transition-colors">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-              Approve Book
+              Recommend Approve
             </button>
-            <button onclick="seReviewBook('changes_requested')" class="inline-flex items-center gap-2 px-5 py-2.5 border border-red-400/40 text-red-300 hover:bg-red-400/10 text-xs font-semibold rounded-xl transition-colors">
-              Request Changes
+            <button onclick="submitSeRecommendation('needs_work')" class="inline-flex items-center gap-2 px-5 py-2.5 border border-red-400/40 text-red-300 hover:bg-red-400/10 text-xs font-semibold rounded-xl transition-colors">
+              Recommend Changes
             </button>
           </div>
         </div>
@@ -649,11 +647,6 @@
     }
     function closeBoardPrompt() { $('board-modal').classList.add('hidden'); document.body.style.overflow = ''; }
 
-    const SE_BOOK_STATUS = {
-      pending:           { label: 'Awaiting your review', cls: 'text-gold bg-gold/10 border border-gold/25' },
-      approved:          { label: 'Approved',              cls: 'text-emerald-300 bg-emerald-400/10 border border-emerald-400/25' },
-      changes_requested: { label: 'Changes requested',     cls: 'text-red-300 bg-red-400/10 border border-red-400/25' },
-    };
     let _seBookReg = {};
     async function loadBooks() {
       const { data, error } = await db.rpc('get_se_books');
@@ -661,39 +654,35 @@
       _seBookReg = {};
       rows.forEach(b => { _seBookReg[b.id] = b; });
       $('books-empty').classList.toggle('hidden', rows.length > 0);
-      $('books-grid').innerHTML = rows.map(b => {
-        const st = SE_BOOK_STATUS[b.se_review_status] || SE_BOOK_STATUS.pending;
-        return `
+      $('books-grid').innerHTML = rows.map(b => `
         <button onclick="openSeBook('${b.id}')" class="group text-left">
           <div class="relative aspect-[2/3] rounded-lg overflow-hidden bg-charcoal border border-border">
             ${b.cover_url ? `<img src="${escHtml(b.cover_url)}" alt="" class="absolute inset-0 w-full h-full object-cover"/>` : `<div class="absolute inset-0 flex items-center justify-center"><span class="font-serif text-2xl text-muted/40">${escHtml((b.title||'?')[0])}</span></div>`}
             <div class="absolute inset-0" style="background:linear-gradient(to top,rgba(13,11,9,0.6),transparent 45%)"></div>
-            <span class="absolute top-1.5 left-1.5 w-2 h-2 rounded-full flex-shrink-0" style="background:${b.se_review_status === 'approved' ? '#34d399' : b.se_review_status === 'changes_requested' ? '#f87171' : '#C9A84C'}"></span>
           </div>
           <p class="text-white/80 text-[11px] mt-1.5 leading-tight line-clamp-2">${escHtml(b.title)}</p>
-          <span class="inline-block mt-1 text-[9px] font-bold uppercase tracking-wide rounded-full px-1.5 py-0.5 ${st.cls}">${st.label}</span>
-        </button>`;
-      }).join('');
+        </button>`).join('');
     }
 
-    // ── Book detail + review ──
+    // ── Book detail + chapter-level recommendations ──
+    const REC_BADGE = {
+      approve:    { label: 'Recommended: Approve',  cls: 'text-emerald-300 bg-emerald-400/10 border-emerald-400/25' },
+      needs_work: { label: 'Recommended: Changes',  cls: 'text-red-300 bg-red-400/10 border-red-400/25' },
+    };
     let _seCurrentBookId = null;
+    let _seChapterReg = {};
+    let _seSelectedChapters = new Set();
+
     async function openSeBook(id) {
       const b = _seBookReg[id]; if (!b) return;
       _seCurrentBookId = id;
+      _seSelectedChapters = new Set();
       $('sb-title').textContent = b.title;
       $('sb-heading').textContent = b.title;
       $('sb-stats').textContent = `${b.chapter_count || 0} chapter${b.chapter_count === 1 ? '' : 's'} · ${(b.total_words || 0).toLocaleString()} words`;
       if (b.cover_url) { $('sb-cover').src = b.cover_url; $('sb-cover').classList.remove('hidden'); $('sb-cover-ph').classList.add('hidden'); }
       else { $('sb-cover').classList.add('hidden'); $('sb-cover-ph').classList.remove('hidden'); }
-      const st = SE_BOOK_STATUS[b.se_review_status] || SE_BOOK_STATUS.pending;
-      $('sb-status').textContent = st.label;
-      $('sb-status').className = 'inline-block text-[10px] font-bold uppercase tracking-wide rounded-full px-2.5 py-1 ' + st.cls;
       $('sb-review-note').value = '';
-      if (b.se_review_status === 'changes_requested' && b.se_review_note) {
-        $('sb-note-text').textContent = b.se_review_note;
-        $('sb-note-box').classList.remove('hidden');
-      } else $('sb-note-box').classList.add('hidden');
 
       $('se-book-modal').classList.remove('hidden');
       document.body.style.overflow = 'hidden';
@@ -701,6 +690,8 @@
       $('sb-chapters').innerHTML = '';
       $('sb-chapters-empty').textContent = 'No chapters submitted yet.';
       $('sb-chapters-empty').classList.remove('hidden');
+      _seChapterReg = {};
+      updateRecommendBar();
       const { data, error } = await db.rpc('get_se_book_chapters', { p_book_id: id });
       if (error) {
         console.error('get_se_book_chapters:', error);
@@ -709,27 +700,67 @@
         return;
       }
       const chapters = data ?? [];
+      chapters.forEach(c => { _seChapterReg[c.id] = c; });
       $('sb-chapters-empty').classList.toggle('hidden', chapters.length > 0);
-      $('sb-chapters').innerHTML = chapters.map(c => `
-        <button onclick="openSeReader('${c.id}','${escHtml(c.title || ('Chapter ' + c.chapter_number))}')" class="w-full flex items-center gap-3 rounded-xl border border-border bg-surface hover:border-gold/30 px-4 py-3 text-left transition-colors">
-          <span class="flex-shrink-0 w-7 h-7 rounded-full bg-charcoal border border-border flex items-center justify-center font-serif text-xs text-gold">${c.chapter_number}</span>
-          <div class="min-w-0 flex-1">
-            <p class="text-white text-sm truncate">${escHtml(c.title || 'Untitled')}</p>
-            <p class="text-muted text-[11px]">${(c.word_count || 0).toLocaleString()} words</p>
-          </div>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted flex-shrink-0"><path d="M9 18l6-6-6-6"/></svg>
-        </button>`).join('');
+      $('sb-select-all-btn').classList.toggle('hidden', chapters.length === 0);
+      renderSeChapterList(chapters);
     }
-    function closeSeBook() { _seCurrentBookId = null; $('se-book-modal').classList.add('hidden'); document.body.style.overflow = ''; }
+    function renderSeChapterList(chapters) {
+      $('sb-chapters').innerHTML = chapters.map(c => {
+        const badge = c.my_recommendation && c.my_recommendation_status === 'pending'
+          ? (REC_BADGE[c.my_recommendation] ? `<span class="text-[9px] font-bold uppercase tracking-wide border rounded-full px-2 py-0.5 flex-shrink-0 ${REC_BADGE[c.my_recommendation].cls}">${REC_BADGE[c.my_recommendation].label}</span>` : '')
+          : (c.my_recommendation_status === 'actioned' ? `<span class="text-[9px] font-bold uppercase tracking-wide border rounded-full px-2 py-0.5 flex-shrink-0 text-muted bg-white/5 border-border">Reviewed by admin</span>` : '');
+        return `
+        <div class="flex items-center gap-3 rounded-xl border border-border bg-surface hover:border-gold/30 px-4 py-3 transition-colors">
+          <input type="checkbox" onclick="event.stopPropagation();toggleChapterSelect('${c.id}')" ${_seSelectedChapters.has(c.id) ? 'checked' : ''}
+                 class="w-4 h-4 rounded border-border accent-gold cursor-pointer flex-shrink-0"/>
+          <button onclick="openSeReader('${c.id}','${escHtml(c.title || ('Chapter ' + c.chapter_number))}')" class="flex-1 min-w-0 flex items-center gap-3 text-left">
+            <span class="flex-shrink-0 w-7 h-7 rounded-full bg-charcoal border border-border flex items-center justify-center font-serif text-xs text-gold">${c.chapter_number}</span>
+            <div class="min-w-0 flex-1">
+              <p class="text-white text-sm truncate">${escHtml(c.title || 'Untitled')}</p>
+              <p class="text-muted text-[11px]">${(c.word_count || 0).toLocaleString()} words</p>
+            </div>
+          </button>
+          ${badge}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted flex-shrink-0"><path d="M9 18l6-6-6-6"/></svg>
+        </div>`;
+      }).join('');
+    }
+    function toggleChapterSelect(chapterId) {
+      if (_seSelectedChapters.has(chapterId)) _seSelectedChapters.delete(chapterId);
+      else _seSelectedChapters.add(chapterId);
+      updateRecommendBar();
+    }
+    function toggleSelectAllChapters() {
+      const allIds = Object.keys(_seChapterReg);
+      if (_seSelectedChapters.size === allIds.length) _seSelectedChapters = new Set();
+      else _seSelectedChapters = new Set(allIds);
+      renderSeChapterList(Object.values(_seChapterReg).sort((a, b) => a.chapter_number - b.chapter_number));
+      updateRecommendBar();
+    }
+    function updateRecommendBar() {
+      const n = _seSelectedChapters.size;
+      $('sb-recommend-bar').classList.toggle('hidden', n === 0);
+      $('sb-selected-count').textContent = n;
+      const allIds = Object.keys(_seChapterReg);
+      $('sb-select-all-btn').textContent = allIds.length && n === allIds.length ? 'Deselect all' : 'Select all';
+    }
+    function closeSeBook() {
+      _seCurrentBookId = null; _seSelectedChapters = new Set();
+      $('se-book-modal').classList.add('hidden'); document.body.style.overflow = '';
+    }
 
-    async function seReviewBook(decision) {
-      if (!_seCurrentBookId) return;
+    async function submitSeRecommendation(recommendation) {
+      if (!_seSelectedChapters.size) return;
       const note = $('sb-review-note').value.trim() || null;
-      const { error } = await db.rpc('se_review_book', { p_book_id: _seCurrentBookId, p_decision: decision, p_note: note });
+      const chapterIds = [..._seSelectedChapters];
+      const { error } = await db.rpc('se_recommend_chapters', { p_chapter_ids: chapterIds, p_recommendation: recommendation, p_note: note });
       if (error) { toast(error.message); return; }
-      toast(decision === 'approved' ? 'Book approved ✓' : 'Changes requested — the writer will see your note.');
-      closeSeBook();
-      loadBooks();
+      toast(`Sent to admin — ${chapterIds.length} chapter${chapterIds.length === 1 ? '' : 's'}, ${recommendation === 'approve' ? 'recommended approve' : 'flagged for changes'}.`);
+      const bookId = _seCurrentBookId;
+      $('sb-review-note').value = '';
+      _seSelectedChapters = new Set();
+      if (bookId) openSeBook(bookId); // reload to show updated per-chapter badges
     }
 
     // ── Chapter reader (read-only) + presence-only "God Mother" join ──
@@ -969,16 +1000,30 @@
       const body = input?.value.trim();
       if (!body || !_sePendingRange || !_seChapterId) return;
       const { start, end, quoted } = _sePendingRange;
-      const btn = document.getElementById('se-compose-card')?.querySelector('button:last-child');
+      const card = document.getElementById('se-compose-card');
+      const btn  = card?.querySelector('button:last-child');
       if (btn) { btn.disabled = true; btn.textContent = 'Posting…'; }
       const { error } = await db.from('comments').insert({
         chapter_id: _seChapterId, reviewer_id: currentUserId, author_role: 'senior_editor',
         start_offset: start, end_offset: end, quoted_text: quoted, body,
       });
+      if (error) {
+        // Keep the draft on screen so nothing is lost and the message is impossible to miss.
+        console.error('postComposedComment:', error);
+        if (btn) { btn.disabled = false; btn.textContent = 'Post'; }
+        let errEl = card?.querySelector('.se-compose-err');
+        if (card && !errEl) {
+          errEl = document.createElement('p');
+          errEl.className = 'se-compose-err text-[11px] text-red-400 mt-2';
+          card.querySelector('.flex.items-center.justify-end')?.insertAdjacentElement('beforebegin', errEl);
+        }
+        if (errEl) errEl.textContent = error.message;
+        toast('Comment failed to post: ' + error.message);
+        return;
+      }
       _sePendingRange = null;
       document.getElementById('se-compose-card')?.remove();
       if (_seSheetMode === 'compose') closeCommentSheet();
-      if (error) { toast(error.message); return; }
       await loadChapterComments(_seChapterId);
     }
 
