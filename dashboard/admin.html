@@ -353,6 +353,66 @@
     </button>
   </div>
 
+  <!-- ══ PRIVATE CHAT WITH CHRISTINE (Senior Editor) ══ -->
+  <!-- Its own independent widget, distinct from the per-writer chat above —
+       a single fixed channel to her, not one-of-many like writer chats. -->
+  <div id="se-chat-panel" class="hidden fixed z-[70] flex flex-col rounded-2xl border border-border bg-surface shadow-2xl shadow-black/70 overflow-hidden" style="left:24px;bottom:96px;width:340px;height:520px;transition:all 0.2s ease;">
+    <div class="flex items-center gap-3 px-4 py-3.5 border-b border-border/50 bg-charcoal/40 flex-shrink-0">
+      <div class="w-9 h-9 rounded-full bg-[#B79FDE]/15 border border-[#B79FDE]/30 flex items-center justify-center flex-shrink-0">
+        <span class="text-[13px] font-bold" style="color:#B79FDE">C</span>
+      </div>
+      <div class="flex-1 min-w-0">
+        <p class="text-white text-[13px] font-semibold leading-none">Christine</p>
+        <p class="text-muted/60 text-[10px] mt-0.5">Private chat</p>
+      </div>
+      <div class="flex items-center gap-1">
+        <button id="se-chat-fs-btn" onclick="toggleSeChatFullscreen()" title="Fullscreen"
+                class="w-7 h-7 flex items-center justify-center rounded-full text-muted hover:text-white hover:bg-charcoal transition-all">
+          <svg id="se-chat-fs-icon" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        </button>
+        <button onclick="closeSeChat()" class="w-7 h-7 flex items-center justify-center rounded-full text-muted hover:text-white hover:bg-charcoal transition-all text-xl leading-none">×</button>
+      </div>
+    </div>
+    <!-- Privacy notice — dismissible, remembered per-browser -->
+    <div id="se-chat-privacy" class="hidden flex-shrink-0 flex items-start gap-2 px-3.5 py-2.5 bg-[#B79FDE]/[0.06] border-b border-[#B79FDE]/15">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B79FDE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0 mt-0.5"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      <p class="flex-1 text-[10.5px] leading-relaxed text-white/60">This conversation is private between you and Christine — writers never see it.</p>
+      <button onclick="_dismissSeChatPrivacyNotice()" class="flex-shrink-0 text-muted hover:text-white text-sm leading-none">×</button>
+    </div>
+    <div id="se-chat-messages" class="flex-1 overflow-y-auto thin-scroll p-4 flex flex-col gap-2"></div>
+    <!-- Reply / edit context strip -->
+    <div id="se-chat-context" style="display:none" class="flex-shrink-0 flex items-center gap-2 px-3.5 py-2 border-t border-border/50 bg-charcoal/50">
+      <div class="flex-1 min-w-0">
+        <p id="se-chat-context-label" class="text-[9px] font-bold uppercase tracking-wide text-[#B79FDE]"></p>
+        <p id="se-chat-context-preview" class="text-muted text-[11px] truncate"></p>
+      </div>
+      <button onclick="_seChatClearContext()" class="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-full text-muted hover:text-white text-sm leading-none">×</button>
+    </div>
+    <div class="flex-shrink-0 border-t border-border/50 bg-charcoal/30 p-3" style="padding-bottom:max(12px,env(safe-area-inset-bottom))">
+      <div class="flex items-end gap-2">
+        <textarea id="se-chat-input" rows="1" placeholder="Message Christine…"
+                  class="flex-1 bg-charcoal border border-border focus:border-[#B79FDE]/40 text-white placeholder-muted text-sm rounded-2xl px-4 py-2.5 resize-none transition-all duration-200 outline-none"
+                  style="max-height:112px;overflow-y:auto"
+                  onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendSeChatMessage()}"
+                  oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,112)+'px'"></textarea>
+        <button onclick="sendSeChatMessage()"
+                class="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-full text-obsidian transition-all duration-200" style="background:#B79FDE">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m3 3 3.5 9-3.5 9 19-9Z"/><path d="m6.5 12H22" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating button — bottom-left, so it never collides with the
+       per-writer chat button (bottom-right). -->
+  <div id="se-chat-float" style="position:fixed;left:24px;bottom:24px;z-index:9999;">
+    <button id="se-chat-float-btn" onclick="toggleSeChat()"
+            class="relative w-14 h-14 rounded-full shadow-2xl shadow-black/50 flex items-center justify-center transition-transform hover:scale-105" style="background:#B79FDE">
+      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0D0B09" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+      <span id="se-chat-badge" class="hidden absolute -top-1 -right-1 min-w-[20px] h-5 bg-crimson text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none shadow-lg"></span>
+    </button>
+  </div>
+
   <!-- ADMIN PARAGRAPH COMMENT POPOVER -->
   <div id="admin-pop" class="hidden fixed z-[150] rounded-2xl border border-border bg-surface shadow-2xl shadow-black/70 flex flex-col" style="width:288px;max-height:360px;">
     <div class="flex items-center justify-between px-4 pt-3.5 pb-2.5 border-b border-border/50 flex-shrink-0">
@@ -3029,6 +3089,8 @@
       $('admin-fullscreen-editor').classList.remove('hidden');
       document.body.style.overflow = 'hidden';
       $('admin-chat-float')?.classList.add('hidden');
+      if (_seChatOpen) closeSeChat();
+      $('se-chat-float')?.classList.add('hidden');
       if (_adminFsVVUnbind) _adminFsVVUnbind();
       _adminFsVVUnbind = _bindEditorViewport('admin-fullscreen-editor');
       if (selectedChapter?.id) adminCollab.join(selectedChapter.id);
@@ -3059,6 +3121,7 @@
       if (_adminFsVVUnbind) { _adminFsVVUnbind(); _adminFsVVUnbind = null; }
       $('admin-fullscreen-editor').classList.add('hidden');
       $('admin-chat-float')?.classList.remove('hidden');
+      $('se-chat-float')?.classList.remove('hidden');
       document.body.style.overflow = '';
     }
 
@@ -4644,6 +4707,285 @@
       setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3000);
     }
 
+    // ── PRIVATE CHAT WITH CHRISTINE (Phase 3) ──────────────────────
+    // Independent of the per-writer chat widget above — a single fixed
+    // channel to the Senior Editor rather than one-of-many conversations.
+    // Reuses the same 1:1 `messages` table, tagged sent_as:'admin'.
+    let _seChatOpen        = false;
+    let _seChatFullscreen  = false;
+    let _seChatMessages    = [];
+    let _seChatPeerId      = null; // Christine's user id
+    let _seChatUnread      = 0;
+    let _seChatSub         = null;
+    let _seChatReplyTo     = null;
+    let _seChatEditingId   = null;
+    const _isSeChatMobile  = () => window.innerWidth < 768;
+
+    async function initSeChat(userId) {
+      const { data } = await db.from('profiles').select('id').eq('is_senior_editor', true).maybeSingle();
+      _seChatPeerId = data?.id || null;
+      if (!_seChatPeerId) return;
+
+      _seChatSub = db.channel('admin-se-chat-' + userId)
+        .on('postgres_changes', {
+          event: 'INSERT', schema: 'public', table: 'messages',
+          filter: 'recipient_id=eq.' + userId,
+        }, payload => {
+          if (payload.new.sender_id !== _seChatPeerId) return; // not from Christine — the per-writer chat handles those
+          if (_seChatMessages.some(m => m.id === payload.new.id)) return;
+          _seChatMessages.push(payload.new);
+          if (_seChatOpen) { _renderSeChatMessages(); _markSeChatRead(); }
+          else { _seChatUnread++; _updateSeChatBadge(); }
+        })
+        .on('postgres_changes', {
+          // Catches read receipts on messages I sent (sender=me).
+          event: 'UPDATE', schema: 'public', table: 'messages',
+          filter: 'sender_id=eq.' + userId,
+        }, payload => {
+          const idx = _seChatMessages.findIndex(m => m.id === payload.new.id);
+          if (idx !== -1) { _seChatMessages[idx] = payload.new; if (_seChatOpen) _renderSeChatMessages(); }
+        })
+        .on('postgres_changes', {
+          // Catches Christine live-editing one of her own earlier messages.
+          event: 'UPDATE', schema: 'public', table: 'messages',
+          filter: 'recipient_id=eq.' + userId,
+        }, payload => {
+          if (payload.new.sender_id !== _seChatPeerId) return;
+          const idx = _seChatMessages.findIndex(m => m.id === payload.new.id);
+          if (idx !== -1) { _seChatMessages[idx] = payload.new; if (_seChatOpen) _renderSeChatMessages(); }
+        })
+        .subscribe();
+
+      const { count } = await db.from('messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('sender_id', _seChatPeerId).eq('recipient_id', userId).is('read_at', null);
+      _seChatUnread = count || 0;
+      _updateSeChatBadge();
+    }
+
+    function _updateSeChatBadge() {
+      const badge = $('se-chat-badge');
+      if (!badge) return;
+      if (_seChatUnread > 0) { badge.textContent = _seChatUnread > 9 ? '9+' : String(_seChatUnread); badge.classList.remove('hidden'); }
+      else badge.classList.add('hidden');
+    }
+
+    function _openSeChatPanel() {
+      const panel = $('se-chat-panel');
+      $('se-chat-float').classList.add('hidden');
+      if (_isSeChatMobile()) {
+        _seChatFullscreen = true;
+        const vvh = window.visualViewport?.height || window.innerHeight;
+        const vvTop = window.visualViewport?.offsetTop || 0;
+        panel.style.cssText = `position:fixed;left:0;right:0;top:${vvTop}px;height:${vvh}px;width:100%;border-radius:0;z-index:10000;display:flex;flex-direction:column;`;
+        if (window.visualViewport && !panel._vvHandler) {
+          panel._vvHandler = () => {
+            if (!_seChatOpen) return;
+            panel.style.height = Math.round(window.visualViewport.height) + 'px';
+            panel.style.top = Math.round(window.visualViewport.offsetTop) + 'px';
+            const msgs = $('se-chat-messages');
+            if (msgs) setTimeout(() => { msgs.scrollTop = msgs.scrollHeight; }, 60);
+          };
+          window.visualViewport.addEventListener('resize', panel._vvHandler);
+        }
+      } else {
+        panel.style.cssText = 'position:fixed;left:24px;bottom:96px;width:340px;height:520px;border-radius:16px;display:flex;flex-direction:column;z-index:9998;';
+      }
+    }
+
+    function closeSeChat() {
+      _seChatOpen = false;
+      _seChatFullscreen = false;
+      const panel = $('se-chat-panel');
+      panel.style.cssText = '';
+      panel.classList.add('hidden');
+      $('se-chat-float').classList.remove('hidden');
+    }
+
+    function toggleSeChatFullscreen() {
+      _seChatFullscreen = !_seChatFullscreen;
+      const panel = $('se-chat-panel');
+      const icon  = $('se-chat-fs-icon');
+      if (_seChatFullscreen) {
+        panel.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border-radius:0;z-index:10000;display:flex;flex-direction:column;';
+      } else {
+        panel.style.cssText = 'position:fixed;left:24px;bottom:96px;width:340px;height:520px;border-radius:16px;display:flex;flex-direction:column;z-index:9998;';
+      }
+      icon.innerHTML = _seChatFullscreen
+        ? '<path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>'
+        : '<path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>';
+    }
+
+    async function toggleSeChat() {
+      if (_seChatOpen) { closeSeChat(); return; }
+      if (!_seChatPeerId) { showToast("Couldn't reach Christine's chat — try again in a moment."); return; }
+      _seChatOpen = true;
+      _openSeChatPanel();
+      _seChatUnread = 0;
+      _updateSeChatBadge();
+      _markSeChatRead();
+      await _loadSeChatMessages();
+      _maybeShowSeChatPrivacyNotice();
+      setTimeout(() => $('se-chat-input')?.focus(), 80);
+    }
+
+    async function _loadSeChatMessages() {
+      if (!_seChatPeerId || !currentUserId) return;
+      const { data } = await db.from('messages')
+        .select('*')
+        .or('and(sender_id.eq.' + currentUserId + ',recipient_id.eq.' + _seChatPeerId + '),and(sender_id.eq.' + _seChatPeerId + ',recipient_id.eq.' + currentUserId + ')')
+        .order('created_at', { ascending: true })
+        .limit(200);
+      _seChatMessages = data ?? [];
+      _renderSeChatMessages();
+    }
+
+    function _markSeChatRead() {
+      if (!_seChatPeerId || !currentUserId) return;
+      db.from('messages')
+        .update({ read_at: new Date().toISOString() })
+        .eq('sender_id', _seChatPeerId).eq('recipient_id', currentUserId).is('read_at', null)
+        .then(() => { _seChatUnread = 0; _updateSeChatBadge(); });
+    }
+
+    function _maybeShowSeChatPrivacyNotice() {
+      const el = $('se-chat-privacy');
+      if (!el) return;
+      el.classList.toggle('hidden', localStorage.getItem('afs_se_chat_privacy_seen') === '1');
+    }
+    function _dismissSeChatPrivacyNotice() {
+      localStorage.setItem('afs_se_chat_privacy_seen', '1');
+      $('se-chat-privacy')?.classList.add('hidden');
+    }
+
+    function _seFmtTime(isoStr) { return new Date(isoStr).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }); }
+    function _seFmtDate(isoStr) {
+      const d = new Date(isoStr), today = new Date();
+      if (d.toDateString() === today.toDateString()) return 'Today';
+      const yest = new Date(today); yest.setDate(today.getDate() - 1);
+      if (d.toDateString() === yest.toDateString()) return 'Yesterday';
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    function _renderSeChatMessages() {
+      const container = $('se-chat-messages');
+      if (!container) return;
+      if (!_seChatMessages.length) {
+        container.innerHTML = '<div class="flex-1 flex flex-col items-center justify-center gap-2 py-10">'
+          + '<div class="w-12 h-12 rounded-full bg-charcoal border border-border flex items-center justify-center mb-1">'
+          + '<svg class="w-5 h-5 text-muted/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z"/></svg>'
+          + '</div>'
+          + '<p class="text-muted/50 text-xs text-center">No messages yet.<br>Say hello to Christine.</p>'
+          + '</div>';
+        return;
+      }
+      const byId = Object.fromEntries(_seChatMessages.map(m => [m.id, m]));
+      let lastDate = '';
+      const html = _seChatMessages.map(m => {
+        const isSent    = m.sent_as ? (m.sent_as === 'admin') : (m.sender_id === currentUserId);
+        const dateLabel = _seFmtDate(m.created_at);
+        const timeStr   = _seFmtTime(m.created_at);
+        const dateSep   = dateLabel !== lastDate
+          ? '<div class="flex items-center gap-2 my-2"><div class="flex-1 h-px bg-border/30"></div><span class="text-muted/40 text-[10px] whitespace-nowrap">' + dateLabel + '</span><div class="flex-1 h-px bg-border/30"></div></div>'
+          : '';
+        lastDate = dateLabel;
+        const tick = isSent
+          ? (m.read_at
+              ? '<span class="text-white/60 text-[10px] leading-none">✓✓</span>'
+              : '<span class="text-white/35 text-[10px] leading-none">✓</span>')
+          : '';
+        const bubbleCls = isSent
+          ? 'bg-crimson rounded-2xl rounded-br-sm ml-10'
+          : 'bg-[#252525] border border-border/40 rounded-2xl rounded-bl-sm mr-10';
+        const textCls   = 'text-white';
+        const timeCls   = isSent ? 'text-white/40' : 'text-muted/40';
+        const parent = m.parent_id ? byId[m.parent_id] : null;
+        const quote = parent
+          ? '<div class="mb-1.5 pl-2 border-l-2 ' + (isSent ? 'border-white/25' : 'border-[#B79FDE]/40') + '">'
+            + '<p class="' + (isSent ? 'text-white/60' : 'text-muted') + ' text-[10.5px] truncate max-w-[220px]">' + escHtml(parent.body) + '</p></div>'
+          : '';
+        const edited = m.edited_at ? '<span class="' + timeCls + ' text-[9px] italic ml-1">edited</span>' : '';
+        const actions = '<div class="se-chat-actions hidden absolute -top-3 ' + (isSent ? 'left-1' : 'right-1') + ' flex items-center gap-0.5 bg-charcoal border border-border rounded-full px-1 py-0.5 shadow-lg">'
+          + '<button onclick="_seChatReplyToMessage(\'' + m.id + '\')" title="Reply" class="w-5 h-5 flex items-center justify-center rounded-full text-muted hover:text-white"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg></button>'
+          + (isSent ? '<button onclick="_seChatEditMessage(\'' + m.id + '\')" title="Edit" class="w-5 h-5 flex items-center justify-center rounded-full text-muted hover:text-white"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>' : '')
+          + '</div>';
+        return dateSep
+          + '<div class="group relative flex ' + (isSent ? 'justify-end' : 'justify-start') + '" onmouseenter="this.querySelector(\'.se-chat-actions\')?.classList.remove(\'hidden\')" onmouseleave="this.querySelector(\'.se-chat-actions\')?.classList.add(\'hidden\')">'
+          + actions
+          + '<div class="' + bubbleCls + ' px-3.5 py-2.5 max-w-[88%] sm:max-w-[80%]">'
+          + quote
+          + '<p class="' + textCls + ' text-[13px] leading-relaxed break-words" style="white-space:pre-wrap">' + escHtml(m.body) + '</p>'
+          + '<div class="flex items-center gap-1 mt-1 ' + (isSent ? 'justify-end' : 'justify-start') + '">'
+          + '<span class="' + timeCls + ' text-[10px]">' + timeStr + '</span>'
+          + edited
+          + (isSent ? tick : '')
+          + '</div>'
+          + '</div>'
+          + '</div>';
+      }).join('');
+      container.innerHTML = html;
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function _seChatReplyToMessage(id) {
+      const m = _seChatMessages.find(x => x.id === id);
+      if (!m) return;
+      _seChatEditingId = null;
+      _seChatReplyTo = m;
+      $('se-chat-context-label').textContent = 'Replying';
+      $('se-chat-context-preview').textContent = m.body;
+      $('se-chat-context').style.display = 'flex';
+      $('se-chat-input')?.focus();
+    }
+    function _seChatEditMessage(id) {
+      const m = _seChatMessages.find(x => x.id === id);
+      if (!m) return;
+      _seChatReplyTo = null;
+      _seChatEditingId = id;
+      $('se-chat-context-label').textContent = 'Editing message';
+      $('se-chat-context-preview').textContent = m.body;
+      $('se-chat-context').style.display = 'flex';
+      const input = $('se-chat-input');
+      input.value = m.body;
+      input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 112) + 'px';
+      input.focus();
+    }
+    function _seChatClearContext() {
+      _seChatReplyTo = null;
+      _seChatEditingId = null;
+      $('se-chat-context').style.display = 'none';
+    }
+
+    async function sendSeChatMessage() {
+      const input = $('se-chat-input');
+      const body = input?.value?.trim();
+      if (!body || !currentUserId) return;
+
+      if (_seChatEditingId) {
+        const id = _seChatEditingId;
+        input.value = ''; input.style.height = 'auto';
+        _seChatClearContext();
+        const { data, error } = await db.rpc('edit_message', { p_id: id, p_body: body }).single();
+        if (error) { showToast('Edit failed: ' + error.message); return; }
+        const idx = _seChatMessages.findIndex(m => m.id === id);
+        if (idx !== -1 && data) { _seChatMessages[idx] = data; _renderSeChatMessages(); }
+        return;
+      }
+
+      if (!_seChatPeerId) return;
+      const parentId = _seChatReplyTo?.id || null;
+      input.value = ''; input.style.height = 'auto';
+      _seChatClearContext();
+      const { data, error } = await db.rpc('send_message', {
+        p_recipient_id: _seChatPeerId,
+        p_body: body,
+        p_sent_as: 'admin',
+        p_parent_id: parentId,
+      }).single();
+      if (error) { showToast('Send failed: ' + error.message); input.value = body; return; }
+      if (data) { _seChatMessages.push(data); _renderSeChatMessages(); }
+    }
+
     $('sign-out-btn').addEventListener('click', async () => { await db.auth.signOut(); window.location.replace('admin-login.html'); });
 
     // Re-verify admin status whenever the tab regains focus
@@ -4663,6 +5005,7 @@
       $('nav-name').textContent = profile.name;
       _initAdminReceiptSub();
       _initAdminPresence(currentUserId);
+      initSeChat(currentUserId);
       await Promise.all([ loadWritersList(), loadWriters(), loadRecentEarnings(), _loadPendingBadge(), loadAdminSeNotes() ]);
       // On mobile, start on the writers list
       if (window.innerWidth < 768) _adminShowList();
