@@ -3725,10 +3725,14 @@
       $('fullscreen-editor').classList.add('hidden');
       $('chat-float')?.classList.remove('hidden');
       document.body.style.overflow = '';
-      if (_fsOpenedDirectly) {
-        _fsOpenedDirectly = false;
-        showChaptersView();
-      }
+      _fsOpenedDirectly = false;
+      // For an existing chapter, showEditorView() hides view-books,
+      // view-chapters, AND view-editor before opening the fullscreen editor —
+      // there's no "revealed" state left underneath to fall back on, so
+      // closing must always explicitly return to the chapters list rather
+      // than only doing so for chapters opened directly (that used to leave
+      // the whole Books page blank until a manual reload).
+      if (selectedBook) showChaptersView();
     }
 
     function execFmt(cmd) {
