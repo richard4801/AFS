@@ -119,7 +119,7 @@
     .collab-follow-btn[data-on="1"]{color:#C9A84C;border-color:rgba(201,168,76,0.4);background:rgba(201,168,76,0.1);}
     /* ── Chapter comments (overlay — never touches editable content DOM) ── */
     /* Background is set inline per-comment (role color × resolved/active state) — see CMT_ROLE. */
-    .chapter-highlight-ov{position:absolute;border-radius:2px;pointer-events:none;transition:background .15s;}
+    .chapter-highlight-ov{position:absolute;box-sizing:border-box;border-radius:2px;pointer-events:none;transition:background .15s,border-color .15s;}
     #cmt-comment-trigger{position:fixed;z-index:296;display:none;transform:translate(-50%,-100%);}
     #cmt-comment-trigger button{display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:999px;background:#C9A84C;color:#0D0B09;font-size:11px;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,0.45);border:none;cursor:pointer;white-space:nowrap;}
     #cmt-comment-trigger button:hover{background:#E2C97E;}
@@ -3177,7 +3177,7 @@
       role: 'writer',
       getUserId: () => currentUserId,
       getUserName: () => ($('greeting-name')?.textContent || 'Writer').trim(),
-      onContentApplied: () => { updateFSWordCount(); _renderCommentOverlay(); },
+      onContentApplied: () => { updateFSWordCount(); _cmtLastText = _plainText($('fs-content')); _renderCommentOverlay(); },
     });
 
     // ── Chapter comments (Google-Docs style, overlay-based) ─────────
@@ -3192,6 +3192,7 @@
     let _cmtPendingRange = null;
     let _cmtSheetMode = null;
     let _cmtCh = null;
+    let _cmtLastText = '';
 
     // Per-role comment coloring — same identity everywhere: writer stays
     // gold, admin ("Editor") is crimson/red, Senior Editor ("God Mother")
@@ -3233,6 +3234,36 @@
       r.setStart(s.node, s.offset); r.setEnd(e.node, e.offset);
       return r;
     }
+    function _plainText(root) {
+      const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+      let s = '', node;
+      while ((node = w.nextNode())) s += node.nodeValue;
+      return s;
+    }
+    // Comment offsets are captured against the text at the moment they were
+    // posted — typing anywhere in the document shifts everything after that
+    // point, so without this a highlight silently drifts onto whatever text
+    // now occupies its old character range. Diff the text before/after each
+    // edit and shift (or, for edits landing inside a highlight, grow) every
+    // comment's offsets to keep each highlight pinned to the same words.
+    function _adjustOffsetsForEdit(comments, oldText, newText) {
+      if (oldText === newText) return;
+      const maxCommon = Math.min(oldText.length, newText.length);
+      let prefix = 0;
+      while (prefix < maxCommon && oldText[prefix] === newText[prefix]) prefix++;
+      let suffix = 0;
+      const maxSuffix = maxCommon - prefix;
+      while (suffix < maxSuffix && oldText[oldText.length - 1 - suffix] === newText[newText.length - 1 - suffix]) suffix++;
+      const editStart = prefix, editOldEnd = oldText.length - suffix;
+      const delta = newText.length - oldText.length;
+      comments.forEach(c => {
+        if (c.start_offset == null || c.end_offset == null) return;
+        if (c.end_offset <= editStart) return;
+        if (c.start_offset >= editOldEnd) { c.start_offset += delta; c.end_offset += delta; return; }
+        if (c.start_offset >= editStart) c.start_offset = editStart;
+        c.end_offset = Math.max(c.start_offset, c.end_offset + delta);
+      });
+    }
     function _renderCommentOverlay() {
       const root = $('fs-content'), overlay = $('fs-comment-overlay');
       if (!root || !overlay) return;
@@ -3242,11 +3273,14 @@
         const range = _rangeFromOffsets(root, c.start_offset, c.end_offset);
         if (!range) return;
         const colors = CMT_ROLE[c.author_role] || CMT_ROLE.writer;
-        const bg = c.resolved ? CMT_RESOLVED_BG : (c.id === _cmtActiveId ? colors.bgActive : colors.bg);
+        const isActive = c.id === _cmtActiveId;
+        const bg = c.resolved ? CMT_RESOLVED_BG : (isActive ? colors.bgActive : colors.bg);
+        const borderColor = c.resolved ? 'rgba(122,122,122,0.55)' : colors.label;
         [...range.getClientRects()].forEach(r => {
           const mark = document.createElement('div');
           mark.className = 'chapter-highlight-ov';
           mark.style.background = bg;
+          mark.style.borderBottom = (isActive ? '2.5px' : '2px') + ' solid ' + borderColor;
           mark.dataset.commentId = c.id;
           mark.style.left = (r.left - parentRect.left) + 'px';
           mark.style.top = (r.top - parentRect.top) + 'px';
@@ -3425,6 +3459,8 @@
     async function loadChapterCommentsUi(chapterId) {
       const { data, error } = await db.rpc('get_chapter_comments', { p_chapter_id: chapterId });
       _cmtComments = error ? [] : (data ?? []);
+      const root = $('fs-content');
+      _cmtLastText = root ? _plainText(root) : '';
       _renderCommentOverlay();
       _renderCommentPanel();
     }
@@ -3489,10 +3525,16 @@
     function unsubscribeChapterComments() {
       if (_cmtCh) { try { db.removeChannel(_cmtCh); } catch (_) {} _cmtCh = null; }
     }
-    // Keep overlay aligned while the user types (offsets don't drift within
-    // this editing session, but the visual layout reflows on every keystroke).
+    // Keep overlay aligned while the user types — both the visual reflow AND
+    // the underlying offsets, which otherwise silently drift onto whatever
+    // text now sits at their old character range as soon as anything is
+    // typed before or inside a highlighted passage.
     let _cmtOverlayRaf = null;
     $('fs-content')?.addEventListener('input', () => {
+      const root = $('fs-content');
+      const newText = _plainText(root);
+      _adjustOffsetsForEdit(_cmtComments, _cmtLastText, newText);
+      _cmtLastText = newText;
       if (_cmtOverlayRaf) cancelAnimationFrame(_cmtOverlayRaf);
       _cmtOverlayRaf = requestAnimationFrame(_renderCommentOverlay);
     });

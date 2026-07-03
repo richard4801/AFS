@@ -38,7 +38,7 @@
     .collab-dot{width:6px;height:6px;border-radius:50%;box-shadow:0 0 6px currentColor;flex-shrink:0;}
     /* ── Highlight comments ─────────────────────────────────────── */
     /* Background is set inline per-comment (role color × resolved/active state) — see CMT_ROLE. */
-    mark.chapter-highlight{color:inherit;border-radius:2px;padding:0 1px;cursor:pointer;transition:background .15s;box-decoration-break:clone;-webkit-box-decoration-break:clone;}
+    mark.chapter-highlight{color:inherit;border-radius:2px;padding:0 1px;cursor:pointer;transition:background .15s,border-color .15s;box-decoration-break:clone;-webkit-box-decoration-break:clone;border-bottom:2px solid transparent;}
     #se-comment-trigger{position:fixed;z-index:96;display:none;transform:translate(-50%,-100%);}
     #se-comment-trigger button{display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:999px;background:#C9A84C;color:#0D0B09;font-size:11px;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,0.45);border:none;cursor:pointer;white-space:nowrap;}
     #se-comment-trigger button:hover{background:#E2C97E;}
@@ -52,7 +52,7 @@
        can no longer be safely drawn by wrapping the DOM in <mark>. */
     #se-reader-content[contenteditable="true"]{outline:none;caret-color:#C9A84C;}
     /* Background is set inline per-comment (role color × resolved/active state) — see CMT_ROLE. */
-    .chapter-highlight-ov{position:absolute;border-radius:2px;pointer-events:none;transition:background .15s;}
+    .chapter-highlight-ov{position:absolute;box-sizing:border-box;border-radius:2px;pointer-events:none;transition:background .15s,border-color .15s;}
     .fs-tool-btn{padding:6px 11px;min-width:32px;min-height:32px;border-radius:5px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.6);background:transparent;border:1px solid transparent;cursor:pointer;transition:all .15s;line-height:1.8;}
     .fs-tool-btn:hover{background:rgba(255,255,255,0.07);border-color:rgba(255,255,255,0.12);color:#fff;}
     .fs-tool-btn.active{background:rgba(201,168,76,0.18);border-color:rgba(201,168,76,0.4);color:#C9A84C;}
@@ -872,6 +872,10 @@
       _seAsSetStatus('unsaved');
       clearTimeout(_seAsTimer);
       _seAsTimer = setTimeout(_seDoAutoSave, 2500);
+      const root = $('se-reader-content');
+      const newText = _plainText(root);
+      _adjustOffsetsForEdit(_seComments, _seLastText, newText);
+      _seLastText = newText;
       if (_seOverlayRaf) cancelAnimationFrame(_seOverlayRaf);
       _seOverlayRaf = requestAnimationFrame(_renderCommentsVisual);
     });
@@ -982,6 +986,7 @@
     let _sePendingRange = null;
     let _seSheetMode = null;
     let _seCommentsCh = null;
+    let _seLastText = '';
 
     // Per-role comment coloring — same identity everywhere: writer stays
     // gold, admin ("Editor") is crimson/red, Senior Editor ("God Mother")
@@ -1024,6 +1029,36 @@
       r.setStart(s.node, s.offset); r.setEnd(e.node, e.offset);
       return r;
     }
+    function _plainText(root) {
+      const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+      let s = '', node;
+      while ((node = w.nextNode())) s += node.nodeValue;
+      return s;
+    }
+    // Comment offsets are captured against the text at the moment they were
+    // posted — typing anywhere in the document shifts everything after that
+    // point, so without this a highlight silently drifts onto whatever text
+    // now occupies its old character range. Diff the text before/after each
+    // edit and shift (or, for edits landing inside a highlight, grow) every
+    // comment's offsets to keep each highlight pinned to the same words.
+    function _adjustOffsetsForEdit(comments, oldText, newText) {
+      if (oldText === newText) return;
+      const maxCommon = Math.min(oldText.length, newText.length);
+      let prefix = 0;
+      while (prefix < maxCommon && oldText[prefix] === newText[prefix]) prefix++;
+      let suffix = 0;
+      const maxSuffix = maxCommon - prefix;
+      while (suffix < maxSuffix && oldText[oldText.length - 1 - suffix] === newText[newText.length - 1 - suffix]) suffix++;
+      const editStart = prefix, editOldEnd = oldText.length - suffix;
+      const delta = newText.length - oldText.length;
+      comments.forEach(c => {
+        if (c.start_offset == null || c.end_offset == null) return;
+        if (c.end_offset <= editStart) return;
+        if (c.start_offset >= editOldEnd) { c.start_offset += delta; c.end_offset += delta; return; }
+        if (c.start_offset >= editStart) c.start_offset = editStart;
+        c.end_offset = Math.max(c.start_offset, c.end_offset + delta);
+      });
+    }
     // Once edit access is approved, #se-reader-content becomes contenteditable
     // and autosaves — same as writer/admin, wrapping the DOM in <mark> is no
     // longer safe (a stray edit could leak markup into what gets saved), so
@@ -1037,11 +1072,14 @@
         const range = _rangeFromOffsets(root, c.start_offset, c.end_offset);
         if (!range) return;
         const colors = CMT_ROLE[c.author_role] || CMT_ROLE.writer;
-        const bg = c.resolved ? CMT_RESOLVED_BG : (c.id === _seActiveCommentId ? colors.bgActive : colors.bg);
+        const isActive = c.id === _seActiveCommentId;
+        const bg = c.resolved ? CMT_RESOLVED_BG : (isActive ? colors.bgActive : colors.bg);
+        const borderColor = c.resolved ? 'rgba(122,122,122,0.55)' : colors.label;
         [...range.getClientRects()].forEach(r => {
           const mark = document.createElement('div');
           mark.className = 'chapter-highlight-ov';
           mark.style.background = bg;
+          mark.style.borderBottom = (isActive ? '2.5px' : '2px') + ' solid ' + borderColor;
           mark.dataset.commentId = c.id;
           mark.style.left = (r.left - parentRect.left) + 'px';
           mark.style.top = (r.top - parentRect.top) + 'px';
@@ -1110,7 +1148,10 @@
       root.querySelectorAll('mark.chapter-highlight').forEach(m => {
         const c = _seComments.find(x => x.id === m.dataset.commentId);
         const colors = CMT_ROLE[c?.author_role] || CMT_ROLE.writer;
-        m.style.background = c?.resolved ? CMT_RESOLVED_BG : (m.dataset.commentId === _seActiveCommentId ? colors.bgActive : colors.bg);
+        const isActive = m.dataset.commentId === _seActiveCommentId;
+        m.style.background = c?.resolved ? CMT_RESOLVED_BG : (isActive ? colors.bgActive : colors.bg);
+        m.style.borderBottomColor = c?.resolved ? 'rgba(122,122,122,0.55)' : colors.label;
+        m.style.borderBottomWidth = isActive ? '2.5px' : '2px';
       });
     }
     $('se-reader-content')?.addEventListener('click', (e) => {
@@ -1287,6 +1328,8 @@
     async function loadChapterComments(chapterId) {
       const { data, error } = await db.rpc('get_chapter_comments', { p_chapter_id: chapterId });
       _seComments = error ? [] : (data ?? []);
+      const root = $('se-reader-content');
+      _seLastText = root ? _plainText(root) : '';
       _renderCommentsVisual();
       _renderCommentPanel();
     }
