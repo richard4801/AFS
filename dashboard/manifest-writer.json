@@ -1,0 +1,19 @@
+{
+  "name": "Apex Fiction Studio — Writer",
+  "short_name": "AFS Writer",
+  "description": "Writer dashboard for Apex Fiction Studio — write chapters, track earnings, and chat with your editor.",
+  "start_url": "index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#C9A84C",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "../assets/favicon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
