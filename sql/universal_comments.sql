@@ -23,8 +23,11 @@ RETURNS TABLE (
 )
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
 BEGIN
+  -- Qualified with the "pr" alias: this function's RETURNS TABLE declares an
+  -- output column named "id", which plpgsql exposes as a variable throughout
+  -- the function body — a bare "id" here is ambiguous against that variable.
   IF NOT (
-    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = true)
+    EXISTS (SELECT 1 FROM public.profiles pr WHERE pr.id = auth.uid() AND pr.is_admin = true)
     OR EXISTS (
       SELECT 1 FROM public.chapters c JOIN public.books b ON b.id = c.book_id
       WHERE c.id = p_chapter_id AND b.author_id = auth.uid()
