@@ -54,7 +54,7 @@
        dashboard header), unmodified, just recolored metallic. The loader is a
        soft beam gliding through the mark's own built-in gap — no new logo. */
     .pwa-splash-logo-wrap { position:relative; width:114px; height:54px; }
-    .pwa-splash-beam { position:absolute; left:0; top:38%; height:11%; width:36%; background:linear-gradient(90deg,transparent,rgba(242,224,160,.95),transparent); filter:blur(.5px) drop-shadow(0 0 5px rgba(212,175,55,.85)); pointer-events:none; animation:pwaSplashBeamSweep 2.6s cubic-bezier(.35,0,.25,1) infinite; }
+    .pwa-splash-beam { position:absolute; left:0; top:38%; height:11%; width:36%; background:linear-gradient(90deg,transparent,rgba(242,224,160,.95),transparent); filter:blur(.5px) drop-shadow(0 0 5px rgba(212,175,55,.85)); pointer-events:none; animation-name:pwaSplashBeamSweep; animation-duration:2.6s; animation-timing-function:cubic-bezier(.35,0,.25,1); animation-iteration-count:4; }
     @keyframes pwaSplashBeamSweep { 0% { transform:translateX(-140%); opacity:0; } 12% { opacity:1; } 88% { opacity:1; } 100% { transform:translateX(340%); opacity:0; } }
 
     /* Rank badge "coming online" reveal — starts dull/desaturated and
@@ -4579,9 +4579,15 @@
     // Only relevant at all when html.pwa-standalone is set (installed app
     // launch). Held deliberately — this is meant to feel unhurried, not
     // like a flash — before fading once the page has actually loaded.
+    // The beam sweeps a random 4-7 times (never fewer than 4) so the hold
+    // duration itself varies visit to visit instead of feeling mechanical.
     if (document.documentElement.classList.contains('pwa-standalone')) {
+      const BEAM_SWEEP_MS = 2600;
+      const _sweeps = 4 + Math.floor(Math.random() * 4); // 4, 5, 6, or 7
+      const beamEl = document.querySelector('.pwa-splash-beam');
+      if (beamEl) beamEl.style.animationIterationCount = String(_sweeps);
       const _splashShownAt = Date.now();
-      const MIN_SPLASH_MS = 3600;
+      const MIN_SPLASH_MS = _sweeps * BEAM_SWEEP_MS;
       const _hideSplash = () => {
         const el = $('pwa-splash');
         if (!el) return;
