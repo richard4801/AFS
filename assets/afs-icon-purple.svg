@@ -12,8 +12,12 @@
     </linearGradient>
   </defs>
   <rect width="200" height="200" fill="url(#bg)"/>
-  <g stroke="url(#purple)" stroke-width="13" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
-    <polyline points="45,155 100,45 155,155"/>
-    <line x1="63" y1="103" x2="137" y2="103"/>
+  <!-- Full AFS mark: A, F, S sharing one unified horizontal slash -->
+  <g transform="translate(100,100) scale(1.05) translate(-140,-49)" stroke="url(#purple)" stroke-width="7" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+    <polyline points="57,84 81,14 105,84"/>
+    <line x1="123" y1="14" x2="123" y2="84"/>
+    <line x1="123" y1="14" x2="159" y2="14"/>
+    <path stroke-linecap="round" d="M 219,21 C 222,13 215,13 202,13 C 183,13 177,24 177,34 C 177,43 186,47 200,49 C 214,51 223,57 223,67 C 223,77 215,85 201,85 C 186,85 177,76 177,67"/>
+    <line x1="57" y1="49" x2="223" y2="49"/>
   </g>
 </svg>

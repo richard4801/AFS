@@ -47,12 +47,18 @@
   <style>
     /* PWA splash — hidden by default; only shown when html.pwa-standalone
        is set (installed app launch, detected pre-paint in <head>). */
-    #pwa-splash { display:none; position:fixed; inset:0; z-index:99999; align-items:center; justify-content:center; flex-direction:column; gap:30px; background:radial-gradient(ellipse at 50% 42%, #1C1A14 0%, #0D0B09 72%); opacity:1; transition:opacity .5s ease; }
+    #pwa-splash { display:none; position:fixed; inset:0; z-index:99999; align-items:center; justify-content:center; flex-direction:column; gap:18px; background:radial-gradient(ellipse at 50% 42%, #1C1A14 0%, #0D0B09 72%); opacity:1; transition:opacity .5s ease; }
     html.pwa-standalone #pwa-splash { display:flex; }
     #pwa-splash.pwa-splash-hide { opacity:0; pointer-events:none; }
-    .pwa-splash-bar { width:120px; height:2px; background:rgba(201,168,76,0.15); border-radius:2px; overflow:hidden; }
-    .pwa-splash-bar-fill { width:40%; height:100%; background:linear-gradient(90deg,transparent,#C9A84C,transparent); animation:pwaSplashSweep 1.3s ease-in-out infinite; }
-    @keyframes pwaSplashSweep { 0% { transform:translateX(-120%); } 100% { transform:translateX(320%); } }
+    /* Letterforms light up in sequence as the slash sweeps through them —
+       the loader IS the mark's own crossbar, not a separate spinner. */
+    .pwa-splash-letter { opacity:.2; filter:grayscale(1) brightness(.55); animation:pwaSplashLetterLight .55s ease forwards; }
+    @keyframes pwaSplashLetterLight { to { opacity:1; filter:grayscale(0) brightness(1); } }
+    #pwa-splash-slash-fill { animation:pwaSplashSlashDraw 1.6s cubic-bezier(.4,0,.2,1) forwards, pwaSplashSlashGlow 1.8s ease-in-out 1.6s infinite; }
+    @keyframes pwaSplashSlashDraw { to { stroke-dashoffset:0; } }
+    @keyframes pwaSplashSlashGlow { 0%,100% { filter:drop-shadow(0 0 0 rgba(212,175,55,0)); } 50% { filter:drop-shadow(0 0 7px rgba(212,175,55,.9)); } }
+    .pwa-splash-caption { font-family:'Montserrat',system-ui,sans-serif; font-weight:400; letter-spacing:5px; font-size:9px; text-transform:uppercase; color:rgba(212,175,55,.55); opacity:0; animation:pwaSplashCaptionIn .7s ease 1.75s forwards; }
+    @keyframes pwaSplashCaptionIn { to { opacity:1; } }
 
     /* Rank badge "coming online" reveal — starts dull/desaturated and
        lights up smoothly once she's actually in the dashboard, like it's
@@ -167,7 +173,7 @@
        (html.pwa-standalone, set synchronously in <head> before paint), a
        regular browser visit never sees this at all. ══ -->
   <div id="pwa-splash">
-    <svg width="180" height="84" viewBox="15 18 110 52" xmlns="http://www.w3.org/2000/svg" aria-label="AFS Publishing">
+    <svg width="240" height="112" viewBox="50 4 180 92" xmlns="http://www.w3.org/2000/svg" aria-label="AFS Publishing">
       <defs>
         <linearGradient id="pwa-splash-gold" x1="0%" y1="0%" x2="0%" y2="100%">
           <stop offset="0%"   stop-color="#F2E0A0"/>
@@ -176,12 +182,23 @@
           <stop offset="100%" stop-color="#C9A84C"/>
         </linearGradient>
       </defs>
-      <g transform="translate(20,15)">
-        <text font-family="'Cinzel',Georgia,serif" font-weight="400" fill="url(#pwa-splash-gold)" font-size="38" letter-spacing="4" x="0" y="35">AFS</text>
-        <text font-family="'Montserrat',system-ui,sans-serif" font-weight="400" fill="rgba(212,175,55,0.6)" font-size="9" letter-spacing="5" x="2" y="52">Publishing</text>
+      <g fill="none" stroke-linecap="butt" stroke-linejoin="miter">
+        <!-- A -->
+        <polyline class="pwa-splash-letter" style="animation-delay:.05s" points="57,84 81,14 105,84" stroke="url(#pwa-splash-gold)" stroke-width="7"/>
+        <!-- F -->
+        <g class="pwa-splash-letter" style="animation-delay:.6s" stroke="url(#pwa-splash-gold)" stroke-width="7">
+          <line x1="123" y1="14" x2="123" y2="84"/>
+          <line x1="123" y1="14" x2="159" y2="14"/>
+        </g>
+        <!-- S -->
+        <path class="pwa-splash-letter" style="animation-delay:1.1s" stroke="url(#pwa-splash-gold)" stroke-width="7" stroke-linecap="round"
+              d="M 219,21 C 222,13 215,13 202,13 C 183,13 177,24 177,34 C 177,43 186,47 200,49 C 214,51 223,57 223,67 C 223,77 215,85 201,85 C 186,85 177,76 177,67"/>
+        <!-- Unified slash — dim track underneath, bright fill sweeps across as the loader -->
+        <line x1="57" y1="49" x2="223" y2="49" stroke="rgba(201,168,76,0.18)" stroke-width="3"/>
+        <line id="pwa-splash-slash-fill" x1="57" y1="49" x2="223" y2="49" stroke="url(#pwa-splash-gold)" stroke-width="4.5" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/>
       </g>
     </svg>
-    <div class="pwa-splash-bar"><div class="pwa-splash-bar-fill"></div></div>
+    <div class="pwa-splash-caption">Publishing</div>
   </div>
 
   <div id="afs-glow" class="pointer-events-none fixed inset-0" style="z-index:0; will-change:background;"></div>
@@ -4572,11 +4589,12 @@
 
     // ── PWA SPLASH ───────────────────────────────────────────────────
     // Only relevant at all when html.pwa-standalone is set (installed app
-    // launch). A short minimum hold so it reads as a deliberate splash
-    // rather than a flash, then fades once the page has actually loaded.
+    // launch). Held deliberately long enough for the letter-by-letter
+    // reveal + slash sweep to actually finish and be seen, then fades
+    // once the page has actually loaded.
     if (document.documentElement.classList.contains('pwa-standalone')) {
       const _splashShownAt = Date.now();
-      const MIN_SPLASH_MS = 700;
+      const MIN_SPLASH_MS = 2200;
       const _hideSplash = () => {
         const el = $('pwa-splash');
         if (!el) return;
