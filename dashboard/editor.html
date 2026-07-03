@@ -6,6 +6,9 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <link rel="icon" type="image/svg+xml" href="../assets/afs-favicon.svg"/>
   <link rel="icon" type="image/png" sizes="32x32" href="../assets/favicon-32.png"/>
+  <link rel="apple-touch-icon" sizes="192x192" href="../assets/favicon-192.png"/>
+  <link rel="manifest" href="manifest-editor.json"/>
+  <meta name="theme-color" content="#B79FDE"/>
   <title>Christine's Studio — Apex Fiction Studio</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -172,7 +175,7 @@
           </svg>
         </div>
         <div class="flex items-center gap-3">
-          <div class="flex items-center gap-2">
+          <div id="se-badge" class="flex items-center gap-2">
             <div class="relative flex-shrink-0 w-8 h-8">
               <div class="absolute left-1/2 -translate-x-1/2 z-10 pointer-events-none" style="top:-10px; line-height:0;">
                 <svg viewBox="0 0 40 40" width="18" height="18" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 1px 2px rgba(0,0,0,0.45))">
@@ -219,10 +222,11 @@
         <p class="text-[11px] font-medium tracking-[0.22em] uppercase text-gold mb-2">Christine's Editorial Studio</p>
         <h1 class="font-serif text-3xl sm:text-4xl text-white leading-tight">Good to see you, Christine.</h1>
         <p class="text-muted text-sm mt-1.5 max-w-xl">This is your desk. Curate the prompts that shape every story at Apex Fiction Studio — review what comes in, add your own, and watch the collective at work.</p>
+        <button onclick="setTimeout(startTour,150)" class="mt-2 text-xs text-muted/50 hover:text-gold transition-colors">↺ Replay dashboard tour</button>
       </div>
 
       <!-- Review queue -->
-      <section class="mb-12">
+      <section id="review-section" class="mb-12">
         <div class="flex items-end justify-between mb-4">
           <div>
             <h2 class="font-serif text-xl sm:text-2xl text-white">Awaiting your review</h2>
@@ -235,7 +239,7 @@
       </section>
 
       <!-- My prompts -->
-      <section class="mb-12">
+      <section id="prompts-section" class="mb-12">
         <div class="flex items-end justify-between mb-4">
           <div>
             <h2 class="font-serif text-xl sm:text-2xl text-white">Your prompts</h2>
@@ -251,7 +255,7 @@
       </section>
 
       <!-- On the platform -->
-      <section class="mb-12">
+      <section id="board-section" class="mb-12">
         <h2 class="font-serif text-xl sm:text-2xl text-white mb-1">On the platform</h2>
         <p class="text-muted text-xs mb-4">Every prompt live for writers — available to claim, or currently in development.</p>
         <div id="board-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
@@ -259,7 +263,7 @@
       </section>
 
       <!-- Signed books -->
-      <section>
+      <section id="books-section">
         <h2 class="font-serif text-xl sm:text-2xl text-white mb-1">Signed books</h2>
         <p class="text-muted text-xs mb-4">Open a book to read through its chapters and give your verdict.</p>
         <div id="books-grid" class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4"></div>
@@ -530,6 +534,52 @@
     </button>
   </div>
 
+  <!-- ══ INTERACTIVE TOUR (Phase 4) — same spotlight/cutout technique as
+       the writer dashboard's tour, ported to her single-page (no tabs)
+       layout. gold/gold-light already resolve to her purple theme via
+       this file's own tailwind.config, so the markup is unchanged. ══ -->
+  <div id="tour-overlay" class="hidden">
+    <div id="tour-backdrop" class="fixed inset-0" style="z-index:500;"></div>
+    <div id="tour-spotlight" class="fixed" style="box-shadow:0 0 0 9999px rgba(0,0,0,0.76);border-radius:14px;z-index:501;pointer-events:none;transition:all .38s cubic-bezier(.4,0,.2,1);"></div>
+    <div id="tour-card" class="fixed" style="z-index:502;transition:top .38s cubic-bezier(.4,0,.2,1),left .38s cubic-bezier(.4,0,.2,1);">
+      <div class="relative w-80 max-w-[calc(100vw-2rem)] rounded-2xl border border-border bg-surface shadow-2xl shadow-black/80 overflow-hidden">
+        <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent"></div>
+        <div class="p-5 pb-4">
+          <div id="tour-dots" class="flex items-center gap-1.5 mb-3.5"></div>
+          <p id="tour-step-label" class="text-[10px] font-semibold tracking-widest uppercase text-gold mb-1.5"></p>
+          <h3 id="tour-title" class="font-serif text-xl text-white mb-2 leading-snug"></h3>
+          <p id="tour-body" class="text-muted text-sm leading-relaxed"></p>
+        </div>
+        <div class="flex items-center justify-between px-5 py-3 border-t border-border/50 bg-charcoal/30">
+          <button onclick="skipTour()" class="text-xs text-muted/40 hover:text-muted transition-colors">Skip tour</button>
+          <div class="flex items-center gap-2">
+            <button id="tour-prev-btn" onclick="tourPrev()"
+                    class="px-3 py-1.5 text-xs font-medium text-muted hover:text-white border border-border hover:border-white/20 rounded-lg transition-all invisible">Back</button>
+            <button id="tour-next-btn" onclick="tourNext()"
+                    class="px-4 py-1.5 text-xs font-semibold bg-gold hover:bg-gold/80 text-obsidian rounded-lg transition-colors">Next →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ INSTALL AS APP (Phase 4) — dismissible banner, remembers dismissal ══ -->
+  <div id="install-banner" class="hidden fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 sm:w-80 z-[9997] rounded-2xl border border-gold/25 bg-surface shadow-2xl shadow-black/70 p-4">
+    <div class="flex items-start gap-3">
+      <div class="w-9 h-9 rounded-xl bg-gold/10 border border-gold/25 flex items-center justify-center flex-shrink-0">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B79FDE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg>
+      </div>
+      <div class="min-w-0 flex-1">
+        <p class="text-white text-sm font-semibold leading-tight">Install Christine's Studio</p>
+        <p class="text-muted text-xs mt-1 leading-relaxed">Add it to your home screen for one-tap access, like a real app.</p>
+        <div class="flex items-center gap-2 mt-3">
+          <button onclick="_installPWA()" class="px-3.5 py-1.5 bg-gold hover:bg-gold-light text-obsidian text-xs font-bold rounded-lg transition-colors">Install</button>
+          <button onclick="_dismissInstallBanner()" class="px-3.5 py-1.5 text-muted hover:text-white text-xs font-medium transition-colors">Not now</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     const SUPABASE_URL      = 'https://qbqsbdswcqmrxoizgfrw.supabase.co';
@@ -644,6 +694,12 @@
       loadAll();
       if (currentUserId) initSeChat(currentUserId);
       _initSeBooksLiveRefresh();
+
+      if (currentUserId) {
+        const { data: prof } = await db.from('profiles').select('onboarded').eq('id', currentUserId).maybeSingle();
+        const forceTour = new URLSearchParams(window.location.search).has('tour');
+        if (!prof?.onboarded || forceTour) setTimeout(startTour, 900);
+      }
     }
     async function loadAll() {
       await Promise.all([loadReviewQueue(), loadMyPrompts(), loadBoard(), loadBooks()]);
@@ -2137,6 +2193,243 @@
       }).single();
       if (error) { toast('Send failed: ' + error.message); input.value = body; return; }
       if (data) { _seChatMessages.push(data); _renderSeChatMessages(); }
+    }
+
+    // ── INTERACTIVE TOUR (Phase 4) ─────────────────────────────────
+    // Same spotlight engine as the writer dashboard's tour — copied
+    // near-verbatim, minus the tab-switching (she has no tabs, every
+    // section is already on the page, just scrolled to).
+    const TOUR_STEPS = [
+      {
+        label: 'Welcome',
+        title: 'Welcome to Your Studio, Christine',
+        body: "This is a quick tour of your desk. Use the buttons below to move through it — skip any time.",
+        target: null,
+      },
+      {
+        label: 'Review Queue',
+        title: 'Prompts Awaiting Your Review',
+        body: 'Every prompt the admin submits lands here first. Approve to send it live for writers, or decline with a note explaining what needs to change.',
+        target: 'review-section',
+      },
+      {
+        label: 'Your Prompts',
+        title: 'Write Your Own Prompts',
+        body: "Got an idea for a story? Write it here. It goes to the admin for approval before it ever reaches a writer — same review process, just reversed.",
+        target: 'prompts-section',
+      },
+      {
+        label: 'On the Platform',
+        title: 'Everything Live Right Now',
+        body: 'Every approved prompt that\'s currently live for writers — claimed or still open — shows up here so you can see the collective at work.',
+        target: 'board-section',
+      },
+      {
+        label: 'Signed Books',
+        title: 'Review Chapters as They Come In',
+        body: 'Open any signed book to read through its chapters. Approve the ones that are ready or decline the ones that aren\'t — once you approve a chapter, it locks in on your end.',
+        target: 'books-section',
+      },
+      {
+        label: 'Private Chat',
+        title: 'Talk to the Admin, Just the Two of You',
+        body: 'This opens a private line straight to the admin — writers never see it. Reply, edit, or just check in any time.',
+        target: 'se-chat-float',
+      },
+      {
+        label: 'Your Standing',
+        title: "You're God Mother Here",
+        body: 'This badge is yours alone — not a ladder to climb, you\'re already at the top of it. It\'s how everyone across the studio knows who\'s behind the final word.',
+        target: 'se-badge',
+      },
+      {
+        label: 'All Set',
+        title: "That's Everything",
+        body: "You know your way around now. Come back to this tour any time from the link under your name.",
+        target: null,
+        isLast: true,
+      },
+    ];
+
+    let _tourStep            = 0;
+    let _tourActive          = false;
+    let _tourCurrentTarget   = null;
+    let _tourScrollUpdateRaf = null;
+
+    function startTour() {
+      _tourStep   = 0;
+      _tourActive = true;
+      $('se-chat-float').style.zIndex = '10';
+      $('tour-overlay').classList.remove('hidden');
+      _renderTourStep();
+    }
+    function skipTour() { _endTour(); }
+    function tourNext() {
+      if (_tourStep < TOUR_STEPS.length - 1) { _tourStep++; _renderTourStep(); }
+      else _endTour();
+    }
+    function tourPrev() {
+      if (_tourStep > 0) { _tourStep--; _renderTourStep(); }
+    }
+    function _endTour() {
+      _tourActive        = false;
+      _tourCurrentTarget = null;
+      $('se-chat-float').style.zIndex = '9999';
+      $('tour-overlay').classList.add('hidden');
+      $('tour-spotlight').style.cssText = '';
+      if (currentUserId) {
+        db.from('profiles').update({ onboarded: true }).eq('id', currentUserId).then(() => {});
+        localStorage.setItem('afs_se_tour_done_' + currentUserId, '1');
+      }
+    }
+    function _renderTourStep() {
+      const step  = TOUR_STEPS[_tourStep];
+      const total = TOUR_STEPS.length;
+
+      $('tour-dots').innerHTML = TOUR_STEPS.map((_, i) => {
+        const active = i === _tourStep;
+        const past   = i < _tourStep;
+        const cls    = active ? 'bg-gold' : past ? 'bg-gold/40' : 'bg-white/15';
+        return `<span class="inline-block h-1.5 rounded-full ${cls} transition-all duration-300" style="width:${active ? '20px' : '6px'}"></span>`;
+      }).join('');
+
+      $('tour-step-label').textContent = `Step ${_tourStep + 1} of ${total}`;
+      $('tour-title').textContent      = typeof step.title === 'function' ? step.title() : step.title;
+      $('tour-body').innerHTML         = typeof step.body  === 'function' ? step.body()  : step.body;
+
+      $('tour-prev-btn').classList.toggle('invisible', _tourStep === 0);
+      $('tour-next-btn').textContent = step.isLast ? 'Got it →' : 'Next →';
+
+      let targetEl = step.target ? $(step.target) : null;
+      if (targetEl && targetEl.classList.contains('hidden')) targetEl = null;
+
+      _positionTour(targetEl);
+    }
+    function _positionTour(targetEl) {
+      _tourCurrentTarget = targetEl;
+      const CARD_W = 320;
+      const vw     = window.innerWidth;
+      const mobile = vw < 640;
+
+      const spotlight = $('tour-spotlight');
+      const card      = $('tour-card');
+
+      if (!targetEl) {
+        _tourCurrentTarget = null;
+        spotlight.style.cssText =
+          'position:fixed;top:50%;left:50%;width:0;height:0;border-radius:999px;' +
+          'box-shadow:0 0 0 9999px rgba(0,0,0,0.76);z-index:501;pointer-events:none;' +
+          'transition:all .38s cubic-bezier(.4,0,.2,1);transform:translate(-50%,-50%);';
+        if (mobile) {
+          card.style.cssText = 'position:fixed;bottom:0;left:0;right:0;width:100%;z-index:502;';
+          card.querySelector('.relative').style.borderRadius = '24px 24px 0 0';
+        } else {
+          const cw = Math.min(CARD_W, vw - 32);
+          card.style.cssText = `position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:${cw}px;z-index:502;`;
+          card.querySelector('.relative').style.borderRadius = '';
+        }
+        return;
+      }
+
+      targetEl.scrollIntoView({ behavior: 'instant', block: 'center' });
+      requestAnimationFrame(() => requestAnimationFrame(() => _applySpotlight(targetEl)));
+    }
+    function _applySpotlight(targetEl) {
+      if (!_tourActive) return;
+      const PAD    = 10;
+      const CARD_W = 320;
+      const GAP    = 14;
+      const vw     = window.innerWidth;
+      const vh     = window.innerHeight;
+      const mobile = vw < 640;
+
+      const spotlight = $('tour-spotlight');
+      const card      = $('tour-card');
+      const r  = targetEl.getBoundingClientRect();
+      const sl = r.left   - PAD;
+      const st = r.top    - PAD;
+      const sw = r.width  + PAD * 2;
+      const sh = r.height + PAD * 2;
+
+      spotlight.style.cssText =
+        `position:fixed;left:${sl}px;top:${st}px;width:${sw}px;height:${sh}px;` +
+        `border-radius:14px;box-shadow:0 0 0 9999px rgba(0,0,0,0.74);` +
+        `z-index:501;pointer-events:none;transition:all .38s cubic-bezier(.4,0,.2,1);transform:none;`;
+
+      card.querySelector('.relative').style.borderRadius = '';
+      const cw = Math.min(CARD_W, vw - 32);
+
+      if (mobile) {
+        card.style.cssText = 'position:fixed;bottom:0;left:0;right:0;width:100%;z-index:502;transition:none;';
+        card.querySelector('.relative').style.borderRadius = '24px 24px 0 0';
+        return;
+      }
+
+      const below = vh - (st + sh + GAP);
+      const above = st - GAP;
+      let cardTop, cardLeft;
+
+      if (below >= 220) {
+        cardTop  = st + sh + GAP;
+        cardLeft = Math.max(16, Math.min(sl + sw / 2 - cw / 2, vw - cw - 16));
+      } else if (above >= 220) {
+        cardTop  = Math.max(16, st - GAP - 220);
+        cardLeft = Math.max(16, Math.min(sl + sw / 2 - cw / 2, vw - cw - 16));
+      } else {
+        cardTop  = Math.max(16, Math.min(st + sh / 2 - 110, vh - 260));
+        cardLeft = sl + sw + GAP;
+        if (cardLeft + cw > vw - 16) cardLeft = Math.max(16, sl - GAP - cw);
+      }
+
+      card.style.cssText =
+        `position:fixed;top:${cardTop}px;left:${cardLeft}px;width:${cw}px;z-index:502;` +
+        `transition:top .38s cubic-bezier(.4,0,.2,1),left .38s cubic-bezier(.4,0,.2,1);transform:none;`;
+    }
+    window.addEventListener('scroll', () => {
+      if (!_tourActive || !_tourCurrentTarget) return;
+      if (_tourScrollUpdateRaf) cancelAnimationFrame(_tourScrollUpdateRaf);
+      _tourScrollUpdateRaf = requestAnimationFrame(() => {
+        if (!_tourActive || !_tourCurrentTarget) return;
+        const el  = _tourCurrentTarget;
+        const PAD = 10;
+        const r   = el.getBoundingClientRect();
+        const spotlight = $('tour-spotlight');
+        spotlight.style.transition = 'none';
+        spotlight.style.left   = (r.left  - PAD) + 'px';
+        spotlight.style.top    = (r.top   - PAD) + 'px';
+        spotlight.style.width  = (r.width  + PAD * 2) + 'px';
+        spotlight.style.height = (r.height + PAD * 2) + 'px';
+      });
+    }, { passive: true });
+    window.addEventListener('resize', () => { if (_tourActive) _renderTourStep(); }, { passive: true });
+
+    // ── INSTALL AS APP (Phase 4) ────────────────────────────────────
+    let _deferredInstallPrompt = null;
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      _deferredInstallPrompt = e;
+      if (localStorage.getItem('afs_se_install_dismissed') === '1') return;
+      $('install-banner')?.classList.remove('hidden');
+    });
+    async function _installPWA() {
+      $('install-banner')?.classList.add('hidden');
+      if (!_deferredInstallPrompt) return;
+      _deferredInstallPrompt.prompt();
+      await _deferredInstallPrompt.userChoice;
+      _deferredInstallPrompt = null;
+    }
+    function _dismissInstallBanner() {
+      $('install-banner')?.classList.add('hidden');
+      localStorage.setItem('afs_se_install_dismissed', '1');
+    }
+    window.addEventListener('appinstalled', () => {
+      $('install-banner')?.classList.add('hidden');
+      localStorage.setItem('afs_se_install_dismissed', '1');
+    });
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw-editor.js').catch(() => {});
+      });
     }
 
     boot();
