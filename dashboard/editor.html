@@ -153,12 +153,16 @@
   <!-- ══ DASHBOARD ══ -->
   <div id="app" class="hidden relative z-10">
     <!-- Top bar — the same floating pill nav the writer/admin dashboards
-         use, no left offset since she has no sidebar. Her "Royalty" badge
-         is a bespoke, permanently-maxed-out rank gem (not the dynamic
-         bronze/gold/platinum ladder writers climb) — she's always at the
-         top, by design. -->
+         use (max-w-5xl to match <main>'s own width so both share the same
+         margins), no left offset since she has no sidebar. Her "God
+         Mother" badge is a bespoke, permanently-maxed-out rank gem — a
+         glossy white-and-purple stone, not the dynamic bronze/gold/
+         platinum ladder writers climb — she's always at the top, by
+         design. The label matches the "God Mother" identity already
+         used for her in the comment system (see SE_ROLE_COLOR/CMT_ROLE
+         and the get_chapter_comments SQL). -->
     <header class="fixed top-4 sm:top-5 left-0 right-0 z-50 flex justify-center px-3 sm:px-5 pointer-events-none">
-      <nav class="pointer-events-auto flex items-center justify-between gap-3 sm:gap-6 w-full max-w-4xl rounded-full bg-obsidian/70 backdrop-blur-md border border-white/10 shadow-xl shadow-black/60 px-4 py-2.5">
+      <nav class="pointer-events-auto flex items-center justify-between gap-3 sm:gap-6 w-full max-w-5xl rounded-full bg-obsidian/70 backdrop-blur-md border border-white/10 shadow-xl shadow-black/60 px-4 py-2.5">
         <div class="flex items-center flex-shrink-0">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="15 18 110 52" height="36" style="clip-path:path('M0 0 H200 V14 H0 Z M0 17 H200 V36 H0 Z')" aria-label="AFS Publishing">
             <g transform="translate(20,15)">
@@ -177,8 +181,8 @@
                   <polygon points="9.4,34.6 2.9,14.4 11.4,17.2 13.9,27.3" fill="#8F63D1"/>
                   <polygon points="37.1,14.4 30.6,34.6 26.1,27.3 28.6,17.2" fill="#6E45B0"/>
                   <polygon points="30.6,34.6 9.4,34.6 13.9,27.3 26.1,27.3" fill="#5A3494"/>
-                  <polygon points="20,11 28.6,17.2 26.1,27.3 13.9,27.3 11.4,17.2" fill="#FFD84D"/>
-                  <polygon points="14.5,15 18.5,13.8 17.5,17.5 15.5,18" fill="rgba(255,255,255,0.6)"/>
+                  <polygon points="20,11 28.6,17.2 26.1,27.3 13.9,27.3 11.4,17.2" fill="#FFFFFF"/>
+                  <polygon points="14.5,15 18.5,13.8 17.5,17.5 15.5,18" fill="rgba(255,255,255,0.85)"/>
                   <g stroke="#3D1F70" stroke-opacity="0.45" stroke-width="0.5">
                     <line x1="20" y1="2" x2="20" y2="11"/>
                     <line x1="37.1" y1="14.4" x2="28.6" y2="17.2"/>
@@ -193,10 +197,12 @@
               <div class="w-8 h-8 rounded-full bg-surface border-2 flex items-center justify-center select-none" style="border-color:#B79FDE;">
                 <span class="text-xs font-semibold text-white/80">C</span>
               </div>
+              <!-- Mobile: rank pill straddling the bottom of the avatar, same placement as the writer's nav-rank-text-mobile -->
+              <span class="sm:hidden absolute left-1/2 -translate-x-1/2 z-20 text-center font-bold uppercase pointer-events-none" style="top:22px; font-size:5px; height:11px; line-height:11px; padding:0 5px; letter-spacing:0.1em; white-space:nowrap; border-radius:99px; color:#ffffff; background:#8F63D1;">God Mother</span>
             </div>
             <span class="hidden sm:flex flex-col items-start leading-tight min-w-0">
               <span class="text-muted text-sm truncate max-w-[120px]">Christine</span>
-              <span class="text-[10px] font-semibold tracking-wide uppercase truncate max-w-[120px]" style="color:#FFD84D;">Royalty Editor</span>
+              <span class="text-[10px] font-semibold tracking-wide uppercase truncate max-w-[120px]" style="color:#C9A6F5;">God Mother</span>
             </span>
           </div>
           <button onclick="signOut()" class="flex-shrink-0 inline-flex items-center gap-1.5 px-3 sm:px-4 py-1.5 text-sm font-medium text-muted hover:text-white border border-border hover:border-white/20 rounded-full transition-all duration-200">
