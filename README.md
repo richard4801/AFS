@@ -1,6 +1,6 @@
 # AFS
 
-Apex Fiction Studio — writer, admin, and Senior Editor dashboards.
+Apex Fiction Studio — a manuscript pipeline connecting writers, an admin editor, and a Senior Editor.
 
 Dashboards: `dashboard/index.html` (writer), `dashboard/admin.html` (admin), `dashboard/editor.html` (Senior Editor).
 
