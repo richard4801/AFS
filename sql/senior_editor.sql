@@ -161,6 +161,10 @@ CREATE TABLE IF NOT EXISTS public.se_pins (
 ALTER TABLE public.se_pins ENABLE ROW LEVEL SECURITY;
 
 -- ── 9. Admin can reset the Senior Editor's PIN ──────────────────
+-- Also clears her onboarding flag, so the first-run spotlight tour
+-- automatically replays the next time she logs in with a new PIN
+-- (the tour gate in editor.html reads profiles.onboarded fresh on
+-- every login, so no client-side change is needed for this).
 CREATE OR REPLACE FUNCTION public.admin_reset_se_pin()
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
@@ -169,5 +173,8 @@ BEGIN
   END IF;
   DELETE FROM public.se_pins
    WHERE user_id IN (SELECT id FROM public.profiles WHERE is_senior_editor = true);
+  UPDATE public.profiles
+     SET onboarded = false
+   WHERE is_senior_editor = true;
 END;
 $$;
