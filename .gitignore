@@ -1,0 +1,8 @@
+# Local agent/editor tooling — not part of the app, shouldn't ship with it.
+.agents/
+.claude/
+skills-lock.json
+node_modules/
+.env
+.env.*
+.DS_Store
