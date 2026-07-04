@@ -1979,7 +1979,7 @@
       let blocks;
       if (isHtml) {
         const tmp = document.createElement('div');
-        tmp.innerHTML = raw;
+        tmp.innerHTML = _sanitizePastedHtml(raw);
         blocks = Array.from(tmp.querySelectorAll('p')).map(p => ({ type:'para', html: p.innerHTML }));
       } else {
         blocks = formatBlocks(raw).map(b => b.type === 'para' ? { ...b, html: escHtml(b.text) } : b);
@@ -3351,7 +3351,10 @@
     // ── FULL-SCREEN RICH-TEXT EDITOR (writer) ─────────────────
     function contentToEditable(raw) {
       if (!raw?.trim()) return '';
-      if (/<p[\s>]/i.test(raw)) return raw; // already HTML
+      // Sanitized even though it's "already HTML" — this can come from a
+      // direct table write (not just this editor's own paste handler), so
+      // it's never assumed safe before it's rendered.
+      if (/<p[\s>]/i.test(raw)) return _sanitizePastedHtml(raw);
       const blocks = formatBlocks(raw);
       return blocks.map(b => {
         if (b.type === 'break') return '<p style="text-align:center;letter-spacing:.4em;color:#7A7A7A">* * *</p>';
@@ -3497,11 +3500,14 @@
         if (!p || p.from === clientId) return;
         if (isTyping()) return; // don't clobber active local typing
         const root = el();
-        if (root.innerHTML === p.html) return; // cursor-only update — skip DOM rebuild/flicker
+        // Sanitized — this arrives over a Realtime broadcast, not a trusted
+        // save path, so it's treated the same as untrusted pasted HTML.
+        const safeHtml = _sanitizePastedHtml(p.html || '');
+        if (root.innerHTML === safeHtml) return; // cursor-only update — skip DOM rebuild/flicker
         const focused = document.activeElement === root;
         const keepOff = focused ? selOffset(root) : null;
         applying = true;
-        root.innerHTML = p.html;
+        root.innerHTML = safeHtml;
         applying = false;
         if (keepOff != null) placeCaret(root, keepOff);
         cfg.onContentApplied && cfg.onContentApplied();

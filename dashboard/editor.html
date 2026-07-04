@@ -1101,7 +1101,9 @@
     // ── Chapter reader (read-only) + presence-only "God Mother" join ──
     function _seContentHtml(raw) {
       if (!raw?.trim()) return '<p class="text-muted/50 italic">Nothing here yet.</p>';
-      if (/<p[\s>]/i.test(raw)) return raw;
+      // Sanitized even though it's "already HTML" — this is a writer's own
+      // saved content, so it's never assumed safe before rendering here.
+      if (/<p[\s>]/i.test(raw)) return _sanitizePastedHtml(raw);
       return raw.split(/\n{2,}/).map(par => `<p>${escHtml(par.trim()).replace(/\n/g, '<br>')}</p>`).join('');
     }
     let _seChapterId = null;

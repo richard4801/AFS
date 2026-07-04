@@ -15,6 +15,11 @@ ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS edited_at  timestamptz;
 -- argument as a distinct overload otherwise, and PostgREST would then
 -- have two candidate functions to choose between for 3-arg calls.
 DROP FUNCTION IF EXISTS public.send_message(uuid, text, text);
+-- p_sent_as is kept in the signature so no client code needs to change,
+-- but its value is now derived from the caller's real role instead of
+-- trusted from the client — previously any authenticated user could pass
+-- p_sent_as:'admin' (or 'senior_editor') and have their message render as
+-- if sent by someone else, a straightforward impersonation path.
 CREATE OR REPLACE FUNCTION public.send_message(
   p_recipient_id uuid,
   p_body         text,
@@ -26,6 +31,8 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  v_sent_as text;
 BEGIN
   IF auth.uid() IS NULL THEN
     RAISE EXCEPTION 'Unauthorized';
@@ -39,9 +46,19 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'Cannot reply to a message outside this conversation.';
   END IF;
+
+  SELECT CASE
+           WHEN is_admin THEN 'admin'
+           WHEN is_senior_editor THEN 'senior_editor'
+           ELSE 'writer'
+         END
+    INTO v_sent_as
+    FROM public.profiles
+   WHERE id = auth.uid();
+
   RETURN QUERY
   INSERT INTO public.messages (sender_id, recipient_id, body, sent_as, parent_id)
-  VALUES (auth.uid(), p_recipient_id, p_body, p_sent_as, p_parent_id)
+  VALUES (auth.uid(), p_recipient_id, p_body, v_sent_as, p_parent_id)
   RETURNING *;
 END;
 $$;

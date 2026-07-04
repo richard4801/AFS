@@ -2442,7 +2442,7 @@
 
         if (isHtml) {
           const tmp = document.createElement('div');
-          tmp.innerHTML = raw;
+          tmp.innerHTML = _sanitizePastedHtml(raw);
           const pTags = tmp.querySelectorAll('p');
           // Walk each <p> preserving bold/italic runs
           (pTags.length ? Array.from(pTags) : [tmp]).forEach(p => {
@@ -2664,7 +2664,10 @@
     // ── ADMIN FULL-SCREEN RICH-TEXT EDITOR ────────────────────────────
     function adminContentToEditable(raw) {
       if (!raw?.trim()) return '';
-      if (/<p[\s>]/i.test(raw)) return raw;
+      // Sanitized even though it's "already HTML" — this can come from a
+      // direct table write (any writer's own editor), so it's never
+      // assumed safe before it's rendered in the admin's own session.
+      if (/<p[\s>]/i.test(raw)) return _sanitizePastedHtml(raw);
       const blocks = formatContent(raw);
       return blocks.map(b => {
         if (b.type === 'break') return '<p style="text-align:center;letter-spacing:.4em;color:#6A6A6A">* * *</p>';
@@ -2810,11 +2813,14 @@
         if (!p || p.from === clientId) return;
         if (isTyping()) return;
         const root = el();
-        if (root.innerHTML === p.html) return; // cursor-only update — skip DOM rebuild/flicker
+        // Sanitized — this arrives over a Realtime broadcast, not a trusted
+        // save path, so it's treated the same as untrusted pasted HTML.
+        const safeHtml = _sanitizePastedHtml(p.html || '');
+        if (root.innerHTML === safeHtml) return; // cursor-only update — skip DOM rebuild/flicker
         const focused = document.activeElement === root;
         const keepOff = focused ? selOffset(root) : null;
         applying = true;
-        root.innerHTML = p.html;
+        root.innerHTML = safeHtml;
         applying = false;
         if (keepOff != null) placeCaret(root, keepOff);
         cfg.onContentApplied && cfg.onContentApplied();
@@ -3625,7 +3631,7 @@
       let paraHtml;
       if (/<p[\s>]/i.test(submittedContent)) {
         const d = document.createElement('div');
-        d.innerHTML = submittedContent;
+        d.innerHTML = _sanitizePastedHtml(submittedContent);
         paraHtml = Array.from(d.querySelectorAll('p'))
           .map(p => '<p>' + escHtml(p.textContent || '') + '</p>')
           .join('');
@@ -3657,7 +3663,7 @@
       let blocks;
       if (isHtml) {
         const tmp = document.createElement('div');
-        tmp.innerHTML = raw;
+        tmp.innerHTML = _sanitizePastedHtml(raw);
         blocks = Array.from(tmp.querySelectorAll('p')).map(p => ({ type:'para', html: p.innerHTML }));
       } else {
         blocks = formatContent(raw);
@@ -3670,7 +3676,7 @@
       const snapParas = snapshot ? (() => {
         const sIsHtml = /<p[\s>]/i.test(snapshot);
         if (sIsHtml) {
-          const d = document.createElement('div'); d.innerHTML = snapshot;
+          const d = document.createElement('div'); d.innerHTML = _sanitizePastedHtml(snapshot);
           return Array.from(d.querySelectorAll('p')).map(p => p.innerHTML);
         }
         return formatContent(snapshot).filter(b => b.type === 'para').map(b => b.text);
