@@ -1,6 +1,13 @@
--- ── AFS Admin Functions ───────────────────────────────────────────────────
--- Run this in Supabase SQL Editor.
--- All functions are SECURITY DEFINER so they bypass RLS as the postgres role.
+-- Admin contract-management functions.
+-- Moved here from dashboard/contract-rls-fix.sql — that location sat inside
+-- the folder GitHub Pages serves live, so the (broken) function bodies were
+-- directly fetchable as a plain static file. This version also fixes the
+-- actual bug: every function below previously checked only
+-- `auth.uid() IS NULL` (i.e. "is anyone logged in"), not admin status, and
+-- was GRANTed to `authenticated` — meaning any writer account could call
+-- admin_delete_writer on any other writer, or dump every writer's PII via
+-- admin_get_contracts. Run this in Supabase SQL Editor to apply the fix;
+-- CREATE OR REPLACE is safe to run any number of times.
 
 -- ── 1. Admin: send a contract to a writer ──────────────────────────────
 CREATE OR REPLACE FUNCTION admin_send_contract(
@@ -13,8 +20,8 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  IF auth.uid() IS NULL THEN
-    RAISE EXCEPTION 'Authentication required';
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = true) THEN
+    RAISE EXCEPTION 'Admins only.';
   END IF;
 
   IF EXISTS (
@@ -42,8 +49,8 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  IF auth.uid() IS NULL THEN
-    RAISE EXCEPTION 'Authentication required';
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = true) THEN
+    RAISE EXCEPTION 'Admins only.';
   END IF;
 
   RETURN COALESCE(
@@ -84,8 +91,8 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  IF auth.uid() IS NULL THEN
-    RAISE EXCEPTION 'Authentication required';
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = true) THEN
+    RAISE EXCEPTION 'Admins only.';
   END IF;
 
   DELETE FROM contracts WHERE id = p_contract_id;
@@ -111,8 +118,8 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  IF auth.uid() IS NULL THEN
-    RAISE EXCEPTION 'Authentication required';
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = true) THEN
+    RAISE EXCEPTION 'Admins only.';
   END IF;
 
   IF p_writer_id = auth.uid() THEN

@@ -7,8 +7,12 @@
 //   SE_EMAIL         e.g. senior-editor@apexfictionstudio.com  (she never sees it)
 //   SE_PASSWORD      a long random string (the account's real password)
 // SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY / SUPABASE_ANON_KEY are auto-provided.
-// (SE_SETUP_TOKEN is no longer used — PIN setup is allowed whenever no PIN is
-//  set, which the admin controls via the "Reset SE PIN" button.)
+//
+// PIN "setup" is gated by a one-time token (public.se_setup_token, issued by
+// admin_reset_se_pin()) so it can't be claimed by whoever calls it first
+// during the window between a reset and Christine actually setting her new
+// PIN — "no se_pins row exists yet" alone is also true right after every
+// reset and on first deploy, so it isn't a safe gate on its own.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -43,6 +47,10 @@ async function verifyPin(pin: string, stored: string): Promise<boolean> {
   for (let i = 0; i < got.length; i++) diff |= got.charCodeAt(i) ^ hashB64.charCodeAt(i)
   return diff === 0
 }
+async function sha256Hex(input: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', enc.encode(input))
+  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('')
+}
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } })
@@ -59,7 +67,7 @@ Deno.serve(async (req) => {
     if (!seEmail || !sePassword) throw new Error('Senior Editor access is not configured yet.')
 
     const admin = createClient(url, service, { auth: { persistSession: false } })
-    const { action, pin } = await req.json().catch(() => ({}))
+    const { action, pin, token } = await req.json().catch(() => ({}))
 
     async function getSeUser() {
       const { data } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 })
@@ -93,14 +101,27 @@ Deno.serve(async (req) => {
       return json({ pinSet: !!row })
     }
 
-    // PIN creation. Allowed only when no PIN is set — which is the case on
-    // first setup and after the admin resets it. No code for her to type.
+    // PIN creation. Allowed only when no PIN is set (first setup, or after
+    // the admin resets it) AND a valid, unexpired one-time setup code is
+    // supplied — issued to the admin by admin_reset_se_pin() and relayed
+    // to her out-of-band, so a reset doesn't leave an open window for
+    // anyone else to claim the account first.
     if (action === 'setup') {
       if (!/^\d{4}$/.test(pin || '')) throw new Error('Your PIN must be 4 digits.')
+      if (!token || typeof token !== 'string') throw new Error('Enter the setup code your admin gave you.')
+      const { data: tokenRow } = await admin.from('se_setup_token').select('*').eq('id', true).maybeSingle()
+      if (!tokenRow?.token_hash || !tokenRow.expires_at || new Date(tokenRow.expires_at) < new Date()) {
+        throw new Error('That setup code has expired. Ask your admin to reset your PIN again.')
+      }
+      if ((await sha256Hex(token)) !== tokenRow.token_hash) {
+        throw new Error('That setup code is incorrect.')
+      }
       const u = await ensureSeUser()
       const { data: existing } = await admin.from('se_pins').select('user_id').eq('user_id', u.id).maybeSingle()
       if (existing) throw new Error('A PIN is already set. Sign in with it, or ask your admin to reset it.')
       await admin.from('se_pins').insert({ user_id: u.id, pin_hash: await hashPin(pin) })
+      // Single-use: invalidate the code immediately so it can't be replayed.
+      await admin.from('se_setup_token').update({ token_hash: null, expires_at: null }).eq('id', true)
       return json({ ok: true, session: await mintSession() })
     }
 

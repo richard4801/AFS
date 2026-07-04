@@ -2643,10 +2643,16 @@
     async function openChapter(idOrObj) {
       const chapter = (typeof idOrObj === 'object') ? idOrObj : _adminChapReg.get(idOrObj);
       if (!chapter) return;
+      const chapterId = chapter.id;
       selectedChapter = { ...chapter };
       // Straight into the real editor — no separate read-only view. Approve /
       // Request Revision and comments all live there now.
-      const { data: full } = await db.from('chapters').select('content, content_snapshot').eq('id', chapter.id).single();
+      const { data: full } = await db.from('chapters').select('content, content_snapshot').eq('id', chapterId).single();
+      // A newer call to openChapter may have taken over selectedChapter while
+      // this fetch was in flight (e.g. clicking a different chapter before
+      // this one loaded) — bail rather than overwrite it with stale content,
+      // which could otherwise get autosaved onto the wrong chapter's row.
+      if (!selectedChapter || selectedChapter.id !== chapterId) return;
       selectedChapter.content = full?.content ?? '';
       selectedChapter.content_snapshot = full?.content_snapshot ?? null;
       openAdminFSEditor();
@@ -4631,10 +4637,12 @@
       loadAdminPrompts();
     }
     async function resetSePin() {
-      if (!confirm('Reset your Senior Editor\'s PIN?\n\nHer current PIN stops working immediately. On her next visit she\'ll be asked to create a new one (she\'ll need the setup code again).')) return;
-      const { error } = await db.rpc('admin_reset_se_pin');
+      if (!confirm('Reset your Senior Editor\'s PIN?\n\nHer current PIN stops working immediately. On her next visit she\'ll need a one-time setup code (shown next) plus a new PIN.')) return;
+      const { data: setupCode, error } = await db.rpc('admin_reset_se_pin');
       if (error) { showToast('Error: ' + error.message); return; }
-      showToast('Senior Editor PIN reset. She can set a new one on her next visit.');
+      showToast('Senior Editor PIN reset.');
+      // Shown via prompt() so the code is selectable/copyable in every browser.
+      prompt('Give Christine this one-time setup code — it expires in 1 hour and only works once:', setupCode || '');
     }
 
     // ── SENIOR EDITOR NOTES (chapter recommendations, admin-only inbox) ──
