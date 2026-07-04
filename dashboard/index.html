@@ -6,6 +6,17 @@
     // browser visit — only when actually launched as the installed app.
     if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
       document.documentElement.classList.add('pwa-standalone');
+      // Splash plays once per real app launch — sessionStorage survives
+      // reloads and login/logout navigation within the same running app
+      // instance, but is wiped clean when the app is actually closed and
+      // reopened, so it naturally reappears on the next genuine launch.
+      try {
+        if (sessionStorage.getItem('afs_splash_shown')) {
+          document.documentElement.classList.add('pwa-splash-seen');
+        } else {
+          sessionStorage.setItem('afs_splash_shown', '1');
+        }
+      } catch (e) {}
     }
   </script>
   <meta charset="UTF-8"/>
@@ -48,7 +59,7 @@
     /* PWA splash — hidden by default; only shown when html.pwa-standalone
        is set (installed app launch, detected pre-paint in <head>). */
     #pwa-splash { display:none; position:fixed; inset:0; z-index:99999; align-items:center; justify-content:center; flex-direction:column; background:radial-gradient(ellipse at 50% 42%, #1C1A14 0%, #0D0B09 72%); opacity:1; transition:opacity .6s ease; }
-    html.pwa-standalone #pwa-splash { display:flex; }
+    html.pwa-standalone:not(.pwa-splash-seen) #pwa-splash { display:flex; }
     #pwa-splash.pwa-splash-hide { opacity:0; pointer-events:none; }
     /* The app's own AFS Publishing wordmark (identical markup to every login/
        dashboard header), unmodified, just recolored metallic. The loader is a
@@ -2519,6 +2530,7 @@
       $('chat-float').classList.add('hidden');
       if (_isMobile()) {
         _chatFullscreen = true;
+        document.body.style.overflow = 'hidden';
         const vvh = window.visualViewport?.height || window.innerHeight;
         const vvTop = window.visualViewport?.offsetTop || 0;
         panel.style.cssText = `position:fixed;left:0;right:0;top:${vvTop}px;height:${vvh}px;width:100%;border-radius:0;z-index:10000;display:flex;flex-direction:column;`;
@@ -2532,7 +2544,12 @@
             const msgs = $('chat-messages');
             if (msgs) setTimeout(() => { msgs.scrollTop = msgs.scrollHeight; }, 60);
           };
+          // Both events matter: 'resize' fires when the keyboard opens/closes
+          // (height changes), 'scroll' fires when just the offset shifts —
+          // missing either one lets the fixed panel drift out of sync with
+          // what's actually visible, exposing the page underneath.
           window.visualViewport.addEventListener('resize', panel._vvHandler);
+          window.visualViewport.addEventListener('scroll', panel._vvHandler);
         }
       } else {
         panel.style.cssText = 'position:fixed;right:24px;bottom:96px;width:340px;height:520px;border-radius:16px;display:flex;flex-direction:column;z-index:9998;';
@@ -2546,6 +2563,7 @@
       panel.style.cssText = '';
       panel.classList.add('hidden');
       $('chat-float').classList.remove('hidden');
+      document.body.style.overflow = '';
       // hide typing indicator
       const typing = $('chat-typing');
       if (typing) typing.style.display = 'none';
@@ -4577,13 +4595,16 @@
 
     // ── PWA SPLASH ───────────────────────────────────────────────────
     // Only relevant at all when html.pwa-standalone is set (installed app
-    // launch). Held deliberately — this is meant to feel unhurried, not
-    // like a flash — before fading once the page has actually loaded.
-    // The beam sweeps a random 4-7 times (never fewer than 4) so the hold
+    // launch) AND this is the first load of the current app session — see
+    // the pre-paint <head> script, which gates this via pwa-splash-seen so
+    // reloads and login/logout round trips never replay it, only a genuine
+    // relaunch after the app was fully closed does.
+    // The beam sweeps a random 4-5 times (never fewer than 4) so the hold
     // duration itself varies visit to visit instead of feeling mechanical.
-    if (document.documentElement.classList.contains('pwa-standalone')) {
+    if (document.documentElement.classList.contains('pwa-standalone')
+        && !document.documentElement.classList.contains('pwa-splash-seen')) {
       const BEAM_SWEEP_MS = 2600;
-      const _sweeps = 4 + Math.floor(Math.random() * 4); // 4, 5, 6, or 7
+      const _sweeps = 4 + Math.floor(Math.random() * 2); // 4 or 5
       const beamEl = document.querySelector('.pwa-splash-beam');
       if (beamEl) beamEl.style.animationIterationCount = String(_sweeps);
       const _splashShownAt = Date.now();
