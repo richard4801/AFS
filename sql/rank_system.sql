@@ -17,7 +17,7 @@ ALTER TABLE public.profiles
 
 -- 2. Trigger: automatically set bronze when a contract is signed
 CREATE OR REPLACE FUNCTION fn_bronze_on_contract_sign()
-RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
   IF NEW.status = 'signed' AND (OLD.status IS DISTINCT FROM 'signed') THEN
     UPDATE public.profiles
@@ -34,9 +34,13 @@ CREATE TRIGGER trg_bronze_on_sign
   FOR EACH ROW EXECUTE FUNCTION fn_bronze_on_contract_sign();
 
 -- 3. Admin function: manually set a writer's rank
+-- Admin-only — the caller must be an admin, not merely authenticated.
 CREATE OR REPLACE FUNCTION admin_set_writer_rank(p_user_id uuid, p_rank text)
-RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = true) THEN
+    RAISE EXCEPTION 'Admins only.';
+  END IF;
   IF p_rank NOT IN ('unranked', 'bronze', 'gold', 'platinum') THEN
     RAISE EXCEPTION 'Invalid rank: %', p_rank;
   END IF;

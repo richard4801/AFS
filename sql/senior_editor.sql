@@ -160,21 +160,51 @@ CREATE TABLE IF NOT EXISTS public.se_pins (
 -- The se-access Edge Function uses the service role, which bypasses RLS.
 ALTER TABLE public.se_pins ENABLE ROW LEVEL SECURITY;
 
+-- ── 8b. One-time PIN-setup token ─────────────────────────────────
+-- Gates the "setup" action so it can't be claimed by whoever calls it
+-- first during the window between a reset and Christine actually setting
+-- her new PIN — previously "no se_pins row exists yet" was the only
+-- check, which is also true immediately after every reset and on first
+-- deploy. Singleton row; RLS on with zero policies, same posture as
+-- se_pins (reachable only via the service role).
+CREATE TABLE IF NOT EXISTS public.se_setup_token (
+  id          boolean      PRIMARY KEY DEFAULT true CHECK (id = true),
+  token_hash  text,
+  expires_at  timestamptz,
+  updated_at  timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.se_setup_token ENABLE ROW LEVEL SECURITY;
+
 -- ── 9. Admin can reset the Senior Editor's PIN ──────────────────
 -- Also clears her onboarding flag, so the first-run spotlight tour
 -- automatically replays the next time she logs in with a new PIN
 -- (the tour gate in editor.html reads profiles.onboarded fresh on
--- every login, so no client-side change is needed for this).
-CREATE OR REPLACE FUNCTION public.admin_reset_se_pin()
-RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+-- every login, so no client-side change is needed for this), and issues
+-- a fresh one-time setup code that the admin must relay to her
+-- out-of-band before she can create her new PIN.
+DROP FUNCTION IF EXISTS public.admin_reset_se_pin();
+CREATE FUNCTION public.admin_reset_se_pin()
+RETURNS text LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_token text;
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = true) THEN
     RAISE EXCEPTION 'Admins only.';
   END IF;
+
   DELETE FROM public.se_pins
    WHERE user_id IN (SELECT id FROM public.profiles WHERE is_senior_editor = true);
+
   UPDATE public.profiles
      SET onboarded = false
    WHERE is_senior_editor = true;
+
+  v_token := encode(gen_random_bytes(16), 'hex');
+  INSERT INTO public.se_setup_token (id, token_hash, expires_at, updated_at)
+  VALUES (true, encode(digest(v_token, 'sha256'), 'hex'), now() + interval '1 hour', now())
+  ON CONFLICT (id) DO UPDATE
+    SET token_hash = EXCLUDED.token_hash, expires_at = EXCLUDED.expires_at, updated_at = now();
+
+  RETURN v_token;
 END;
 $$;

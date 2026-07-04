@@ -191,6 +191,9 @@
             </div>
             <span class="font-mono tracking-[0.3em] text-muted/40 text-sm select-none pointer-events-none">••••••</span>
           </div>
+          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Setup code from your admin</label>
+          <input id="create-token-input" type="text" autocomplete="off" spellcheck="false" placeholder="Paste the code your admin gave you"
+                 class="form-input w-full bg-obsidian border border-border text-white placeholder-muted/60 text-sm rounded-lg px-4 py-2.5 mb-4 font-mono tracking-wide"/>
           <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Choose your PIN</label>
           <div id="create-row" class="flex gap-2.5 justify-center mb-3"></div>
           <p id="create-hint" class="text-muted text-xs text-center mb-3">Enter 4 digits</p>
@@ -739,10 +742,16 @@
 
     async function submitCreate() {
       const pin = readDigits('create-row');
+      const token = ($('create-token-input')?.value || '').trim();
       $('create-error').classList.add('hidden');
       if (pin.length !== 4) return;
+      if (!token) {
+        $('create-error').textContent = 'Enter the setup code your admin gave you.';
+        $('create-error').classList.remove('hidden');
+        return;
+      }
       $('create-btn').disabled = true; $('create-label').textContent = 'Setting up…';
-      const r = await callSe('setup', { pin });
+      const r = await callSe('setup', { pin, token });
       if (r.ok && r.session) { await db.auth.setSession(r.session); enterDashboard(); return; }
       $('create-error').textContent = r.error === '__unreachable__' ? _friendlyErr(r.error) : (r.error || 'Could not set up your PIN.');
       $('create-error').classList.remove('hidden');
