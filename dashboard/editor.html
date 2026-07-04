@@ -104,9 +104,17 @@
     .fs-tool-btn.active{background:rgba(183,159,222,0.18);border-color:rgba(183,159,222,0.4);color:#B79FDE;}
     @keyframes typingBounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
     .typing-dot { width:7px;height:7px;border-radius:50%;background:rgba(183,159,222,0.65);animation:typingBounce 1.1s ease-in-out infinite;flex-shrink:0; }
-    .emoji-picker-pop { position:absolute; bottom:calc(100% + 8px); left:0; z-index:50; display:grid; grid-template-columns:repeat(8,1fr); gap:2px; width:224px; max-height:180px; overflow-y:auto; padding:8px; border-radius:14px; border:1px solid rgba(255,255,255,0.1); background:#1c1c1c; box-shadow:0 12px 32px rgba(0,0,0,0.5); }
-    .emoji-picker-btn { width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:16px;border-radius:6px;cursor:pointer;background:transparent;border:none;padding:0; }
-    .emoji-picker-btn:hover { background:rgba(255,255,255,0.08); }
+    /* WhatsApp-style emoji panel — lives in-flow at the bottom of the chat
+       (not a floating popover), so opening it shrinks the message list
+       instead of overlaying it, exactly like a keyboard swap would. */
+    .emoji-panel { flex-shrink:0; flex-direction:column; height:230px; border-top:1px solid rgba(255,255,255,0.08); background:#181818; }
+    .emoji-panel-grid { flex:1; overflow-y:auto; padding:8px 6px 4px; display:grid; grid-template-columns:repeat(8,1fr); gap:1px; align-content:start; }
+    .emoji-panel-cat-label { grid-column:1/-1; font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:rgba(255,255,255,0.35); padding:7px 2px 2px; }
+    .emoji-panel-btn { width:100%; aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:17px; border-radius:6px; cursor:pointer; background:transparent; border:none; padding:0; }
+    .emoji-panel-btn:hover { background:rgba(255,255,255,0.08); }
+    .emoji-panel-tabs { flex-shrink:0; display:flex; border-top:1px solid rgba(255,255,255,0.08); }
+    .emoji-panel-tab { flex:1; padding:7px 0; text-align:center; font-size:14px; background:transparent; border:none; cursor:pointer; opacity:.5; transition:opacity .15s,background .15s; }
+    .emoji-panel-tab:hover, .emoji-panel-tab.active { opacity:1; background:rgba(255,255,255,0.06); }
   </style>
 </head>
 <body class="bg-obsidian text-white font-sans antialiased" style="font-weight:300;">
@@ -568,6 +576,21 @@
         <span class="typing-dot" style="animation-delay:320ms"></span>
       </div>
     </div>
+    <!-- Emoji panel — swaps in place of the keyboard, WhatsApp-style -->
+    <div id="se-chat-emoji-panel" data-input-for="se-chat-input" style="display:none" class="emoji-panel">
+      <div class="emoji-panel-grid"></div>
+      <div class="emoji-panel-tabs">
+        <button type="button" class="emoji-panel-tab" data-cat="recent">🕒</button>
+        <button type="button" class="emoji-panel-tab" data-cat="smileys">😀</button>
+        <button type="button" class="emoji-panel-tab" data-cat="gestures">👋</button>
+        <button type="button" class="emoji-panel-tab" data-cat="hearts">❤️</button>
+        <button type="button" class="emoji-panel-tab" data-cat="animals">🐾</button>
+        <button type="button" class="emoji-panel-tab" data-cat="food">🍔</button>
+        <button type="button" class="emoji-panel-tab" data-cat="activities">⚽</button>
+        <button type="button" class="emoji-panel-tab" data-cat="objects">💡</button>
+        <button type="button" class="emoji-panel-tab" data-cat="symbols">✨</button>
+      </div>
+    </div>
     <!-- Reply / edit context strip -->
     <div id="se-chat-context" style="display:none" class="flex-shrink-0 flex items-center gap-2 px-3.5 py-2 border-t border-border/50 bg-charcoal/50">
       <div class="flex-1 min-w-0">
@@ -578,10 +601,7 @@
     </div>
     <div class="flex-shrink-0 border-t border-border/50 bg-charcoal/30 p-3" style="padding-bottom:max(12px,env(safe-area-inset-bottom))">
       <div class="flex items-end gap-2">
-        <div class="relative flex-shrink-0">
-          <button type="button" onclick="_toggleEmojiPicker('se-chat-emoji-picker')" class="emoji-picker-toggle w-9 h-9 flex items-center justify-center rounded-full text-lg text-muted hover:text-white hover:bg-charcoal transition-all">🙂</button>
-          <div id="se-chat-emoji-picker" data-input-for="se-chat-input" class="emoji-picker-pop" style="display:none"></div>
-        </div>
+        <button type="button" id="se-chat-emoji-toggle-btn" onclick="_toggleEmojiPanel('se-chat-emoji-panel','se-chat-input','se-chat-emoji-toggle-btn')" class="emoji-panel-toggle-btn w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-full text-lg text-muted hover:text-white hover:bg-charcoal transition-all">😊</button>
         <textarea id="se-chat-input" rows="1" placeholder="Message the admin…"
                   class="flex-1 bg-charcoal border border-border focus:border-[#B79FDE]/40 text-white placeholder-muted text-sm rounded-2xl px-4 py-2.5 resize-none transition-all duration-200 outline-none"
                   style="max-height:112px;overflow-y:auto"
@@ -1933,6 +1953,21 @@
         }
       } catch (e) { /* audio unavailable — silently skip */ }
     }
+    // Soft descending "pop" — plays once when a typing bubble first appears
+    // (not on every keystroke), the Messenger-style typing cue.
+    function _playTypingPop() {
+      try {
+        const ctx = _getAudioCtx();
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.type = 'sine';
+        o.frequency.setValueAtTime(720, ctx.currentTime);
+        o.frequency.exponentialRampToValueAtTime(340, ctx.currentTime + 0.09);
+        g.gain.setValueAtTime(0.05, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.11);
+        o.start(); o.stop(ctx.currentTime + 0.12);
+      } catch (e) {}
+    }
     document.addEventListener('click', () => _getAudioCtx(), { once: true });
     document.addEventListener('touchend', () => _getAudioCtx(), { once: true });
 
@@ -1941,6 +1976,7 @@
     function _showSeChatTyping() {
       const el = $('se-chat-typing');
       if (!el || !_seChatOpen) return;
+      if (el.style.display !== 'flex') _playTypingPop();
       el.style.display = 'flex';
       const msgs = $('se-chat-messages');
       if (msgs) msgs.scrollTop = msgs.scrollHeight;
@@ -1954,37 +1990,77 @@
       _seChatTypingThrottle = setTimeout(() => { _seChatTypingThrottle = null; }, 800);
     }
 
-    // ── Emoji picker — shared popover, used by every chat composer on this page ──
-    const EMOJI_QUICK_SET = ['😀','😂','😅','😊','😍','😘','😎','🤔','😉','🙂','😢','😭','😡','😱','🤗','🙌','👏','👍','👎','🙏','💪','✍️','📚','📝','🔥','✨','🎉','🎊','💯','❤️','💛','💜','🖤','🤍','☕','🌟','⭐','🚀','🙈','🤝','👀','💡','✅','❌','⏰','📅','💰','🏆'];
-    let _emojiPickerOpenFor = null;
-    function _toggleEmojiPicker(pickerId) {
-      const el = $(pickerId);
-      if (!el) return;
-      const wasOpen = el.style.display !== 'none';
-      document.querySelectorAll('.emoji-picker-pop').forEach(p => p.style.display = 'none');
-      if (wasOpen) { _emojiPickerOpenFor = null; return; }
-      if (!el.childElementCount) {
-        el.innerHTML = EMOJI_QUICK_SET.map(e => `<button type="button" onclick="_insertEmoji('${pickerId}','${e}')" class="emoji-picker-btn">${e}</button>`).join('');
-      }
-      el.style.display = 'grid';
-      _emojiPickerOpenFor = pickerId;
+    // ── Emoji panel — WhatsApp-style: lives in the compose bar itself and
+    // swaps places with the keyboard, instead of floating over the chat. ──
+    const EMOJI_CATEGORIES = [
+      { key:'smileys', icon:'😀', label:'Smileys & People', emoji:['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','😍','🥰','😘','😗','😙','😚','😋','😛','😝','😜','🤪','🤨','🧐','🤓','😎','🥸','🤩','😏','😒','😞','😔','😟','😕','🙁','😣','😖','😫','😩','🥺','😢','😭','😤','😠','😡','🤬','🤯','😳','🥵','🥶','😱','😨','😰','😥','😓','🤗','🤔','🤭','🤫','🤐'] },
+      { key:'gestures', icon:'👋', label:'Gestures', emoji:['👋','🤚','🖐','✋','🖖','👌','🤌','🤏','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','👇','☝️','👍','👎','✊','👊','🤛','🤜','👏','🙌','🤝','🙏','💪'] },
+      { key:'hearts', icon:'❤️', label:'Hearts', emoji:['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❣️','💕','💞','💓','💗','💖','💘','💝'] },
+      { key:'animals', icon:'🐾', label:'Animals & Nature', emoji:['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🙈','🙉','🙊','🐔','🐧','🐦','🐤','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🐛','🦋','🐌','🐞','🐢','🐍','🦎','🐙','🐬','🐳','🐘','🦒','🦓','🐄','🐑','🐕','🐩','🌸'] },
+      { key:'food', icon:'🍔', label:'Food & Drink', emoji:['🍏','🍎','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🫐','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🍆','🥑','🥦','🌽','🥕','🥐','🍞','🧀','🥚','🍳','🥞','🥓','🍔','🍟','🍕','🌭','🥪','🌮','🍿','🍩','🍪','🎂','🍰','🍫','🍬','🍭','☕','🍵','🥤','🍺','🍷','🥂'] },
+      { key:'activities', icon:'⚽', label:'Activities', emoji:['⚽','🏀','🏈','⚾','🎾','🏐','🏉','🎱','🏓','🏸','🥊','🥋','🎯','🎮','🎲','🧩','♟️','🎨','🎬','🎤','🎧','🎸','🥁','🎹','🎳','🛹','🚴','🏆','🥇'] },
+      { key:'objects', icon:'💡', label:'Objects', emoji:['⌚','📱','💻','⌨️','🖥','🖨','📷','📹','📞','📺','🔋','💡','🔦','🕯','📚','📖','📝','✏️','🖊','📌','📎','✂️','🔒','🔑','🎁','🛍','💰','💵','💳','📅','⏰','🔔'] },
+      { key:'symbols', icon:'✨', label:'Symbols', emoji:['✨','🔥','💯','💢','💫','💥','💦','💨','💣','💤','⚡','🌟','⭐','🌈','☀️','⛅','☁️','❄️','⚠️','✅','❌','❓','❗','🔴','🟢','🔵','🟡'] },
+    ];
+    function _emojiRecents() {
+      try { return JSON.parse(localStorage.getItem('afs_emoji_recents') || '[]'); } catch (e) { return []; }
     }
-    function _insertEmoji(pickerId, emoji) {
-      const picker = $(pickerId);
-      const input = picker && $(picker.dataset.inputFor);
-      if (!input) return;
-      const start = input.selectionStart ?? input.value.length;
-      const end = input.selectionEnd ?? input.value.length;
-      input.value = input.value.slice(0, start) + emoji + input.value.slice(end);
-      const pos = start + emoji.length;
-      input.setSelectionRange(pos, pos);
-      input.focus();
-      input.dispatchEvent(new Event('input', { bubbles: true }));
+    function _addEmojiRecent(emoji) {
+      try {
+        const r = [emoji, ..._emojiRecents().filter(e => e !== emoji)].slice(0, 24);
+        localStorage.setItem('afs_emoji_recents', JSON.stringify(r));
+      } catch (e) {}
+    }
+    function _buildEmojiPanel(panel) {
+      const grid = panel.querySelector('.emoji-panel-grid');
+      if (!grid) return;
+      const recents = _emojiRecents();
+      let html = '';
+      if (recents.length) {
+        html += `<div class="emoji-panel-cat-label" data-cat="recent">Recently Used</div>`
+              + recents.map(e => `<button type="button" class="emoji-panel-btn" data-emoji="${e}">${e}</button>`).join('');
+      }
+      EMOJI_CATEGORIES.forEach(cat => {
+        html += `<div class="emoji-panel-cat-label" data-cat="${cat.key}">${cat.label}</div>`
+              + cat.emoji.map(e => `<button type="button" class="emoji-panel-btn" data-emoji="${e}">${e}</button>`).join('');
+      });
+      grid.innerHTML = html;
+    }
+    function _toggleEmojiPanel(panelId, inputId, toggleBtnId) {
+      const panel = $(panelId), btn = $(toggleBtnId), input = $(inputId);
+      if (!panel) return;
+      const wasOpen = panel.style.display === 'flex';
+      document.querySelectorAll('.emoji-panel').forEach(p => { p.style.display = 'none'; });
+      document.querySelectorAll('.emoji-panel-toggle-btn').forEach(b => { b.textContent = '😊'; });
+      if (wasOpen) { input?.focus(); return; }
+      _buildEmojiPanel(panel);
+      panel.style.display = 'flex';
+      if (btn) btn.textContent = '⌨️';
+      input?.blur();
     }
     document.addEventListener('click', (e) => {
-      if (_emojiPickerOpenFor && !e.target.closest('.emoji-picker-pop') && !e.target.closest('.emoji-picker-toggle')) {
-        $(_emojiPickerOpenFor).style.display = 'none';
-        _emojiPickerOpenFor = null;
+      const emojiBtn = e.target.closest('.emoji-panel-btn');
+      if (emojiBtn) {
+        const panel = emojiBtn.closest('.emoji-panel');
+        const input = panel && $(panel.dataset.inputFor);
+        if (!input) return;
+        const emoji = emojiBtn.dataset.emoji;
+        const start = input.selectionStart ?? input.value.length;
+        const end = input.selectionEnd ?? input.value.length;
+        input.value = input.value.slice(0, start) + emoji + input.value.slice(end);
+        const pos = start + emoji.length;
+        input.setSelectionRange(pos, pos);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        _addEmojiRecent(emoji);
+        return;
+      }
+      const tabBtn = e.target.closest('.emoji-panel-tab');
+      if (tabBtn) {
+        const panel = tabBtn.closest('.emoji-panel');
+        const label = panel?.querySelector(`.emoji-panel-cat-label[data-cat="${tabBtn.dataset.cat}"]`);
+        label?.scrollIntoView({ block: 'start' });
+        panel.querySelectorAll('.emoji-panel-tab').forEach(t => t.classList.remove('active'));
+        tabBtn.classList.add('active');
       }
     });
 
