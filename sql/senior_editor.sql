@@ -199,9 +199,11 @@ BEGIN
      SET onboarded = false
    WHERE is_senior_editor = true;
 
-  v_token := encode(gen_random_bytes(16), 'hex');
+  -- Schema-qualified: Supabase installs pgcrypto into the `extensions`
+  -- schema, not `public`, and this function pins search_path to `public`.
+  v_token := encode(extensions.gen_random_bytes(16), 'hex');
   INSERT INTO public.se_setup_token (id, token_hash, expires_at, updated_at)
-  VALUES (true, encode(digest(v_token, 'sha256'), 'hex'), now() + interval '1 hour', now())
+  VALUES (true, encode(extensions.digest(v_token, 'sha256'), 'hex'), now() + interval '1 hour', now())
   ON CONFLICT (id) DO UPDATE
     SET token_hash = EXCLUDED.token_hash, expires_at = EXCLUDED.expires_at, updated_at = now();
 
