@@ -102,11 +102,6 @@
     .fs-tool-btn{padding:6px 11px;min-width:32px;min-height:32px;border-radius:5px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.6);background:transparent;border:1px solid transparent;cursor:pointer;transition:all .15s;line-height:1.8;}
     .fs-tool-btn:hover{background:rgba(255,255,255,0.07);border-color:rgba(255,255,255,0.12);color:#fff;}
     .fs-tool-btn.active{background:rgba(183,159,222,0.18);border-color:rgba(183,159,222,0.4);color:#B79FDE;}
-    @keyframes typingBounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
-    .typing-dot { width:7px;height:7px;border-radius:50%;background:rgba(183,159,222,0.65);animation:typingBounce 1.1s ease-in-out infinite;flex-shrink:0; }
-    .emoji-picker-pop { position:absolute; bottom:calc(100% + 8px); left:0; z-index:50; display:grid; grid-template-columns:repeat(8,1fr); gap:2px; width:224px; max-height:180px; overflow-y:auto; padding:8px; border-radius:14px; border:1px solid rgba(255,255,255,0.1); background:#1c1c1c; box-shadow:0 12px 32px rgba(0,0,0,0.5); }
-    .emoji-picker-btn { width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:16px;border-radius:6px;cursor:pointer;background:transparent;border:none;padding:0; }
-    .emoji-picker-btn:hover { background:rgba(255,255,255,0.08); }
   </style>
 </head>
 <body class="bg-obsidian text-white font-sans antialiased" style="font-weight:300;">
@@ -560,14 +555,6 @@
       <button onclick="_dismissSeChatPrivacyNotice()" class="flex-shrink-0 text-muted hover:text-white text-sm leading-none">×</button>
     </div>
     <div id="se-chat-messages" class="flex-1 overflow-y-auto thin-scroll p-4 flex flex-col gap-2"></div>
-    <!-- Typing indicator -->
-    <div id="se-chat-typing" style="display:none" class="flex-shrink-0 px-4 pb-2">
-      <div class="bg-[#252525] border border-border/40 rounded-2xl rounded-bl-sm px-3.5 py-3 flex items-center gap-1.5 w-fit">
-        <span class="typing-dot" style="animation-delay:0ms"></span>
-        <span class="typing-dot" style="animation-delay:160ms"></span>
-        <span class="typing-dot" style="animation-delay:320ms"></span>
-      </div>
-    </div>
     <!-- Reply / edit context strip -->
     <div id="se-chat-context" style="display:none" class="flex-shrink-0 flex items-center gap-2 px-3.5 py-2 border-t border-border/50 bg-charcoal/50">
       <div class="flex-1 min-w-0">
@@ -578,15 +565,11 @@
     </div>
     <div class="flex-shrink-0 border-t border-border/50 bg-charcoal/30 p-3" style="padding-bottom:max(12px,env(safe-area-inset-bottom))">
       <div class="flex items-end gap-2">
-        <div class="relative flex-shrink-0">
-          <button type="button" onclick="_toggleEmojiPicker('se-chat-emoji-picker')" class="emoji-picker-toggle w-9 h-9 flex items-center justify-center rounded-full text-lg text-muted hover:text-white hover:bg-charcoal transition-all">🙂</button>
-          <div id="se-chat-emoji-picker" data-input-for="se-chat-input" class="emoji-picker-pop" style="display:none"></div>
-        </div>
         <textarea id="se-chat-input" rows="1" placeholder="Message the admin…"
                   class="flex-1 bg-charcoal border border-border focus:border-[#B79FDE]/40 text-white placeholder-muted text-sm rounded-2xl px-4 py-2.5 resize-none transition-all duration-200 outline-none"
                   style="max-height:112px;overflow-y:auto"
                   onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendSeChatMessage()}"
-                  oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,112)+'px';_broadcastSeChatTyping()"></textarea>
+                  oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,112)+'px'"></textarea>
         <button onclick="sendSeChatMessage()"
                 class="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-full text-obsidian transition-all duration-200" style="background:#B79FDE">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="m3 3 3.5 9-3.5 9 19-9Z"/><path d="m6.5 12H22" fill="none" stroke="currentColor" stroke-width="2"/></svg>
@@ -1903,91 +1886,6 @@
     let _seChatEditingId   = null;
     const _isSeChatMobile  = () => window.innerWidth < 768;
 
-    // ── Chime ────────────────────────────────────────────────────────────────
-    let _audioCtx = null;
-    function _getAudioCtx() {
-      if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (_audioCtx.state === 'suspended') _audioCtx.resume();
-      return _audioCtx;
-    }
-    function _playChime(subtle) {
-      try {
-        const ctx = _getAudioCtx();
-        if (subtle) {
-          const o = ctx.createOscillator(), g = ctx.createGain();
-          o.connect(g); g.connect(ctx.destination);
-          o.frequency.value = 880; o.type = 'sine';
-          g.gain.setValueAtTime(0.06, ctx.currentTime);
-          g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
-          o.start(); o.stop(ctx.currentTime + 0.25);
-        } else {
-          [[660, 0], [880, 0.18]].forEach(([freq, delay]) => {
-            const o = ctx.createOscillator(), g = ctx.createGain();
-            o.connect(g); g.connect(ctx.destination);
-            o.frequency.value = freq; o.type = 'sine';
-            g.gain.setValueAtTime(0.001, ctx.currentTime + delay);
-            g.gain.exponentialRampToValueAtTime(0.09, ctx.currentTime + delay + 0.02);
-            g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.3);
-            o.start(ctx.currentTime + delay); o.stop(ctx.currentTime + delay + 0.3);
-          });
-        }
-      } catch (e) { /* audio unavailable — silently skip */ }
-    }
-    document.addEventListener('click', () => _getAudioCtx(), { once: true });
-    document.addEventListener('touchend', () => _getAudioCtx(), { once: true });
-
-    // ── Typing indicator ────────────────────────────────────────────────────
-    let _seChatTypingCh = null, _seChatTypingHideTimer = null, _seChatTypingThrottle = null;
-    function _showSeChatTyping() {
-      const el = $('se-chat-typing');
-      if (!el || !_seChatOpen) return;
-      el.style.display = 'flex';
-      const msgs = $('se-chat-messages');
-      if (msgs) msgs.scrollTop = msgs.scrollHeight;
-      clearTimeout(_seChatTypingHideTimer);
-      _seChatTypingHideTimer = setTimeout(() => { el.style.display = 'none'; }, 2500);
-    }
-    function _broadcastSeChatTyping() {
-      if (!_seChatTypingCh || !_seChatOpen) return;
-      if (_seChatTypingThrottle) return;
-      _seChatTypingCh.send({ type: 'broadcast', event: 'typing', payload: { role: 'senior_editor' } });
-      _seChatTypingThrottle = setTimeout(() => { _seChatTypingThrottle = null; }, 800);
-    }
-
-    // ── Emoji picker — shared popover, used by every chat composer on this page ──
-    const EMOJI_QUICK_SET = ['😀','😂','😅','😊','😍','😘','😎','🤔','😉','🙂','😢','😭','😡','😱','🤗','🙌','👏','👍','👎','🙏','💪','✍️','📚','📝','🔥','✨','🎉','🎊','💯','❤️','💛','💜','🖤','🤍','☕','🌟','⭐','🚀','🙈','🤝','👀','💡','✅','❌','⏰','📅','💰','🏆'];
-    let _emojiPickerOpenFor = null;
-    function _toggleEmojiPicker(pickerId) {
-      const el = $(pickerId);
-      if (!el) return;
-      const wasOpen = el.style.display !== 'none';
-      document.querySelectorAll('.emoji-picker-pop').forEach(p => p.style.display = 'none');
-      if (wasOpen) { _emojiPickerOpenFor = null; return; }
-      if (!el.childElementCount) {
-        el.innerHTML = EMOJI_QUICK_SET.map(e => `<button type="button" onclick="_insertEmoji('${pickerId}','${e}')" class="emoji-picker-btn">${e}</button>`).join('');
-      }
-      el.style.display = 'grid';
-      _emojiPickerOpenFor = pickerId;
-    }
-    function _insertEmoji(pickerId, emoji) {
-      const picker = $(pickerId);
-      const input = picker && $(picker.dataset.inputFor);
-      if (!input) return;
-      const start = input.selectionStart ?? input.value.length;
-      const end = input.selectionEnd ?? input.value.length;
-      input.value = input.value.slice(0, start) + emoji + input.value.slice(end);
-      const pos = start + emoji.length;
-      input.setSelectionRange(pos, pos);
-      input.focus();
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-    }
-    document.addEventListener('click', (e) => {
-      if (_emojiPickerOpenFor && !e.target.closest('.emoji-picker-pop') && !e.target.closest('.emoji-picker-toggle')) {
-        $(_emojiPickerOpenFor).style.display = 'none';
-        _emojiPickerOpenFor = null;
-      }
-    });
-
     async function initSeChat(userId) {
       _seChatBindGestures('se-chat-messages');
       _initSeChatPresence(userId);
@@ -2006,8 +1904,8 @@
         }, payload => {
           if (_seChatMessages.some(m => m.id === payload.new.id)) return;
           _seChatMessages.push(payload.new);
-          if (_seChatOpen) { _renderSeChatMessages(); _markSeChatRead(); _playChime(true); }
-          else { _seChatUnread++; _updateSeChatBadge(); _playChime(false); }
+          if (_seChatOpen) { _renderSeChatMessages(); _markSeChatRead(); }
+          else { _seChatUnread++; _updateSeChatBadge(); }
         })
         .on('postgres_changes', {
           // Catches read receipts on messages I sent (sender=me).
@@ -2024,14 +1922,6 @@
         }, payload => {
           const idx = _seChatMessages.findIndex(m => m.id === payload.new.id);
           if (idx !== -1) { _seChatMessages[idx] = payload.new; if (_seChatOpen) _renderSeChatMessages(); }
-        })
-        .subscribe();
-
-      // Typing channel — shared with the admin's side (sorted IDs)
-      const seTypingCh = 'typing-se-' + [userId, _seChatAdminId].sort().join('-');
-      _seChatTypingCh = db.channel(seTypingCh)
-        .on('broadcast', { event: 'typing' }, ({ payload }) => {
-          if (payload?.role === 'admin') _showSeChatTyping();
         })
         .subscribe();
 
