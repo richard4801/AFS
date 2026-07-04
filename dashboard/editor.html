@@ -1989,6 +1989,7 @@
       $('se-chat-float').classList.add('hidden');
       if (_isSeChatMobile()) {
         _seChatFullscreen = true;
+        document.body.style.overflow = 'hidden';
         const vvh = window.visualViewport?.height || window.innerHeight;
         const vvTop = window.visualViewport?.offsetTop || 0;
         panel.style.cssText = `position:fixed;left:0;right:0;top:${vvTop}px;height:${vvh}px;width:100%;border-radius:0;z-index:10000;display:flex;flex-direction:column;`;
@@ -2000,7 +2001,12 @@
             const msgs = $('se-chat-messages');
             if (msgs) setTimeout(() => { msgs.scrollTop = msgs.scrollHeight; }, 60);
           };
+          // Both events matter: 'resize' fires when the keyboard opens/closes
+          // (height changes), 'scroll' fires when just the offset shifts —
+          // missing either one lets the fixed panel drift out of sync with
+          // what's actually visible, exposing the page underneath.
           window.visualViewport.addEventListener('resize', panel._vvHandler);
+          window.visualViewport.addEventListener('scroll', panel._vvHandler);
         }
       } else {
         panel.style.cssText = 'position:fixed;right:24px;bottom:96px;width:340px;height:520px;border-radius:16px;display:flex;flex-direction:column;z-index:9998;';
@@ -2014,6 +2020,7 @@
       panel.style.cssText = '';
       panel.classList.add('hidden');
       $('se-chat-float').classList.remove('hidden');
+      document.body.style.overflow = '';
     }
 
     function toggleSeChatFullscreen() {
