@@ -113,6 +113,9 @@
     .fs-tool-btn{padding:6px 11px;min-width:32px;min-height:32px;border-radius:5px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.6);background:transparent;border:1px solid transparent;cursor:pointer;transition:all .15s;line-height:1.8;}
     .fs-tool-btn:hover{background:rgba(255,255,255,0.07);border-color:rgba(255,255,255,0.12);color:#fff;}
     .fs-tool-btn.active{background:rgba(183,159,222,0.18);border-color:rgba(183,159,222,0.4);color:#B79FDE;}
+    /* Stop scroll-chaining to the page behind once the message list hits
+       its own top/bottom — belt-and-suspenders alongside the body lock. */
+    #se-chat-messages { overscroll-behavior: contain; }
   </style>
 </head>
 <body class="bg-obsidian text-white font-sans antialiased" style="font-weight:300;">
@@ -1897,6 +1900,37 @@
     let _seChatEditingId   = null;
     const _isSeChatMobile  = () => window.innerWidth < 768;
 
+    // Plain `overflow:hidden` on body isn't reliable on mobile — touch-scroll
+    // chaining/rubber-banding can still move the page behind a fixed overlay.
+    // Taking body itself out of the scrollable flow (position:fixed) is the
+    // robust fix; the scroll position is preserved via a negative top offset
+    // and restored on unlock.
+    function _lockBodyScroll() {
+      if (document.body.dataset.scrollLocked === '1') return;
+      const scrollY = window.scrollY || window.pageYOffset || 0;
+      document.body.dataset.scrollLocked = '1';
+      document.body.dataset.scrollLockY = String(scrollY);
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.left = '0';
+      document.body.style.right = '0';
+      document.body.style.width = '100%';
+      document.body.style.overflow = 'hidden';
+    }
+    function _unlockBodyScroll() {
+      if (document.body.dataset.scrollLocked !== '1') return;
+      const scrollY = parseInt(document.body.dataset.scrollLockY || '0', 10);
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.width = '';
+      document.body.style.overflow = '';
+      delete document.body.dataset.scrollLocked;
+      delete document.body.dataset.scrollLockY;
+      window.scrollTo(0, scrollY);
+    }
+
     async function initSeChat(userId) {
       _seChatBindGestures('se-chat-messages');
       _initSeChatPresence(userId);
@@ -1989,7 +2023,7 @@
       $('se-chat-float').classList.add('hidden');
       if (_isSeChatMobile()) {
         _seChatFullscreen = true;
-        document.body.style.overflow = 'hidden';
+        _lockBodyScroll();
         const vvh = window.visualViewport?.height || window.innerHeight;
         const vvTop = window.visualViewport?.offsetTop || 0;
         panel.style.cssText = `position:fixed;left:0;right:0;top:${vvTop}px;height:${vvh}px;width:100%;border-radius:0;z-index:10000;display:flex;flex-direction:column;`;
@@ -2020,7 +2054,7 @@
       panel.style.cssText = '';
       panel.classList.add('hidden');
       $('se-chat-float').classList.remove('hidden');
-      document.body.style.overflow = '';
+      _unlockBodyScroll();
     }
 
     function toggleSeChatFullscreen() {

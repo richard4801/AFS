@@ -127,6 +127,9 @@
     @keyframes typingBounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
     .typing-dot { width:7px;height:7px;border-radius:50%;background:rgba(106,106,106,0.65);animation:typingBounce 1.1s ease-in-out infinite;flex-shrink:0; }
     @media (max-width:767px) { #chat-fs-btn { display:none !important; } }
+    /* Stop scroll-chaining to the page behind once the message list hits
+       its own top/bottom — belt-and-suspenders alongside the body lock. */
+    #chat-messages { overscroll-behavior: contain; }
 
     /* ── Chat Watermark ───────────────────────────────────────────────── */
     .chat-watermark {
@@ -2525,12 +2528,43 @@
     let _chatFullscreen = false;
     const _isMobile = () => window.innerWidth < 768;
 
+    // Plain `overflow:hidden` on body isn't reliable on mobile — touch-scroll
+    // chaining/rubber-banding can still move the page behind a fixed overlay.
+    // Taking body itself out of the scrollable flow (position:fixed) is the
+    // robust fix; the scroll position is preserved via a negative top offset
+    // and restored on unlock.
+    function _lockBodyScroll() {
+      if (document.body.dataset.scrollLocked === '1') return;
+      const scrollY = window.scrollY || window.pageYOffset || 0;
+      document.body.dataset.scrollLocked = '1';
+      document.body.dataset.scrollLockY = String(scrollY);
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.left = '0';
+      document.body.style.right = '0';
+      document.body.style.width = '100%';
+      document.body.style.overflow = 'hidden';
+    }
+    function _unlockBodyScroll() {
+      if (document.body.dataset.scrollLocked !== '1') return;
+      const scrollY = parseInt(document.body.dataset.scrollLockY || '0', 10);
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.width = '';
+      document.body.style.overflow = '';
+      delete document.body.dataset.scrollLocked;
+      delete document.body.dataset.scrollLockY;
+      window.scrollTo(0, scrollY);
+    }
+
     function _openChatPanel() {
       const panel = $('chat-panel');
       $('chat-float').classList.add('hidden');
       if (_isMobile()) {
         _chatFullscreen = true;
-        document.body.style.overflow = 'hidden';
+        _lockBodyScroll();
         const vvh = window.visualViewport?.height || window.innerHeight;
         const vvTop = window.visualViewport?.offsetTop || 0;
         panel.style.cssText = `position:fixed;left:0;right:0;top:${vvTop}px;height:${vvh}px;width:100%;border-radius:0;z-index:10000;display:flex;flex-direction:column;`;
@@ -2563,7 +2597,7 @@
       panel.style.cssText = '';
       panel.classList.add('hidden');
       $('chat-float').classList.remove('hidden');
-      document.body.style.overflow = '';
+      _unlockBodyScroll();
       // hide typing indicator
       const typing = $('chat-typing');
       if (typing) typing.style.display = 'none';
