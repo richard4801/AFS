@@ -3551,7 +3551,12 @@
         }
         m.style.transform = `translate(${rect.left - wr.left}px, ${rect.top - wr.top}px)`;
         m.style.setProperty('--cc', peer.color || '#C9A84C');
-        m.querySelector('.collab-caret-flag').textContent = peer.name || (peer.role === 'admin' ? 'Editor' : 'Writer');
+        // Senior Editor identity is always masked here too, matching
+        // renderPresence() — this label was previously built straight from
+        // the raw broadcast payload, leaking her real name via the cursor
+        // the instant it appeared, even though the presence chip masks it.
+        m.querySelector('.collab-caret-flag').textContent =
+          peer.role === 'senior_editor' ? 'God Mother' : (peer.name || (peer.role === 'admin' ? 'Editor' : 'Writer'));
         m.querySelector('.collab-caret-bar').style.height = (rect.height || 20) + 'px';
       }
       function followTo(id) {
