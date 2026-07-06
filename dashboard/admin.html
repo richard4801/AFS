@@ -288,8 +288,8 @@
         </div>
         <div id="brief-error" class="hidden text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2"></div>
         <div class="flex gap-3 pt-1">
-          <button onclick="saveBrief()"
-                  class="flex-1 px-4 py-2.5 bg-crimson/15 hover:bg-crimson/25 border border-crimson/35 hover:border-crimson/55 text-crimson-light text-sm font-semibold rounded-lg transition-all duration-200">
+          <button id="brief-save-btn" onclick="saveBrief()"
+                  class="flex-1 px-4 py-2.5 bg-crimson/15 hover:bg-crimson/25 border border-crimson/35 hover:border-crimson/55 text-crimson-light text-sm font-semibold rounded-lg transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed">
             Save Brief
           </button>
           <button onclick="closeBriefModal()"
@@ -1297,8 +1297,13 @@
     // chaining/rubber-banding can still move the page behind a fixed overlay.
     // Taking body itself out of the scrollable flow (position:fixed) is the
     // robust fix; the scroll position is preserved via a negative top offset
-    // and restored on unlock. Shared by both chat widgets on this page.
+    // and restored on unlock. Shared by both chat widgets on this page — a
+    // reference count (not a boolean) so if both happen to be open in mobile
+    // fullscreen at once, closing one doesn't unlock the page out from under
+    // the other that's still open.
+    let _bodyScrollLockCount = 0;
     function _lockBodyScroll() {
+      _bodyScrollLockCount++;
       if (document.body.dataset.scrollLocked === '1') return;
       const scrollY = window.scrollY || window.pageYOffset || 0;
       document.body.dataset.scrollLocked = '1';
@@ -1311,6 +1316,8 @@
       document.body.style.overflow = 'hidden';
     }
     function _unlockBodyScroll() {
+      _bodyScrollLockCount = Math.max(0, _bodyScrollLockCount - 1);
+      if (_bodyScrollLockCount > 0) return;
       if (document.body.dataset.scrollLocked !== '1') return;
       const scrollY = parseInt(document.body.dataset.scrollLockY || '0', 10);
       document.body.style.position = '';
@@ -2078,6 +2085,8 @@
         .select('id, title, description, cover_url, status, is_signed, admin_notes, created_at, views, likes, library_count, locked_from_chapter')
         .eq('author_id', writerId)
         .order('created_at', { ascending: false });
+      // Discard if a different writer was selected while this was in flight.
+      if (selectedWriter?.id !== writerId) return;
       renderWriterBooks(books ?? []);
     }
 
@@ -2143,15 +2152,22 @@
         }
       }
 
-      // Fetch last 3 months of earnings in one query
+      // Fetch last 3 months of earnings in one query. Built from local
+      // getFullYear()/getMonth() only — no toISOString() round-trip, which
+      // converts to UTC and could mislabel "this month" as last month for
+      // part of the day near midnight in positive-UTC-offset timezones.
       const months = [0, 1, 2].map(i => {
         const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i);
-        return d.toISOString().slice(0, 7);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       }).reverse(); // oldest → newest
 
       const since = months[0] + '-01';
       const { data: earningsHistory } = await db.from('earnings')
         .select('date, amount_earned').eq('author_id', writerId).gte('date', since);
+
+      // A different writer may have been selected while this was in flight —
+      // discard the stale response rather than render it over the new one.
+      if (selectedWriter?.id !== writerId) return;
 
       const monthTotals = months.map(m => ({
         month: m,
@@ -2285,6 +2301,10 @@
         db.from('chapters').select('id, chapter_number, title, word_count, status').eq('book_id', book.id).order('chapter_number', { ascending: false }),
         loadEditRequestsForBook(book.id),
       ]);
+      // A different book may have been selected while this was in flight —
+      // discard the stale response (and skip resubscribing below) rather
+      // than render/subscribe over the newer selection.
+      if (selectedBook?.id !== book.id) return;
       _cachedChapters = chapters ?? [];
       renderInlineChapterList(_cachedChapters);
       renderTotalWords(_cachedChapters);
@@ -3248,6 +3268,11 @@
     }
     async function loadChapterCommentsUiAdmin(chapterId) {
       const { data, error } = await db.rpc('get_chapter_comments', { p_chapter_id: chapterId });
+      // A different chapter may be open now (editor closed/reopened, or a
+      // burst of realtime-triggered reloads landed out of order) — discard
+      // the stale response rather than render one chapter's comments over
+      // another's.
+      if (_acmtChapterId !== chapterId) return;
       _acmtComments = error ? [] : (data ?? []);
       const root = $('admin-fs-content');
       _acmtLastText = root ? _plainText(root) : '';
@@ -3372,8 +3397,18 @@
       _adminAsUnsaved = false;
       clearTimeout(_adminAsTimer);
       _adminAsSetStatus(null);
+      // openAdminFSEditor() can be called again while already open (e.g. an
+      // "Edit" affordance clicked mid-session) — that's a re-render of the
+      // same session, not a second one, so only acquire the shared lock on
+      // an actual hidden→visible transition (paired 1:1 with adminFsClose()).
+      const _adminFsWasHidden = $('admin-fullscreen-editor').classList.contains('hidden');
       $('admin-fullscreen-editor').classList.remove('hidden');
-      document.body.style.overflow = 'hidden';
+      if (_adminFsWasHidden) _lockBodyScroll();
+      // Actually close each chat (not just hide its button) if it was open,
+      // so its own mobile-fullscreen lock/state is released properly —
+      // then re-hide the button regardless, since neither should float over
+      // the fullscreen editor even if it wasn't open to begin with.
+      if (_adminChatOpen) closeAdminChat();
       $('admin-chat-float')?.classList.add('hidden');
       if (_seChatOpen) closeSeChat();
       $('se-chat-float')?.classList.add('hidden');
@@ -3405,10 +3440,11 @@
       _hideCommentTriggerAdmin();
       _acmtChapterId = null; _acmtComments = [];
       if (_adminFsVVUnbind) { _adminFsVVUnbind(); _adminFsVVUnbind = null; }
+      const _adminFsWasVisible = !$('admin-fullscreen-editor').classList.contains('hidden');
       $('admin-fullscreen-editor').classList.add('hidden');
       $('admin-chat-float')?.classList.remove('hidden');
       $('se-chat-float')?.classList.remove('hidden');
-      document.body.style.overflow = '';
+      if (_adminFsWasVisible) _unlockBodyScroll();
     }
 
     function adminExecFmt(cmd) {
@@ -4030,17 +4066,23 @@
     async function confirmDeleteBook() {
       if (!selectedBook) return;
       const title = selectedBook.title;
+      const deletingBookId = selectedBook.id;
+      const deletingWriterId = selectedWriter?.id;
       $('delete-book-modal').classList.add('hidden');
-      const { error } = await db.from('books').delete().eq('id', selectedBook.id);
+      const { error } = await db.from('books').delete().eq('id', deletingBookId);
       if (error) { showToast('Error: ' + error.message); return; }
       showToast(`"${title}" deleted.`);
+      // The admin may have navigated to a different book/writer while this
+      // delete was in flight — only clobber the current view/selection if
+      // they're still looking at the book that was actually deleted.
+      if (selectedBook?.id !== deletingBookId) return;
       selectedBook = null; selectedChapter = null;
       showView('view-writer-books');
-      if (selectedWriter) {
+      if (selectedWriter && selectedWriter.id === deletingWriterId) {
         $('writer-books-grid').innerHTML = '<div class="skeleton h-64 rounded-2xl col-span-full"></div>';
         const { data: books } = await db.from('books')
           .select('id, title, description, cover_url, status, is_signed, admin_notes, created_at')
-          .eq('author_id', selectedWriter.id).order('created_at', { ascending: false });
+          .eq('author_id', deletingWriterId).order('created_at', { ascending: false });
         renderWriterBooks(books ?? []);
       }
     }
@@ -4328,13 +4370,24 @@
 
     function closeBriefModal() { $('brief-modal').classList.add('hidden'); }
 
+    let _briefSaveInFlight = false;
     async function saveBrief() {
       const writerId = selectedWriter?.id;
       if (!writerId) return;
       const title = $('brief-title').value.trim();
       $('brief-error').classList.add('hidden');
       if (!title) { $('brief-error').textContent = 'Title is required.'; $('brief-error').classList.remove('hidden'); return; }
+      // Guard against a double-click / slow-network double-submit creating
+      // two active briefs for the same writer.
+      if (_briefSaveInFlight) return;
+      _briefSaveInFlight = true;
+      const _btn = $('brief-save-btn'); if (_btn) _btn.disabled = true;
+      const _fail = (msg) => {
+        $('brief-error').textContent = msg; $('brief-error').classList.remove('hidden');
+        _briefSaveInFlight = false; if (_btn) _btn.disabled = false;
+      };
       const { data: { session } } = await db.auth.getSession();
+      if (!session?.user?.id) { _fail('Your session expired — please refresh and try again.'); return; }
       const payload = {
         writer_id: writerId, created_by: session.user.id, title,
         genre:                $('brief-genre').value.trim()        || 'Werewolf Romance',
@@ -4351,7 +4404,8 @@
       } else {
         ({ error } = await db.from('briefs').insert(payload));
       }
-      if (error) { $('brief-error').textContent = error.message; $('brief-error').classList.remove('hidden'); return; }
+      if (error) { _fail(error.message); return; }
+      _briefSaveInFlight = false; if (_btn) _btn.disabled = false;
       closeBriefModal();
       showToast(_editingBriefId ? 'Brief updated ✓' : 'Brief assigned ✓');
 
@@ -5154,6 +5208,10 @@
         .or('and(sender_id.eq.' + currentUserId + ',recipient_id.eq.' + _seChatPeerId + '),and(sender_id.eq.' + _seChatPeerId + ',recipient_id.eq.' + currentUserId + ')')
         .order('created_at', { ascending: true })
         .limit(200);
+      // Closed (and possibly reopened) while this was in flight — skip
+      // rather than render a stale snapshot into a panel that's no longer
+      // (or not yet freshly) open.
+      if (!_seChatOpen) return;
       _seChatMessages = data ?? [];
       _renderSeChatMessages();
     }

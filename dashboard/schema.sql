@@ -39,6 +39,27 @@ do $$ begin
   alter table public.profiles add column is_admin boolean not null default false;
 exception when duplicate_column then null; end $$;
 
+-- Name lock, enforced server-side: once a writer's name is set, only an
+-- admin can change it. (The client-side "disabled" input was the only
+-- gate before this — trivially bypassed via devtools. See
+-- sql/fix_writer_name_lock.sql for the standalone migration.)
+CREATE OR REPLACE FUNCTION public.enforce_writer_name_lock()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF NEW.name IS DISTINCT FROM OLD.name
+     AND COALESCE(OLD.name, '') <> ''
+     AND NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = true)
+  THEN
+    NEW.name := OLD.name;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS trg_enforce_writer_name_lock ON public.profiles;
+CREATE TRIGGER trg_enforce_writer_name_lock
+  BEFORE UPDATE ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION public.enforce_writer_name_lock();
+
 
 -- ── 2. BOOKS ─────────────────────────────────────────────────
 
