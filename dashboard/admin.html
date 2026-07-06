@@ -89,7 +89,7 @@
     .acmt-quote{font-size:11px;color:rgba(201,168,76,0.85);border-left:2px solid rgba(201,168,76,0.4);padding-left:8px;margin-bottom:7px;line-height:1.5;font-style:italic;}
     @keyframes typingBounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
     .typing-dot { width:7px;height:7px;border-radius:50%;background:rgba(106,106,106,0.65);animation:typingBounce 1.1s ease-in-out infinite;flex-shrink:0; }
-    @media (max-width:767px) { #admin-chat-fs-btn { display:none !important; } }
+    @media (max-width:767px) { #admin-chat-fs-btn, #se-chat-fs-btn { display:none !important; } }
     /* Stop scroll-chaining to the page behind once a message list hits its
        own top/bottom — belt-and-suspenders alongside the body lock. */
     #admin-chat-messages, #se-chat-messages { overscroll-behavior: contain; }
@@ -223,8 +223,8 @@
         </div>
         <div id="payout-error" class="hidden text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2"></div>
         <div class="flex gap-3 pt-1">
-          <button onclick="recordPayout()"
-                  class="flex-1 px-4 py-2.5 bg-gold/15 hover:bg-gold/25 border border-gold/35 hover:border-gold/55 text-gold text-sm font-semibold rounded-lg transition-all duration-200">
+          <button id="payout-submit-btn" onclick="recordPayout()"
+                  class="flex-1 px-4 py-2.5 bg-gold/15 hover:bg-gold/25 border border-gold/35 hover:border-gold/55 text-gold text-sm font-semibold rounded-lg transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed">
             Record Payout
           </button>
           <button onclick="closePayoutModal()"
@@ -1276,6 +1276,13 @@
     const $       = id => document.getElementById(id);
     const fmt     = n  => '$' + Number(n ?? 0).toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
     const escHtml = s  => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    // Only allow http(s) URLs into an href — blocks javascript:/data:/etc.
+    // schemes an applicant could otherwise submit, which would execute on
+    // click. Returns '#' for anything that isn't a plain http(s) URL.
+    const safeHref = s => {
+      const u = String(s || '').trim();
+      return /^https?:\/\//i.test(u) ? escHtml(u) : '#';
+    };
 
     // ── ADMIN CHAT ────────────────────────────────────────────────────
     let _adminChatOpen     = false;
@@ -2047,8 +2054,11 @@
       if (wInitEl) wInitEl.textContent = (writer.name || 'W')[0].toUpperCase();
       if (wNameEl) wNameEl.textContent = writer.name || 'Writer';
       _updateAdminChatWriterStatus();
-      // Close any open chat panel when switching writers
-      if (_adminChatOpen) { _adminChatOpen = false; $('admin-chat-panel').classList.add('hidden'); }
+      // Close any open chat panel when switching writers — via the real
+      // close path so the mobile body-scroll lock is released and the
+      // floating chat button is restored (a bare hide+flag skipped both,
+      // which could leave the whole page frozen and the FAB gone).
+      if (_adminChatOpen) closeAdminChat();
       $('writer-books-grid').innerHTML = '<div class="skeleton h-64 rounded-2xl col-span-full"></div>';
       updateRankTracker(writer.id);
       await _loadWriterBooksList(writer.id);
@@ -4264,6 +4274,7 @@
 
     function closePayoutModal() { $('payout-modal').classList.add('hidden'); }
 
+    let _payoutInFlight = false;
     async function recordPayout() {
       const amount = parseFloat($('payout-amount').value);
       const period = $('payout-period').value.trim();
@@ -4273,11 +4284,22 @@
         $('payout-error').textContent = 'Amount and period are required.';
         $('payout-error').classList.remove('hidden'); return;
       }
+      // Guard against a double-click / slow-network double-submit recording
+      // the same payout twice.
+      if (_payoutInFlight) return;
+      _payoutInFlight = true;
+      const _btn = $('payout-submit-btn'); if (_btn) _btn.disabled = true;
+      const _fail = (msg) => {
+        $('payout-error').textContent = msg; $('payout-error').classList.remove('hidden');
+        _payoutInFlight = false; if (_btn) _btn.disabled = false;
+      };
       const { data: { session } } = await db.auth.getSession();
+      if (!session?.user?.id) { _fail('Your session expired — please refresh and try again.'); return; }
       const { error } = await db.from('payouts').insert({
         writer_id: _selectedPayoutWriterId, amount, period, notes, paid_by: session.user.id,
       });
-      if (error) { $('payout-error').textContent = error.message; $('payout-error').classList.remove('hidden'); return; }
+      if (error) { _fail(error.message); return; }
+      _payoutInFlight = false; if (_btn) _btn.disabled = false;
       closePayoutModal();
       showToast('Payout recorded ✓');
       const writer = allProfiles.find(p => p.id === _selectedPayoutWriterId);
@@ -4468,7 +4490,7 @@
           </div>` : ''}
           ${app.sample_chapters_url ? `<div>
             <p class="text-[10px] font-semibold tracking-[0.16em] uppercase text-muted mb-2">Writing Sample — Chapters 1–3</p>
-            <a href="${escHtml(app.sample_chapters_url)}" target="_blank" rel="noopener noreferrer"
+            <a href="${safeHref(app.sample_chapters_url)}" target="_blank" rel="noopener noreferrer"
                class="inline-flex items-center gap-2 text-gold text-sm hover:underline">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Download writing sample
@@ -5516,6 +5538,7 @@
 
       // Send branded contract email via Edge Function
       const { data: { session } } = await db.auth.getSession();
+      if (!session?.access_token) { showToast('Contract recorded, but your session expired before the email could send — refresh and resend.'); return; }
       const notifRes = await fetch(`${SUPABASE_URL}/functions/v1/send-notification`, {
         method: 'POST',
         headers: {
@@ -5544,16 +5567,22 @@
 
     function showContractDetail(writer, contract) {
       if (!contract || contract.status === 'none' || !contract) {
-        // Show send option in main area
+        // Show send option in main area. The button's handler is wired up
+        // programmatically (closing over the writer object) rather than via
+        // an inline onclick with the writer's name/email interpolated into a
+        // JS-string literal — a name or email containing a single quote would
+        // otherwise break out of that string and inject arbitrary script.
         $('contracts-list').innerHTML =
           '<div class="rounded-xl border border-border bg-surface p-6">'
           + '<h3 class="text-white font-medium mb-1">' + escHtml(writer.name || writer.email) + '</h3>'
           + '<p class="text-muted text-sm mb-4">No contract sent yet.</p>'
-          + '<button onclick="sendContractToWriter(\'' + writer.id + '\',\'' + escHtml(writer.name || '') + '\',\'' + writer.email + '\')"'
+          + '<button id="contract-send-btn"'
           + ' class="inline-flex items-center gap-2 px-4 py-2 bg-gold/10 hover:bg-gold/20 border border-gold/30 hover:border-gold/60 text-gold text-xs font-semibold rounded-full transition-all duration-200">'
           + 'Send Contract'
           + '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 3 3.5 9-3.5 9 19-9Z"/></svg>'
           + '</button></div>';
+        const sendBtn = $('contract-send-btn');
+        if (sendBtn) sendBtn.addEventListener('click', () => sendContractToWriter(writer.id, writer.name || '', writer.email));
         $('contracts-empty').classList.add('hidden');
         return;
       }
