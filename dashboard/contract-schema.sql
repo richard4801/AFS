@@ -23,11 +23,15 @@ alter table public.contracts enable row level security;
 create policy "writer_select_own_contract" on public.contracts
   for select using (auth.uid() = writer_id);
 
--- Writers can update their own pending contract (signing it)
-create policy "writer_sign_own_contract" on public.contracts
-  for update
-  using  (auth.uid() = writer_id and status = 'pending')
-  with check (auth.uid() = writer_id);
+-- SUPERSEDED: writers used to get a raw UPDATE policy here to sign their
+-- own contract, but WITH CHECK (auth.uid() = writer_id) alone didn't
+-- constrain which columns a "sign" update could touch. Replaced by the
+-- narrow sign_contract() RPC in sql/fix_contract_signing.sql, which also
+-- drops this policy — writers get no raw UPDATE access on this table.
+-- create policy "writer_sign_own_contract" on public.contracts
+--   for update
+--   using  (auth.uid() = writer_id and status = 'pending')
+--   with check (auth.uid() = writer_id);
 
 -- Index for fast per-writer lookups
 create index if not exists contracts_writer_id_idx on public.contracts(writer_id);

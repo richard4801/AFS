@@ -3208,7 +3208,10 @@
 
     async function readNotif(id) {
       const n = _notifications.find(x => x.id === id);
-      await db.from('notifications').update({ read: true }).eq('id', id);
+      // Ownership filter added as defense-in-depth, matching dismissNotif/
+      // clearAllNotifs below — under normal UI flow `id` is always this
+      // user's own, but this doesn't rely on RLS alone to guarantee it.
+      await db.from('notifications').update({ read: true }).eq('id', id).eq('user_id', currentUserId);
       _notifications = _notifications.map(x => x.id === id ? { ...x, read: true } : x);
       renderNotifBadge();
       renderNotifList();
@@ -4907,15 +4910,14 @@
       btn.disabled = true;
       btn.textContent = 'Signing…';
 
-      const { error } = await db.from('contracts')
-        .update({
-          status:      'signed',
-          signed_at:   new Date().toISOString(),
-          name_signed: name,
-          user_agent:  navigator.userAgent,
-        })
-        .eq('id', _contractId)
-        .eq('status', 'pending');
+      // Goes through a narrow RPC (not a raw table update) so a writer's
+      // signing action can only ever set status/signed_at/name_signed/
+      // user_agent on their own pending contract — nothing else.
+      const { error } = await db.rpc('sign_contract', {
+        p_contract_id: _contractId,
+        p_name_signed: name,
+        p_user_agent:  navigator.userAgent,
+      });
 
       if (error) {
         console.error('Contract sign error:', error);

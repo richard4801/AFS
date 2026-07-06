@@ -38,11 +38,14 @@ RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS
   );
 $$;
 
+-- SUPERSEDED: a raw SELECT policy used to live here, but every client
+-- reads comments exclusively through get_chapter_comments() (a SECURITY
+-- DEFINER RPC that does its own authorization AND masks a writer's real
+-- identity as generic "Writer" unless the viewer is admin). A raw SELECT
+-- policy bypassed that masking entirely, exposing real reviewer_id/name.
+-- Dropped in sql/fix_comments_se_read_masking.sql — no read policy is
+-- needed here at all since nothing queries the table directly.
 DROP POLICY IF EXISTS "comments_se_read" ON public.comments;
-CREATE POLICY "comments_se_read" ON public.comments
-  FOR SELECT USING (
-    public.is_senior_editor() AND public.chapter_book_is_signed(chapter_id)
-  );
 
 DROP POLICY IF EXISTS "comments_se_insert" ON public.comments;
 CREATE POLICY "comments_se_insert" ON public.comments

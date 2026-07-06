@@ -9,9 +9,13 @@ ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS payment_info text;
 
 -- 2. Payouts — admin records payments sent to writers
+-- writer_id: ON DELETE SET NULL, not CASCADE — deleting a writer's account
+-- should never silently destroy their payout history; see
+-- sql/fix_payouts_briefs_cascade.sql for the migration on top of an
+-- existing (CASCADE) deployment.
 CREATE TABLE IF NOT EXISTS public.payouts (
   id         uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  writer_id  uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  writer_id  uuid        REFERENCES auth.users(id) ON DELETE SET NULL,
   amount     numeric(10,2) NOT NULL CHECK (amount > 0),
   period     text        NOT NULL,         -- e.g. "May 2026"
   paid_at    timestamptz NOT NULL DEFAULT now(),
@@ -33,9 +37,10 @@ CREATE POLICY "payouts_admin_all" ON public.payouts
   );
 
 -- 3. Briefs — admin assigns a project brief to each writer
+-- writer_id: ON DELETE SET NULL, not CASCADE — see the payouts comment above.
 CREATE TABLE IF NOT EXISTS public.briefs (
   id               uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  writer_id        uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  writer_id        uuid        REFERENCES auth.users(id) ON DELETE SET NULL,
   created_by       uuid        REFERENCES auth.users(id),
   title            text        NOT NULL,
   genre            text        NOT NULL DEFAULT 'Werewolf Romance',
