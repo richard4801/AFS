@@ -2853,9 +2853,7 @@
 
     function _markChatRead() {
       if (!_chatAdminId || !currentUserId) return;
-      db.from('messages')
-        .update({ read_at: new Date().toISOString() })
-        .eq('sender_id', _chatAdminId).eq('recipient_id', currentUserId).is('read_at', null)
+      db.rpc('mark_messages_read', { p_sender_id: _chatAdminId })
         .then(() => { _chatUnread = 0; _updateChatBadge(); });
     }
 

@@ -1514,9 +1514,7 @@
 
     function _markAdminChatRead() {
       if (!_adminChatWriterId || !currentUserId) return;
-      db.from('messages')
-        .update({ read_at: new Date().toISOString() })
-        .eq('sender_id', _adminChatWriterId).eq('recipient_id', currentUserId).is('read_at', null)
+      db.rpc('mark_messages_read', { p_sender_id: _adminChatWriterId })
         .then(() => { _adminChatUnread[_adminChatWriterId] = 0; _updateAdminChatBadge(); });
     }
 
@@ -5162,9 +5160,7 @@
 
     function _markSeChatRead() {
       if (!_seChatPeerId || !currentUserId) return;
-      db.from('messages')
-        .update({ read_at: new Date().toISOString() })
-        .eq('sender_id', _seChatPeerId).eq('recipient_id', currentUserId).is('read_at', null)
+      db.rpc('mark_messages_read', { p_sender_id: _seChatPeerId })
         .then(() => { _seChatUnread = 0; _updateSeChatBadge(); });
     }
 
