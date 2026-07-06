@@ -79,11 +79,13 @@ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
 BEGIN
   IF NOT public.is_senior_editor() THEN RAISE EXCEPTION 'Senior Editors only.'; END IF;
   -- Same defensive casting as get_se_book_chapters, same reason.
+  -- status <> 'draft' matches get_se_book_chapters: without it, a guessed
+  -- chapter id returns draft content the listing UI never surfaces.
   RETURN QUERY
   SELECT c.id::uuid, c.title::text, c.content::text, c.chapter_number::int, c.status::text
   FROM public.chapters c
   JOIN public.books b ON b.id = c.book_id
-  WHERE c.id = p_chapter_id AND b.is_signed = true;
+  WHERE c.id = p_chapter_id AND b.is_signed = true AND c.status <> 'draft';
 END;
 $$;
 

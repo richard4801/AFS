@@ -1047,7 +1047,7 @@
         return `
         <div class="flex items-center gap-3 rounded-xl border border-border bg-surface hover:border-gold/30 px-4 py-3 transition-colors">
           ${checkbox}
-          <button onclick="openSeReader('${c.id}','${escHtml(c.title || ('Chapter ' + c.chapter_number))}')" class="flex-1 min-w-0 flex items-center gap-3 text-left">
+          <button onclick="openSeReader('${c.id}')" class="flex-1 min-w-0 flex items-center gap-3 text-left">
             <span class="flex-shrink-0 w-7 h-7 rounded-full bg-charcoal border border-border flex items-center justify-center font-serif text-xs text-gold">${c.chapter_number}</span>
             <div class="min-w-0 flex-1">
               <p class="text-white text-sm truncate">${escHtml(c.title || 'Untitled')}</p>
@@ -1248,7 +1248,12 @@
       _seChapterId = chapterId;
       _seActiveCommentId = null;
       _seEditStatus = null;
-      $('sr-title').textContent = titleFallback || 'Chapter';
+      // Title comes from the registry (looked up by id) rather than being
+      // passed in from an interpolated onclick string — keeps free-text
+      // chapter titles out of that JS-string-literal context entirely.
+      const _regCh = _seChapterReg[chapterId];
+      const _title = titleFallback || (_regCh ? (_regCh.title || ('Chapter ' + _regCh.chapter_number)) : 'Chapter');
+      $('sr-title').textContent = _title;
       $('se-reader-content').innerHTML = '<p class="text-muted/50 italic">Loading…</p>';
       $('se-reader-content').contentEditable = 'false';
       $('sr-toolbar').classList.add('hidden');
@@ -2108,9 +2113,7 @@
 
     function _markSeChatRead() {
       if (!_seChatAdminId || !currentUserId) return;
-      db.from('messages')
-        .update({ read_at: new Date().toISOString() })
-        .eq('sender_id', _seChatAdminId).eq('recipient_id', currentUserId).is('read_at', null)
+      db.rpc('mark_messages_read', { p_sender_id: _seChatAdminId })
         .then(() => { _seChatUnread = 0; _updateSeChatBadge(); });
     }
 

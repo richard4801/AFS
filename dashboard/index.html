@@ -1379,6 +1379,8 @@
     const fmt  = n  => '$' + Number(n ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const fmtK = n  => n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n);
     const escHtml = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    // Only allow http(s) URLs into an href — blocks javascript:/data:/etc.
+    const safeHref = s => { const u = String(s || '').trim(); return /^https?:\/\//i.test(u) ? escHtml(u) : '#'; };
     const countWords = t => t.trim() ? t.trim().split(/\s+/).length : 0;
 
     // ── STATE ──────────────────────────────────────────────────
@@ -2851,9 +2853,7 @@
 
     function _markChatRead() {
       if (!_chatAdminId || !currentUserId) return;
-      db.from('messages')
-        .update({ read_at: new Date().toISOString() })
-        .eq('sender_id', _chatAdminId).eq('recipient_id', currentUserId).is('read_at', null)
+      db.rpc('mark_messages_read', { p_sender_id: _chatAdminId })
         .then(() => { _chatUnread = 0; _updateChatBadge(); });
     }
 
@@ -4565,7 +4565,7 @@
           <div>
             <p class="text-[10px] font-semibold tracking-[0.2em] uppercase text-muted mb-3">Sample Book</p>
             <p class="text-white/60 text-sm mb-3">Read this before you start writing — it shows the tone, style, and quality we expect.</p>
-            <a href="${escHtml(d.sample_book_url)}" target="_blank" rel="noopener noreferrer"
+            <a href="${safeHref(d.sample_book_url)}" target="_blank" rel="noopener noreferrer"
                class="inline-flex items-center gap-2 text-gold text-sm font-medium hover:underline">
               Open sample book
               <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>

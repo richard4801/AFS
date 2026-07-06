@@ -55,13 +55,19 @@ CREATE INDEX IF NOT EXISTS prompt_claims_writer
 ALTER TABLE public.writing_prompts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.prompt_claims   ENABLE ROW LEVEL SECURITY;
 
--- Prompts: everyone signed-in sees active prompts; admins manage all.
+-- Prompts: signed-in users see APPROVED active prompts only (the review
+-- workflow — review_status/review_note — is added later in senior_editor.sql;
+-- if you're applying files in order and that column doesn't exist yet, this
+-- policy is re-asserted safely by sql/high_security_fixes.sql afterward).
+-- A creator always sees their own; admins manage all.
 DROP POLICY IF EXISTS "prompts_read_active" ON public.writing_prompts;
 CREATE POLICY "prompts_read_active" ON public.writing_prompts
   FOR SELECT USING (
     is_active = true
     OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = true)
   );
+-- NOTE: the definitive, review-status-aware version of this policy lives in
+-- sql/high_security_fixes.sql (run that after senior_editor.sql).
 
 DROP POLICY IF EXISTS "prompts_admin_all" ON public.writing_prompts;
 CREATE POLICY "prompts_admin_all" ON public.writing_prompts
@@ -179,6 +185,12 @@ $$;
 -- Returns every active prompt plus this caller's relationship to it:
 --   claim_state = 'available' | 'mine' | 'taken'
 -- Only the caller's own expiry/claim id are exposed (others' privacy).
+--
+-- SUPERSEDED: this version filters on is_active only. The definitive
+-- version (in senior_editor.sql, re-asserted by high_security_fixes.sql)
+-- additionally requires review_status = 'approved' so unapproved prompts
+-- never reach writers. Both use CREATE OR REPLACE — apply senior_editor.sql
+-- / high_security_fixes.sql AFTER this file so the approved-only version wins.
 
 CREATE OR REPLACE FUNCTION public.get_writer_prompt_feed()
 RETURNS TABLE (
