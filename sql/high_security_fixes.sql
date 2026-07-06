@@ -30,7 +30,19 @@ CREATE POLICY "prompts_read_active" ON public.writing_prompts
 -- security_invoker makes the view run as the querying user, so their own
 -- RLS on public.chapters applies (a writer sees only their own rows).
 -- Requires Postgres 15+ (Supabase is on 15+).
-ALTER VIEW public.daily_chapter_counts SET (security_invoker = true);
+-- Guarded: the calendar view may not be deployed in every database (the
+-- writer calendar was never rolled out here). If the view doesn't exist
+-- there's no leak to fix, so this skips silently rather than aborting the
+-- whole script. (phase3_schedule.sql creates it already with this option,
+-- so a later calendar rollout is covered.)
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_views WHERE schemaname = 'public' AND viewname = 'daily_chapter_counts'
+  ) THEN
+    EXECUTE 'ALTER VIEW public.daily_chapter_counts SET (security_invoker = true)';
+  END IF;
+END $$;
 
 -- ── Fix 3 ──────────────────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.get_se_chapter_content(p_chapter_id uuid)
