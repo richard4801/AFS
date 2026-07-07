@@ -5165,8 +5165,11 @@
             <p class="text-white text-sm font-medium truncate">${escHtml(who.name || who.email || 'Writer')}</p>
             <p class="text-muted text-xs truncate">Developing: <span class="text-white/70">${escHtml(title)}</span></p>
           </div>
-          <span class="flex-shrink-0 font-mono tabular-nums text-sm font-semibold" data-countdown data-expires="${c.expires_at}">—</span>
+          ${c.expires_at
+            ? `<span class="flex-shrink-0 font-mono tabular-nums text-sm font-semibold" data-countdown data-expires="${c.expires_at}">—</span>`
+            : `<span class="flex-shrink-0 text-[11px] font-medium text-muted">Not started</span>`}
           <div class="flex-shrink-0 flex items-center gap-1.5">
+            ${c.expires_at ? '' : `<button onclick="adminStartClaimClock('${c.id}')" title="Start her 72-hour clock now" class="px-2.5 py-1.5 border border-gold/30 text-gold hover:bg-gold/10 text-[11px] font-semibold rounded-lg transition-colors">Start Clock</button>`}
             <button onclick="adminCompleteClaim('${c.id}')" title="Mark completed" class="px-2.5 py-1.5 border border-emerald-400/30 text-emerald-300 hover:bg-emerald-400/10 text-[11px] font-semibold rounded-lg transition-colors">Done</button>
             <button onclick="adminReleaseClaim('${c.id}')" title="Release back to pool" class="px-2.5 py-1.5 border border-border text-muted hover:text-white hover:border-white/25 text-[11px] font-semibold rounded-lg transition-colors">Release</button>
           </div>
@@ -5381,6 +5384,18 @@
       const { error } = await db.rpc('complete_prompt_claim', { p_claim_id: claimId });
       if (error) { showToast(error.message); return; }
       showToast('Marked as completed ✓');
+      loadAdminPrompts();
+    }
+
+    // A claim that was already genuinely in progress before the delayed-
+    // countdown migration ran has no natural reason to ever revisit the
+    // prompt's detail modal again -- neither that nor the dashboard-load
+    // fallback will fire for a writer who's already deep into writing.
+    // This starts her clock immediately instead of waiting on either.
+    async function adminStartClaimClock(claimId) {
+      const { error } = await db.rpc('admin_start_prompt_claim', { p_claim_id: claimId });
+      if (error) { showToast(error.message); return; }
+      showToast('Her 72-hour clock has started.');
       loadAdminPrompts();
     }
 
