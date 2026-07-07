@@ -83,10 +83,10 @@
       #se-chat-float{bottom:110px!important}
     }
     #se-mobile-nav button{border-radius:9999px;border:1px solid transparent;transition:all 0.2s}
-    #se-mobile-nav button[data-active="1"]{color:#C9A84C;background:rgba(201,168,76,0.10);border-color:rgba(201,168,76,0.25)}
+    #se-mobile-nav button[data-active="1"]{color:#B79FDE;background:rgba(183,159,222,0.12);border-color:rgba(183,159,222,0.28)}
     #se-mobile-nav button[data-active="0"]{color:rgba(122,107,97,0.75)}
     #se-sidebar-nav button{border:1px solid transparent;transition:all 0.2s;color:rgba(122,107,97,0.85)}
-    #se-sidebar-nav button[data-active="1"]{color:#C9A84C;background:rgba(201,168,76,0.10);border-color:rgba(201,168,76,0.22)}
+    #se-sidebar-nav button[data-active="1"]{color:#B79FDE;background:rgba(183,159,222,0.12);border-color:rgba(183,159,222,0.25)}
     #se-sidebar-nav button[data-active="0"]:hover{color:rgba(255,255,255,0.88);background:rgba(255,255,255,0.04)}
     [x-cloak]{display:none!important;}
     #se-reader-content, #se-reader-content p { font-family:'Lora',Georgia,serif; font-size:17px; font-weight:400; line-height:1.95; letter-spacing:0.01em; color:rgba(255,255,255,0.80); }
@@ -308,20 +308,20 @@
         </svg>
       </div>
       <nav id="se-sidebar-nav" class="flex-1 px-3 space-y-1">
-        <button onclick="switchSeTab('review')" id="setab-review" data-active="1"
+        <button onclick="switchSeTab('books')" id="setab-books" data-active="1"
                 class="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium">
-          <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          <span>Review</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          <span>Books</span>
         </button>
         <button onclick="switchSeTab('prompts')" id="setab-prompts" data-active="0"
                 class="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium">
           <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
           <span>Prompts</span>
         </button>
-        <button onclick="switchSeTab('books')" id="setab-books" data-active="0"
+        <button onclick="switchSeTab('review')" id="setab-review" data-active="0"
                 class="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium">
-          <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-          <span>Books</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Review Prompts</span>
         </button>
       </nav>
       <div class="px-6 py-5 border-t border-white/5">
@@ -351,19 +351,22 @@
         <button id="se-new-book-banner-btn" class="flex-shrink-0 px-4 py-2 bg-gold hover:bg-gold-light text-obsidian text-xs font-bold rounded-lg transition-colors">Start Reviewing</button>
       </div>
 
-      <!-- ── TAB: Review ─────────────────────────────────────────── -->
-      <div id="se-section-review" class="se-tab-section active">
-        <!-- Review queue -->
-        <section id="review-section" class="mb-12">
-          <div class="flex items-end justify-between mb-4">
-            <div>
-              <h2 class="font-serif text-xl sm:text-2xl text-white">Awaiting your review</h2>
-              <p class="text-muted text-xs mt-0.5">Prompts submitted by the admin. Approve to send them to writers, or decline with a note.</p>
-            </div>
-            <span id="review-count" class="flex-shrink-0 text-[11px] font-bold text-gold bg-gold/10 border border-gold/25 rounded-full px-2.5 py-0.5">0</span>
-          </div>
-          <div id="review-list" class="space-y-4"></div>
-          <p id="review-empty" class="hidden text-muted/60 text-sm text-center py-10 rounded-2xl border border-dashed border-border">Nothing to review right now. You're all caught up.</p>
+      <!-- ── TAB: Books ──────────────────────────────────────────── -->
+      <div id="se-section-books" class="se-tab-section active">
+        <!-- Books to review (pre-signing, sequential unlock) -->
+        <section id="se-review-queue-section" class="mb-12">
+          <h2 class="font-serif text-xl sm:text-2xl text-white mb-1">Books to review</h2>
+          <p class="text-muted text-xs mb-4">Sent to you by the admin, in the order approved. Finish one to unlock the next.</p>
+          <div id="se-review-queue-grid" class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4"></div>
+          <p id="se-review-queue-empty" class="hidden text-muted/60 text-sm text-center py-8 rounded-2xl border border-dashed border-border">Nothing in your review queue right now.</p>
+        </section>
+
+        <!-- Signed books -->
+        <section id="books-section">
+          <h2 class="font-serif text-xl sm:text-2xl text-white mb-1">Signed books</h2>
+          <p class="text-muted text-xs mb-4">Open a book to read through its chapters and give your verdict.</p>
+          <div id="books-grid" class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4"></div>
+          <p id="books-empty" class="hidden text-muted/60 text-sm text-center py-8 rounded-2xl border border-dashed border-border">No signed books yet.</p>
         </section>
       </div>
 
@@ -394,22 +397,19 @@
         </section>
       </div>
 
-      <!-- ── TAB: Books ──────────────────────────────────────────── -->
-      <div id="se-section-books" class="se-tab-section">
-        <!-- Books to review (pre-signing, sequential unlock) -->
-        <section id="se-review-queue-section" class="mb-12">
-          <h2 class="font-serif text-xl sm:text-2xl text-white mb-1">Books to review</h2>
-          <p class="text-muted text-xs mb-4">Sent to you by the admin, in the order approved. Finish one to unlock the next.</p>
-          <div id="se-review-queue-grid" class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4"></div>
-          <p id="se-review-queue-empty" class="hidden text-muted/60 text-sm text-center py-8 rounded-2xl border border-dashed border-border">Nothing in your review queue right now.</p>
-        </section>
-
-        <!-- Signed books -->
-        <section id="books-section">
-          <h2 class="font-serif text-xl sm:text-2xl text-white mb-1">Signed books</h2>
-          <p class="text-muted text-xs mb-4">Open a book to read through its chapters and give your verdict.</p>
-          <div id="books-grid" class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4"></div>
-          <p id="books-empty" class="hidden text-muted/60 text-sm text-center py-8 rounded-2xl border border-dashed border-border">No signed books yet.</p>
+      <!-- ── TAB: Review Prompts ─────────────────────────────────── -->
+      <div id="se-section-review" class="se-tab-section">
+        <!-- Review queue -->
+        <section id="review-section" class="mb-12">
+          <div class="flex items-end justify-between mb-4">
+            <div>
+              <h2 class="font-serif text-xl sm:text-2xl text-white">Awaiting your review</h2>
+              <p class="text-muted text-xs mt-0.5">Prompts submitted by the admin. Approve to send them to writers, or decline with a note.</p>
+            </div>
+            <span id="review-count" class="flex-shrink-0 text-[11px] font-bold text-gold bg-gold/10 border border-gold/25 rounded-full px-2.5 py-0.5">0</span>
+          </div>
+          <div id="review-list" class="space-y-4"></div>
+          <p id="review-empty" class="hidden text-muted/60 text-sm text-center py-10 rounded-2xl border border-dashed border-border">Nothing to review right now. You're all caught up.</p>
         </section>
       </div>
     </div>
@@ -422,20 +422,20 @@
     <nav id="se-mobile-nav"
          class="pointer-events-auto flex items-center gap-1 rounded-full border border-white/10 shadow-2xl shadow-black/70 px-1.5 py-1.5"
          style="background:rgba(13,11,9,0.88);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)">
-      <button onclick="switchSeTab('review')" id="wsetab-review" data-active="1"
+      <button onclick="switchSeTab('books')" id="wsetab-books" data-active="1"
               class="flex flex-col items-center gap-0.5 px-4 py-2">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-        <span class="text-[9px] font-semibold tracking-wide uppercase">Review</span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        <span class="text-[9px] font-semibold tracking-wide uppercase">Books</span>
       </button>
       <button onclick="switchSeTab('prompts')" id="wsetab-prompts" data-active="0"
               class="flex flex-col items-center gap-0.5 px-4 py-2">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
         <span class="text-[9px] font-semibold tracking-wide uppercase">Prompts</span>
       </button>
-      <button onclick="switchSeTab('books')" id="wsetab-books" data-active="0"
+      <button onclick="switchSeTab('review')" id="wsetab-review" data-active="0"
               class="flex flex-col items-center gap-0.5 px-4 py-2">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-        <span class="text-[9px] font-semibold tracking-wide uppercase">Books</span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        <span class="text-[9px] font-semibold tracking-wide uppercase">Review Prompts</span>
       </button>
     </nav>
   </div>
@@ -1156,7 +1156,7 @@
     // ── TAB NAVIGATION ───────────────────────────────────────────────
     // Same pattern as the writer dashboard's switchWriterTab(): one
     // section group visible at a time, desktop sidebar + mobile bottom bar.
-    const _seTabs = ['review', 'prompts', 'books'];
+    const _seTabs = ['books', 'prompts', 'review'];
     function switchSeTab(tab) {
       _seTabs.forEach(t => {
         const sec  = document.getElementById('se-section-' + t);
