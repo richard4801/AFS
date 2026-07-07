@@ -3657,6 +3657,11 @@
       $('admin-chat-float')?.classList.remove('hidden');
       $('se-chat-float')?.classList.remove('hidden');
       if (_adminFsWasVisible) _unlockBodyScroll();
+      // The list behind this editor was never refreshed on close (unlike
+      // the writer dashboard's equivalent fsClose(), which reloads via
+      // showChaptersView()) -- so it kept showing whatever word_count it
+      // had before this session's edits, however many autosaves just ran.
+      if (_adminFsWasVisible && selectedBook) refreshChapterList();
     }
 
     function adminExecFmt(cmd) {

@@ -1544,7 +1544,13 @@
       subscribeChapterComments(chapterId);
     }
     function closeSeReader() {
-      if (_seAsUnsaved) _seDoAutoSave(); // fire-and-forget
+      // Book-modal chapter list sits underneath this reader and was never
+      // refreshed on close -- it kept showing whatever word_count it had
+      // when the book was opened, no matter how many autosaves just ran.
+      // Fetch the fresh list once the pending save (if any) actually lands,
+      // rather than relying solely on the postgres_changes subscription.
+      const bookIdToRefresh = _seAsUnsaved ? _seCurrentBookId : null;
+      const savePromise = _seAsUnsaved ? _seDoAutoSave() : Promise.resolve();
       clearTimeout(_seAsTimer);
       $('se-reader').classList.add('hidden');
       document.body.style.overflow = '';
@@ -1556,6 +1562,16 @@
       _seChapterId = null;
       _seComments = [];
       _seEditStatus = null;
+      if (bookIdToRefresh) {
+        savePromise.then(() => { if (_seCurrentBookId === bookIdToRefresh) refreshSeBookChapters(bookIdToRefresh); });
+      }
+    }
+    async function refreshSeBookChapters(bookId) {
+      const { data, error } = await db.rpc('get_se_book_chapters', { p_book_id: bookId });
+      if (error || _seCurrentBookId !== bookId) return;
+      const chapters = data ?? [];
+      chapters.forEach(c => { _seChapterReg[c.id] = c; });
+      renderSeChapterList(chapters);
     }
 
     // Presence-only join on the same collab channel writers/admin use, so her
