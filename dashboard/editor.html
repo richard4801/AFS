@@ -630,6 +630,11 @@
           <textarea id="pe-brief" rows="7" placeholder="The premise, characters, tone, and any must-hit beats — what the writer reads before claiming."
                     class="form-input w-full bg-obsidian border border-border text-white placeholder-muted/60 text-sm rounded-lg px-4 py-3 resize-y leading-relaxed thin-scroll"></textarea>
         </div>
+        <div>
+          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Sample Chapter URL <span class="text-muted font-normal">(optional)</span></label>
+          <input id="pe-sample-url" type="url" placeholder="Link to a chapter that shows the style/quality you're looking for"
+                 class="form-input w-full bg-obsidian border border-border text-white placeholder-muted/60 text-sm rounded-lg px-4 py-2.5"/>
+        </div>
         <div id="pe-error" class="hidden text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-2.5"></div>
       </div>
       <div class="flex-shrink-0 flex items-center justify-end gap-3 px-5 py-4 border-t border-border">
@@ -2093,7 +2098,7 @@
     let _peBannerFile = null;
     function openPromptEditor() {
       _peBannerFile = null;
-      $('pe-title').value=''; $('pe-genre').value=''; $('pe-brief').value='';
+      $('pe-title').value=''; $('pe-genre').value=''; $('pe-brief').value=''; $('pe-sample-url').value='';
       $('pe-error').classList.add('hidden');
       $('pe-banner-preview').classList.add('hidden'); $('pe-banner-preview').removeAttribute('src');
       $('pe-dropzone-hint').classList.remove('hidden'); $('pe-banner-clear').classList.add('hidden');
@@ -2123,6 +2128,7 @@
 
     async function submitPrompt() {
       const title = $('pe-title').value.trim(), genre = $('pe-genre').value.trim() || null, brief = $('pe-brief').value.trim();
+      const sampleUrl = $('pe-sample-url').value.trim() || null;
       const err = $('pe-error'); err.classList.add('hidden');
       if (!title) { err.textContent = 'Title is required.'; err.classList.remove('hidden'); return; }
       if (!brief) { err.textContent = 'Brief is required.'; err.classList.remove('hidden'); return; }
@@ -2135,7 +2141,7 @@
         if (upErr) { err.textContent = 'Banner upload failed: ' + upErr.message; err.classList.remove('hidden'); btn.disabled=false; btn.textContent='Submit for Approval'; return; }
         bannerUrl = db.storage.from('prompt-banners').getPublicUrl(path).data.publicUrl;
       }
-      const { error } = await db.rpc('se_add_prompt', { p_title: title, p_brief: brief, p_genre: genre, p_banner_url: bannerUrl, p_sort_order: 0 });
+      const { error } = await db.rpc('se_add_prompt', { p_title: title, p_brief: brief, p_genre: genre, p_banner_url: bannerUrl, p_sample_chapter_url: sampleUrl, p_sort_order: 0 });
       btn.disabled = false; btn.textContent = 'Submit for Approval';
       if (error) { err.textContent = error.message; err.classList.remove('hidden'); return; }
       closePromptEditor(); toast('Submitted to the admin for approval.'); loadMyPrompts();
