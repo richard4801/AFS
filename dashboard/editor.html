@@ -327,6 +327,14 @@
         <p id="board-empty" class="hidden text-muted/60 text-sm text-center py-8 rounded-2xl border border-dashed border-border">No live prompts yet.</p>
       </section>
 
+      <!-- Books to review (pre-signing, sequential unlock) -->
+      <section id="se-review-queue-section" class="mb-12">
+        <h2 class="font-serif text-xl sm:text-2xl text-white mb-1">Books to review</h2>
+        <p class="text-muted text-xs mb-4">Sent to you by the admin, in the order approved. Finish one to unlock the next.</p>
+        <div id="se-review-queue-grid" class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4"></div>
+        <p id="se-review-queue-empty" class="hidden text-muted/60 text-sm text-center py-8 rounded-2xl border border-dashed border-border">Nothing in your review queue right now.</p>
+      </section>
+
       <!-- Signed books -->
       <section id="books-section">
         <h2 class="font-serif text-xl sm:text-2xl text-white mb-1">Signed books</h2>
@@ -787,7 +795,7 @@
       }
     }
     async function loadAll() {
-      await Promise.all([loadReviewQueue(), loadMyPrompts(), loadBoard(), loadBooks()]);
+      await Promise.all([loadReviewQueue(), loadMyPrompts(), loadBoard(), loadBooks(), loadSeReviewQueue()]);
       _ensureTicker();
     }
 
@@ -961,6 +969,37 @@
         </button>`).join('');
     }
 
+    // Books the admin has sent in for review ahead of signing — a second,
+    // independent list from the Signed wall above. Locked entries are shown
+    // (so she can see what's coming) but only the current one is openable;
+    // openSeBook() itself works unmodified once we've merged a lightweight
+    // book record into _seBookReg here.
+    async function loadSeReviewQueue() {
+      const { data, error } = await db.rpc('get_se_review_queue');
+      const rows = error ? [] : (data ?? []);
+      rows.forEach(q => {
+        _seBookReg[q.book_id] = { id: q.book_id, title: q.title, cover_url: q.cover_url, chapter_count: q.chapter_count, total_words: q.total_words };
+      });
+      $('se-review-queue-empty').classList.toggle('hidden', rows.length > 0);
+      $('se-review-queue-grid').innerHTML = rows.map(q => {
+        const locked = q.status === 'pending' && !q.is_current;
+        const completed = q.status === 'completed';
+        const badge = completed ? '✓ Reviewed' : (q.is_current ? 'Up next' : `#${q.pending_position}`);
+        const badgeCls = completed ? 'bg-emerald-500 text-obsidian' : (q.is_current ? 'bg-gold text-obsidian' : 'bg-charcoal/90 text-white/70 border border-white/15');
+        const action = locked ? `onclick="toast('Locked — finish the current book first.')"` : `onclick="openSeBook('${q.book_id}')"`;
+        return `
+        <button ${action} class="group text-left ${locked ? 'opacity-50' : ''}">
+          <div class="relative aspect-[2/3] rounded-lg overflow-hidden bg-charcoal border border-border">
+            ${q.cover_url ? `<img src="${escHtml(q.cover_url)}" alt="" class="absolute inset-0 w-full h-full object-cover"/>` : `<div class="absolute inset-0 flex items-center justify-center"><span class="font-serif text-2xl text-muted/40">${escHtml((q.title||'?')[0])}</span></div>`}
+            <div class="absolute inset-0" style="background:linear-gradient(to top,rgba(13,11,9,0.6),transparent 45%)"></div>
+            <span class="absolute top-1 left-1 text-[9px] font-semibold px-1.5 py-0.5 rounded ${badgeCls} leading-tight">${badge}</span>
+            ${locked ? `<div class="absolute inset-0 flex items-center justify-center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-opacity="0.75" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>` : ''}
+          </div>
+          <p class="text-white/80 text-[11px] mt-1.5 leading-tight line-clamp-2">${escHtml(q.title)}</p>
+        </button>`;
+      }).join('');
+    }
+
     // A book only ever enters her list the moment admin signs it — unlike
     // the writer/admin dashboards, which patch an existing card in place,
     // a newly-signed book has to appear here for the first time. Realtime
@@ -975,8 +1014,8 @@
           .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'books' }, () => loadBooks())
           .subscribe();
       } catch (_) {}
-      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') loadBooks(); });
-      window.addEventListener('focus', () => loadBooks());
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { loadBooks(); loadSeReviewQueue(); } });
+      window.addEventListener('focus', () => { loadBooks(); loadSeReviewQueue(); });
     }
 
     // ── Book detail + chapter-level recommendations ──
@@ -1107,6 +1146,9 @@
       return raw.split(/\n{2,}/).map(par => `<p>${escHtml(par.trim()).replace(/\n/g, '<br>')}</p>`).join('');
     }
     let _seChapterId = null;
+    // Reset per chapter open — guards against re-firing se_mark_chapter_read
+    // on every scroll tick once she's already reached the bottom once.
+    let _seReadMarked = false;
     // ── Edit access (request → admin approval → same fully-mirrored
     // editable editor writer/admin get, instead of read-only). ────────
     let _seEditStatus = null; // null | 'pending' | 'approved' | 'denied' | 'revoked'
@@ -1212,6 +1254,24 @@
       return text.split(/\n{2,}/).map(p => p.trim()).filter(Boolean)
         .map(p => '<p>' + escHtml(p).replace(/\n/g, '<br>') + '</p>').join('');
     }
+    // Read-through detection for the pre-signing review queue: the moment
+    // she scrolls to (or already starts at, for a short chapter) the bottom
+    // of the reader, tell the server so it can auto-advance her queue once
+    // every chapter in the current book has one of these. No-ops on the
+    // server for chapters that aren't part of an active queue entry (e.g.
+    // she's reading from the Signed wall instead), so this is safe to fire
+    // unconditionally from here.
+    $('se-reader-scroll')?.addEventListener('scroll', () => {
+      if (_seReadMarked || !_seChapterId) return;
+      const el = $('se-reader-scroll');
+      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 48) {
+        _seReadMarked = true;
+        db.rpc('se_mark_chapter_read', { p_chapter_id: _seChapterId }).then(({ error }) => {
+          if (!error) loadSeReviewQueue();
+        });
+      }
+    }, { passive: true });
+
     $('se-reader-content')?.addEventListener('paste', e => {
       if ($('se-reader-content').contentEditable !== 'true') return;
       e.preventDefault();
@@ -1268,6 +1328,7 @@
 
     async function openSeReader(chapterId, titleFallback) {
       _seChapterId = chapterId;
+      _seReadMarked = false;
       _seActiveCommentId = null;
       _seEditStatus = null;
       // Title comes from the registry (looked up by id) rather than being
@@ -1307,6 +1368,16 @@
       if (!row) { $('se-reader-content').innerHTML = '<p class="text-red-400 text-sm">Could not load this chapter.</p>'; return; }
       $('sr-title').textContent = row.title || ('Chapter ' + row.chapter_number);
       $('se-reader-content').innerHTML = _seContentHtml(row.content);
+
+      // Short chapters that fit on screen with nothing left to scroll never
+      // fire the scroll listener above — check once, right after render.
+      const scrollEl = $('se-reader-scroll');
+      if (scrollEl && scrollEl.scrollTop + scrollEl.clientHeight >= scrollEl.scrollHeight - 48) {
+        _seReadMarked = true;
+        db.rpc('se_mark_chapter_read', { p_chapter_id: chapterId }).then(({ error }) => {
+          if (!error) loadSeReviewQueue();
+        });
+      }
 
       await loadChapterComments(chapterId);
       subscribeChapterComments(chapterId);

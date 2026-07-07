@@ -733,6 +733,9 @@
                 <button id="toggle-signed-btn" onclick="toggleSigned()"
                         class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border transition-all duration-200 mb-3">
                 </button>
+                <button id="send-to-se-btn" onclick="sendBookToSe()"
+                        class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border transition-all duration-200 mb-3">
+                </button>
                 <button onclick="downloadBookAsDocx()"
                         class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border border-border hover:border-white/20 text-muted hover:text-white transition-all duration-200 mb-2">
                   <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -2305,6 +2308,7 @@
       const [{ data: chapters }, editReqs] = await Promise.all([
         db.from('chapters').select('id, chapter_number, title, word_count, status').eq('book_id', book.id).order('chapter_number', { ascending: false }),
         loadEditRequestsForBook(book.id),
+        loadSeQueueStatus(),
       ]);
       // A different book may have been selected while this was in flight —
       // discard the stale response (and skip resubscribing below) rather
@@ -2314,6 +2318,7 @@
       renderInlineChapterList(_cachedChapters);
       renderTotalWords(_cachedChapters);
       renderEditRequests(editReqs);
+      updateSeQueueBtn();
 
       // Live status — a chapter the writer submits or edits while admin
       // has this exact book open shows up without a reload. Re-binds
@@ -2354,6 +2359,52 @@
       selectedBook.is_signed = newVal;
       updateSignedBtn(newVal);
       showToast(newVal ? 'Book marked as Signed ✓' : 'Book marked as Unsigned');
+    }
+
+    // ── Christine's pre-signing review queue ──────────────────────
+    // Separate from is_signed: this is the "I've judged this myself,
+    // pass it to her" queue, gated to unlock one book at a time —
+    // see sql/senior_editor_review_queue.sql.
+    let _adminSeQueueReg = new Map();
+    async function loadSeQueueStatus() {
+      const { data, error } = await db.rpc('admin_get_se_queue');
+      _adminSeQueueReg = new Map();
+      if (!error) (data || []).forEach(q => _adminSeQueueReg.set(q.book_id, q));
+    }
+    function updateSeQueueBtn() {
+      const btn = $('send-to-se-btn');
+      if (!btn || !selectedBook) return;
+      const base = 'w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border transition-all duration-200 mb-3';
+      const q = _adminSeQueueReg.get(selectedBook.id);
+      if (!q) {
+        btn.disabled = false;
+        btn.className = base + ' border-gold/30 bg-gold/10 text-gold hover:bg-gold/20';
+        btn.textContent = 'Send to Christine for Review';
+      } else if (q.status === 'completed') {
+        btn.disabled = true;
+        btn.className = base + ' border-emerald-400/30 bg-emerald-400/10 text-emerald-400 cursor-default';
+        btn.textContent = '✓ Reviewed by Christine';
+      } else if (q.pending_position === 1) {
+        btn.disabled = true;
+        btn.className = base + ' border-blue-400/30 bg-blue-400/10 text-blue-300 cursor-default';
+        btn.textContent = 'With Christine now';
+      } else {
+        btn.disabled = true;
+        btn.className = base + ' border-border bg-muted/10 text-muted cursor-default';
+        btn.textContent = `Queued — #${q.pending_position} in line`;
+      }
+    }
+    async function sendBookToSe() {
+      if (!selectedBook) return;
+      const bookId = selectedBook.id;
+      const btn = $('send-to-se-btn');
+      btn.disabled = true;
+      const { error } = await db.rpc('admin_send_book_to_se', { p_book_id: bookId });
+      if (selectedBook?.id !== bookId) return;
+      if (error) { showToast('Error: ' + error.message); updateSeQueueBtn(); return; }
+      showToast('Sent to Christine for review.');
+      await loadSeQueueStatus();
+      if (selectedBook?.id === bookId) updateSeQueueBtn();
     }
 
     async function saveBookNotes() {
