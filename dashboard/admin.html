@@ -1175,6 +1175,11 @@
           <textarea id="admin-prompt-brief-input" rows="7" placeholder="The premise, characters, tone, and any must-hit beats. This is what the writer reads before claiming."
                     class="w-full bg-obsidian border border-border text-white placeholder-muted/60 text-sm rounded-lg px-4 py-3 resize-y leading-relaxed focus:outline-none focus:border-crimson/50 thin-scroll"></textarea>
         </div>
+        <div>
+          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Sample Chapter URL <span class="text-muted font-normal">(optional)</span></label>
+          <input id="admin-prompt-sample-url-input" type="url" placeholder="Link to a chapter that shows the style/quality you're looking for"
+                 class="w-full bg-obsidian border border-border text-white placeholder-muted/60 text-sm rounded-lg px-4 py-2.5 focus:outline-none focus:border-crimson/50"/>
+        </div>
         <div class="flex items-center gap-4">
           <div class="flex-1">
             <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Display order</label>
@@ -1187,6 +1192,14 @@
           </label>
         </div>
         <div id="admin-prompt-error" class="hidden text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-2.5"></div>
+        <div id="admin-prompt-assign-block" class="hidden pt-2 border-t border-border">
+          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2 mt-3">Assign Directly to a Writer <span class="text-muted font-normal">(bypasses open claiming)</span></label>
+          <div class="flex gap-2">
+            <select id="admin-prompt-assign-writer" class="flex-1 bg-obsidian border border-border text-white text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:border-crimson/50"></select>
+            <button type="button" onclick="assignPromptToWriter()" class="flex-shrink-0 px-4 py-2.5 bg-gold/10 hover:bg-gold/20 border border-gold/30 text-gold text-xs font-semibold rounded-lg transition-colors">Assign</button>
+          </div>
+          <p id="admin-prompt-assign-status" class="text-[11px] text-muted mt-1.5"></p>
+        </div>
       </div>
       <div class="flex-shrink-0 flex items-center gap-3 px-5 py-4 border-t border-border">
         <button id="admin-prompt-delete-btn" onclick="deleteAdminPrompt()" class="hidden px-4 py-2.5 border border-red-400/30 text-red-300 hover:bg-red-400/10 text-xs font-semibold rounded-lg transition-colors">Delete</button>
@@ -5161,10 +5174,16 @@
       $('admin-prompt-title-input').value = p?.title || '';
       $('admin-prompt-genre-input').value = p?.genre || '';
       $('admin-prompt-brief-input').value = p?.brief || '';
+      $('admin-prompt-sample-url-input').value = p?.sample_chapter_url || '';
       $('admin-prompt-order-input').value = p?.sort_order ?? 0;
       $('admin-prompt-active-input').checked = p ? !!p.is_active : true;
       $('admin-prompt-modal-title').textContent = p ? 'Edit Prompt' : 'New Prompt';
       $('admin-prompt-error').classList.add('hidden');
+      // Assigning only makes sense once the prompt is a real, saved row --
+      // a brand-new unsaved prompt has no id for the RPC to reference yet.
+      $('admin-prompt-assign-block').classList.toggle('hidden', !p);
+      $('admin-prompt-assign-status').textContent = '';
+      if (p) _populatePromptAssignWriters();
       _adminPromptBannerFile = null;
       _adminPromptExistingBanner = p?.banner_url || null;
       const prev = $('admin-prompt-banner-preview');
@@ -5219,6 +5238,7 @@
       const title  = $('admin-prompt-title-input').value.trim();
       const genre  = $('admin-prompt-genre-input').value.trim() || null;
       const brief  = $('admin-prompt-brief-input').value.trim();
+      const sampleUrl = $('admin-prompt-sample-url-input').value.trim() || null;
       const order  = parseInt($('admin-prompt-order-input').value, 10) || 0;
       const active = $('admin-prompt-active-input').checked;
       if (!title) { err.textContent = 'Title is required.'; err.classList.remove('hidden'); return; }
@@ -5236,7 +5256,7 @@
         bannerUrl = db.storage.from('prompt-banners').getPublicUrl(path).data.publicUrl;
       }
 
-      const row = { title, genre, brief, sort_order: order, is_active: active, banner_url: bannerUrl, updated_at: new Date().toISOString() };
+      const row = { title, genre, brief, sample_chapter_url: sampleUrl, sort_order: order, is_active: active, banner_url: bannerUrl, updated_at: new Date().toISOString() };
       let error;
       if (id) {
         ({ error } = await db.from('writing_prompts').update(row).eq('id', id));
@@ -5251,6 +5271,44 @@
       closeAdminPromptModal();
       showToast(id ? 'Prompt updated ✓' : 'Submitted to your Senior Editor for approval');
       loadAdminPrompts();
+    }
+
+    // ── Assign a prompt directly to a specific writer ────────────────
+    // Bypasses the open "first to claim it" pool for cases where this
+    // prompt is meant for one particular writer.
+    let _adminAssignWriters = null;
+    async function _populatePromptAssignWriters() {
+      const sel = $('admin-prompt-assign-writer');
+      sel.innerHTML = '<option>Loading…</option>';
+      if (!_adminAssignWriters) {
+        const { data } = await db.from('profiles')
+          .select('id, name, email')
+          .eq('is_admin', false).eq('is_senior_editor', false)
+          .order('name');
+        _adminAssignWriters = data || [];
+      }
+      if (!_adminAssignWriters.length) { sel.innerHTML = '<option value="">No writers yet</option>'; return; }
+      sel.innerHTML = _adminAssignWriters
+        .map(w => `<option value="${w.id}">${escHtml(w.name || w.email || 'Writer')}</option>`)
+        .join('');
+    }
+    async function assignPromptToWriter() {
+      const promptId = $('admin-prompt-id').value;
+      const writerId = $('admin-prompt-assign-writer').value;
+      if (!promptId || !writerId) return;
+      const statusEl = $('admin-prompt-assign-status');
+      statusEl.className = 'text-[11px] text-muted mt-1.5';
+      statusEl.textContent = 'Assigning…';
+      const { error } = await db.rpc('admin_assign_prompt', { p_prompt_id: promptId, p_writer_id: writerId });
+      if (promptId !== $('admin-prompt-id').value) return; // modal moved on to a different prompt mid-request
+      if (error) {
+        statusEl.className = 'text-[11px] text-red-400 mt-1.5';
+        statusEl.textContent = error.message;
+        return;
+      }
+      statusEl.className = 'text-[11px] text-emerald-400 mt-1.5';
+      statusEl.textContent = 'Assigned ✓';
+      showToast('Prompt assigned.');
     }
 
     async function deleteAdminPrompt() {
