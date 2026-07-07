@@ -728,6 +728,7 @@
                     <h2 id="book-title-heading" class="font-serif text-lg text-white leading-tight mb-1"></h2>
                     <p id="book-author-heading" class="text-muted text-xs mb-2"></p>
                     <span id="book-status-badge" class="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full"></span>
+                    <span id="book-prompt-badge" class="hidden ml-1.5 text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full bg-gold/10 text-gold border border-gold/25"></span>
                   </div>
                 </div>
                 <button id="toggle-signed-btn" onclick="toggleSigned()"
@@ -745,6 +746,12 @@
                         class="w-full px-3 py-1.5 bg-transparent hover:bg-red-500/10 border border-transparent hover:border-red-500/25 text-red-400/40 hover:text-red-400 text-xs rounded-lg transition-all duration-200">
                   Delete Book
                 </button>
+              </div>
+
+              <!-- Writer's outline (read-only here — set at book creation) -->
+              <div id="book-outline-card" class="hidden rounded-xl border border-border bg-surface p-4">
+                <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted mb-2">Outline</p>
+                <p id="book-outline-text" class="text-white/70 text-xs leading-relaxed whitespace-pre-wrap"></p>
               </div>
 
               <!-- Admin Notes -->
@@ -2090,7 +2097,7 @@
     let _writerBooksSub = null;
     async function _loadWriterBooksList(writerId) {
       const { data: books } = await db.from('books')
-        .select('id, title, description, cover_url, status, is_signed, admin_notes, created_at, views, likes, library_count, locked_from_chapter')
+        .select('id, title, description, cover_url, status, is_signed, admin_notes, created_at, views, likes, library_count, locked_from_chapter, outline')
         .eq('author_id', writerId)
         .order('created_at', { ascending: false });
       // Discard if a different writer was selected while this was in flight.
@@ -2287,6 +2294,9 @@
       $('book-author-heading').textContent = `by ${selectedWriter?.name ?? 'Unknown'}`;
       $('book-cover-initial').textContent  = book.title[0] || '?';
       $('book-notes-input').value          = book.admin_notes || '';
+      if (book.outline) { $('book-outline-text').textContent = book.outline; $('book-outline-card').classList.remove('hidden'); }
+      else { $('book-outline-card').classList.add('hidden'); }
+      $('book-prompt-badge').classList.add('hidden');
       if (book.cover_url) {
         $('book-cover-img').src = book.cover_url;
         $('book-cover-img').classList.remove('hidden');
@@ -2305,10 +2315,11 @@
       $('stat-locked').value  = book.locked_from_chapter ?? '';
       $('chapter-list').innerHTML = '<div class="skeleton h-16 rounded-xl"></div>'.repeat(3);
       $('edit-requests-section').classList.add('hidden');
-      const [{ data: chapters }, editReqs] = await Promise.all([
+      const [{ data: chapters }, editReqs, { data: promptLink }] = await Promise.all([
         db.from('chapters').select('id, chapter_number, title, word_count, status').eq('book_id', book.id).order('chapter_number', { ascending: false }),
         loadEditRequestsForBook(book.id),
         loadSeQueueStatus(),
+        db.from('prompt_claims').select('writing_prompts(title)').eq('book_id', book.id).limit(1),
       ]);
       // A different book may have been selected while this was in flight —
       // discard the stale response (and skip resubscribing below) rather
@@ -2318,6 +2329,8 @@
       renderInlineChapterList(_cachedChapters);
       renderTotalWords(_cachedChapters);
       renderEditRequests(editReqs);
+      const promptTitle = promptLink?.[0]?.writing_prompts?.title;
+      if (promptTitle) { $('book-prompt-badge').textContent = 'From: ' + promptTitle; $('book-prompt-badge').classList.remove('hidden'); }
       updateSeQueueBtn();
 
       // Live status — a chapter the writer submits or edits while admin

@@ -1224,6 +1224,13 @@
           <textarea id="new-book-description" rows="3" placeholder="Brief synopsis of your book…"
                     class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 resize-none transition-all duration-200"></textarea>
         </div>
+        <div>
+          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">
+            Outline <span class="text-muted font-normal">(optional)</span>
+          </label>
+          <textarea id="new-book-outline" rows="5" placeholder="Where the story goes — beats, arcs, how it ends…"
+                    class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 resize-none transition-all duration-200"></textarea>
+        </div>
 
         <div id="new-book-error" class="hidden text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-3"></div>
 
@@ -2199,6 +2206,7 @@
     async function createBook() {
       const title = $('new-book-title').value.trim();
       const description = $('new-book-description').value.trim() || null;
+      const outline = $('new-book-outline').value.trim() || null;
       const errBox = $('new-book-error');
       errBox.classList.add('hidden');
 
@@ -2210,7 +2218,7 @@
 
       // Insert book first (get ID for cover path)
       const { data: book, error } = await db.from('books').insert({
-        author_id: currentUserId, title, description,
+        author_id: currentUserId, title, description, outline,
       }).select().single();
 
       if (error) { errBox.textContent = error.message; errBox.classList.remove('hidden'); return; }
@@ -2226,6 +2234,16 @@
         }
       }
 
+      // A writer can only ever have one ACTIVE claimed prompt at a time
+      // (enforced by a unique index) — so if one exists right now, this
+      // new book is presumed to be what it's for, and gets linked
+      // automatically. No effect if she isn't currently developing a claim.
+      const { data: myClaim } = await db.from('prompt_claims')
+        .select('id').eq('writer_id', currentUserId).eq('status', 'active').maybeSingle();
+      if (myClaim?.id) {
+        await db.rpc('link_prompt_claim_to_book', { p_claim_id: myClaim.id, p_book_id: book.id });
+      }
+
       closeNewBookModal();
       showToast('Book created!');
       loadBooks();
@@ -2234,6 +2252,7 @@
     function openNewBookModal() {
       $('new-book-title').value = '';
       $('new-book-description').value = '';
+      $('new-book-outline').value = '';
       $('new-book-error').classList.add('hidden');
       $('cover-preview').classList.add('hidden');
       $('cover-prompt').classList.remove('hidden');

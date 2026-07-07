@@ -327,6 +327,16 @@
         <p id="board-empty" class="hidden text-muted/60 text-sm text-center py-8 rounded-2xl border border-dashed border-border">No live prompts yet.</p>
       </section>
 
+      <!-- Persistent reminder — stays up until she's actually opened the
+           current book, not just on a timer. -->
+      <div id="se-new-book-banner" class="hidden mb-8 rounded-2xl border border-gold/30 bg-gold/10 px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <p class="text-gold text-[10px] font-bold uppercase tracking-widest mb-1">Waiting for your review</p>
+          <p id="se-new-book-banner-title" class="text-white text-sm font-medium"></p>
+        </div>
+        <button id="se-new-book-banner-btn" class="flex-shrink-0 px-4 py-2 bg-gold hover:bg-gold-light text-obsidian text-xs font-bold rounded-lg transition-colors">Start Reviewing</button>
+      </div>
+
       <!-- Books to review (pre-signing, sequential unlock) -->
       <section id="se-review-queue-section" class="mb-12">
         <h2 class="font-serif text-xl sm:text-2xl text-white mb-1">Books to review</h2>
@@ -388,8 +398,14 @@
           </div>
           <div class="min-w-0 flex-1 pt-1">
             <h2 id="sb-heading" class="font-serif text-xl sm:text-2xl text-white leading-tight mb-1.5"></h2>
-            <p id="sb-stats" class="text-muted text-xs"></p>
+            <p id="sb-stats" class="text-muted text-xs mb-1.5"></p>
+            <span id="sb-prompt-badge" class="hidden inline-flex items-center text-[10px] font-semibold uppercase tracking-wide text-gold bg-gold/10 border border-gold/25 rounded-full px-2.5 py-1"></span>
           </div>
+        </div>
+
+        <div id="sb-outline-block" class="hidden mb-7">
+          <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-2">Outline</p>
+          <p id="sb-outline-text" class="text-white/75 text-sm leading-relaxed whitespace-pre-wrap"></p>
         </div>
 
         <div class="flex items-center justify-between mb-3">
@@ -994,9 +1010,26 @@
       const rows = error ? [] : (data ?? []);
       _seQueueBookReg = {};
       rows.forEach(q => {
-        _seQueueBookReg[q.book_id] = { id: q.book_id, title: q.title, cover_url: q.cover_url, chapter_count: q.chapter_count, total_words: q.total_words };
+        _seQueueBookReg[q.book_id] = {
+          id: q.book_id, title: q.title, cover_url: q.cover_url,
+          chapter_count: q.chapter_count, total_words: q.total_words,
+          outline: q.outline, prompt_title: q.prompt_title,
+        };
       });
       _seRebuildBookReg();
+
+      // Persistent reminder: stays up as long as the current book hasn't
+      // been opened yet (se_start_reviewing() clears it), regardless of
+      // how many times she reloads or refocuses the dashboard.
+      const current = rows.find(q => q.is_current);
+      if (current && !current.is_started) {
+        $('se-new-book-banner-title').textContent = current.title;
+        $('se-new-book-banner-btn').onclick = () => openSeBook(current.book_id);
+        $('se-new-book-banner').classList.remove('hidden');
+      } else {
+        $('se-new-book-banner').classList.add('hidden');
+      }
+
       $('se-review-queue-empty').classList.toggle('hidden', rows.length > 0);
       $('se-review-queue-grid').innerHTML = rows.map(q => {
         const locked = q.status === 'pending' && !q.is_current;
@@ -1058,9 +1091,18 @@
       if (b.cover_url) { $('sb-cover').src = b.cover_url; $('sb-cover').classList.remove('hidden'); $('sb-cover-ph').classList.add('hidden'); }
       else { $('sb-cover').classList.add('hidden'); $('sb-cover-ph').classList.remove('hidden'); }
       $('sb-review-note').value = '';
+      if (b.prompt_title) { $('sb-prompt-badge').textContent = 'Developed from: ' + b.prompt_title; $('sb-prompt-badge').classList.remove('hidden'); }
+      else { $('sb-prompt-badge').classList.add('hidden'); }
+      if (b.outline) { $('sb-outline-text').textContent = b.outline; $('sb-outline-block').classList.remove('hidden'); }
+      else { $('sb-outline-block').classList.add('hidden'); }
 
       $('se-book-modal').classList.remove('hidden');
       document.body.style.overflow = 'hidden';
+
+      // No-ops server-side for signed-wall books / already-completed queue
+      // entries — safe to fire unconditionally. Clears the persistent
+      // "waiting for your review" banner the moment she's actually opened it.
+      db.rpc('se_start_reviewing', { p_book_id: id }).then(() => loadSeReviewQueue());
 
       $('sb-chapters').innerHTML = '';
       $('sb-chapters-empty').textContent = 'No chapters submitted yet.';
