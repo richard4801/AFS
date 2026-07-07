@@ -1225,9 +1225,7 @@
                     class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 resize-none transition-all duration-200"></textarea>
         </div>
         <div>
-          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">
-            Outline <span class="text-muted font-normal">(optional)</span>
-          </label>
+          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Outline</label>
           <textarea id="new-book-outline" rows="5" placeholder="Where the story goes — beats, arcs, how it ends…"
                     class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 resize-none transition-all duration-200"></textarea>
         </div>
@@ -2206,12 +2204,17 @@
     async function createBook() {
       const title = $('new-book-title').value.trim();
       const description = $('new-book-description').value.trim() || null;
-      const outline = $('new-book-outline').value.trim() || null;
+      const outline = $('new-book-outline').value.trim();
       const errBox = $('new-book-error');
       errBox.classList.add('hidden');
 
       if (!title) {
         errBox.textContent = 'Book title is required.';
+        errBox.classList.remove('hidden');
+        return;
+      }
+      if (!outline) {
+        errBox.textContent = 'An outline is required.';
         errBox.classList.remove('hidden');
         return;
       }
