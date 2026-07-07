@@ -4173,7 +4173,14 @@
       const KEEP_TAGS = new Set(['P', 'BR', 'DIV', 'STRONG', 'B', 'EM', 'I', 'U']);
       (function walk(node) {
         [...node.childNodes].forEach(child => {
-          if (child.nodeType !== 1) return; // text nodes pass through untouched
+          if (child.nodeType === 3) {
+            // Word/Google Docs paste routinely carries non-breaking spaces —
+            // normalize to a regular space so they don't behave like
+            // invisible "stuck" characters once pasted in.
+            child.textContent = child.textContent.replace(/\u00a0/g, ' ');
+            return;
+          }
+          if (child.nodeType !== 1) return;
           const isKept = KEEP_TAGS.has(child.tagName);
           const style = child.style;
           // Google Docs frequently carries bold/italic/underline as inline
@@ -4196,13 +4203,32 @@
           }
         });
       })(container);
+      // Collapse runs of consecutive <br> to a single one — Word/Docs paste
+      // routinely carries several in a row for what's meant to be one blank
+      // line — then drop any paragraph/div left empty (or only whitespace)
+      // by that cleanup: a visually blank spacer from the paste, not
+      // intentional content.
+      container.querySelectorAll('br + br').forEach(br => br.remove());
+      container.querySelectorAll('p, div').forEach(el => {
+        if ((el.textContent || '').trim() === '') el.remove();
+      });
       return container.innerHTML;
+    }
+    // Plain-text-only paste (no text/html on the clipboard) — group into one
+    // <p> per blank-line-separated paragraph, matching how every other
+    // content path here represents a chapter. A flat run of <br>-per-line
+    // with no <p> tags at all doesn't just look different — it corrupts on
+    // reload, since content with no <p> tags gets misrouted through the
+    // plain-text reformatting branch the next time the chapter is opened.
+    function _plainTextToParagraphs(text) {
+      return text.split(/\n{2,}/).map(p => p.trim()).filter(Boolean)
+        .map(p => '<p>' + escHtml(p).replace(/\n/g, '<br>') + '</p>').join('');
     }
     $('fs-content').addEventListener('paste', e => {
       e.preventDefault();
       const cd = e.clipboardData || window.clipboardData;
       const html = cd.getData('text/html');
-      const cleaned = html ? _sanitizePastedHtml(html) : escHtml(cd.getData('text/plain')).replace(/\n/g, '<br>');
+      const cleaned = html ? _sanitizePastedHtml(html) : _plainTextToParagraphs(cd.getData('text/plain'));
       document.execCommand('insertHTML', false, cleaned || '');
     });
 
