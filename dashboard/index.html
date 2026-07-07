@@ -4437,6 +4437,21 @@
       renderPrompts();
       $('prompts-block').classList.remove('hidden');
       _ensureCountdownTicker();
+      // A writer who's already deep into writing a claimed prompt has no
+      // real reason to ever revisit its detail modal again -- if that's
+      // the only place the 72h clock gets started (see openPromptModal()),
+      // an already-active claim with no expires_at yet would just sit
+      // stuck at "Not started" forever. Simply having her dashboard load
+      // at all with an active, unopened claim is a fair enough signal
+      // that she's aware of it -- start the clock here too.
+      const mine = _prompts.find(p => p.claim_state === 'mine');
+      if (mine && !mine.my_expires_at && mine.my_claim_id) {
+        db.rpc('mark_prompt_claim_opened', { p_claim_id: mine.my_claim_id }).then(({ data: exp, error: err }) => {
+          if (err || !exp) return;
+          mine.my_expires_at = exp;
+          renderPrompts();
+        });
+      }
     }
 
     function _hasActiveClaim() { return _prompts.some(p => p.claim_state === 'mine'); }
