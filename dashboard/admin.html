@@ -1201,6 +1201,11 @@
         <span class="hidden sm:inline">Request Revision</span><span class="sm:hidden">Revise</span>
       </button>
       <span id="fs-chapter-status" class="text-muted text-xs ml-1 hidden sm:inline"></span>
+      <button onclick="selectedChapter?.id && deleteChapter(selectedChapter.id)" title="Delete chapter"
+              class="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 text-muted hover:text-red-400 text-xs font-medium rounded-lg transition-all duration-200">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        <span class="hidden sm:inline">Delete</span>
+      </button>
     </div>
     <!-- Row 2: Formatting toolbar -->
     <div class="flex-shrink-0 flex items-center gap-1 px-4 py-1.5 border-b border-border/50 bg-charcoal/60">
@@ -2571,6 +2576,10 @@
                             class="text-[10px] font-semibold px-2 py-1 rounded border bg-crimson/10 border-crimson/30 text-red-400 hover:bg-crimson/20 transition-all">
                       Reject
                     </button>` : ''}
+                  <button onclick='deleteChapter("${ch.id}")' title="Delete chapter"
+                          class="text-[10px] font-semibold px-2 py-1 rounded border border-border text-muted hover:text-red-400 hover:border-red-400/30 transition-all">
+                    Delete
+                  </button>
                 </div>
               </div>
             </div>
@@ -2686,6 +2695,26 @@
       openAdminFSEditor();
     }
 
+    async function deleteChapter(chapterId) {
+      const chapter = _adminChapReg.get(chapterId);
+      const label = chapter ? `Chapter ${chapter.chapter_number}${chapter.title ? ' — ' + chapter.title : ''}` : 'this chapter';
+      if (!confirm(`Permanently delete ${label}?\n\nThis cannot be undone.`)) return;
+      const { error } = await db.from('chapters').delete().eq('id', chapterId);
+      if (error) { showToast('Error deleting chapter: ' + error.message); return; }
+      showToast('Chapter deleted.');
+      _adminChapReg.delete(chapterId);
+      _cachedChapters = (_cachedChapters || []).filter(c => c.id !== chapterId);
+      renderInlineChapterList(_cachedChapters);
+      renderTotalWords(_cachedChapters);
+      // If the chapter being deleted is the one currently open in the
+      // fullscreen editor, close it out from under the admin rather than
+      // leave them editing a row that no longer exists.
+      if (selectedChapter?.id === chapterId) {
+        selectedChapter = null;
+        if (!$('admin-fullscreen-editor').classList.contains('hidden')) adminFsClose();
+      }
+    }
+
     // ── ADMIN CHAPTER EDIT ───────────────────────────────────────────
     function toggleAdminChapterEdit() { openAdminFSEditor(); }
 
@@ -2709,6 +2738,17 @@
       return t.trim() ? t.trim().split(/\s+/).length : 0;
     }
     function _wordsIn(text) { return text.trim() ? text.trim().split(/\s+/).length : 0; }
+    // Word count from a raw HTML string (e.g. a content_snapshot) — parses
+    // into a detached node and counts rendered text, matching adminFsWc().
+    // Counting the raw markup string directly (splitting on whitespace) was
+    // the actual cause of the list-vs-editor word-count mismatch: it counts
+    // whitespace inside tag attributes as extra words, and undercounts
+    // wherever two tags touch with no whitespace between them.
+    function _wordsFromHtml(html) {
+      const tmp = document.createElement('div');
+      tmp.innerHTML = _sanitizePastedHtml(html || '');
+      return _wordsIn(tmp.textContent || '');
+    }
     // When there's an active (non-collapsed) selection inside the editor,
     // show its own word count against the total, Google-Docs style.
     function _adminFsSelectionWordCount() {
@@ -3393,6 +3433,23 @@
       document.execCommand('defaultParagraphSeparator', false, 'p');
       updateAdminFsWc();
       _updateFsApproveRejectButtons();
+      // Self-heal: if the stored word_count doesn't match what's actually
+      // on the page (e.g. a chapter whose count was corrupted by the old
+      // doReject() bug), quietly correct it now rather than leave the
+      // chapter list showing a stale number until the next edit/save.
+      if (selectedChapter?.id) {
+        const _liveWc = adminFsWc();
+        if (selectedChapter.word_count !== _liveWc) {
+          selectedChapter.word_count = _liveWc;
+          const _cached = (_cachedChapters || []).find(c => c.id === selectedChapter.id);
+          if (_cached) _cached.word_count = _liveWc;
+          const _reg = _adminChapReg?.get(selectedChapter.id);
+          if (_reg) _reg.word_count = _liveWc;
+          renderInlineChapterList(_cachedChapters || []);
+          renderTotalWords(_cachedChapters || []);
+          db.from('chapters').update({ word_count: _liveWc }).eq('id', selectedChapter.id).then(() => {});
+        }
+      }
       // Reset auto-save state
       _adminAsUnsaved = false;
       clearTimeout(_adminAsTimer);
@@ -3465,6 +3522,13 @@
       const KEEP_TAGS = new Set(['P', 'BR', 'DIV', 'STRONG', 'B', 'EM', 'I', 'U']);
       (function walk(node) {
         [...node.childNodes].forEach(child => {
+          if (child.nodeType === 3) {
+            // Word/Google Docs paste routinely carries non-breaking spaces —
+            // normalize to a regular space so they don't behave like
+            // invisible "stuck" characters once pasted in.
+            child.textContent = child.textContent.replace(/\u00a0/g, ' ');
+            return;
+          }
           if (child.nodeType !== 1) return;
           const isKept = KEEP_TAGS.has(child.tagName);
           const style = child.style;
@@ -3484,13 +3548,28 @@
           }
         });
       })(container);
+      // Collapse runs of consecutive <br> to a single one, then drop any
+      // paragraph/div left empty (or only whitespace) by that cleanup — a
+      // visually blank spacer from the paste, not intentional content.
+      container.querySelectorAll('br + br').forEach(br => br.remove());
+      container.querySelectorAll('p, div').forEach(el => {
+        if ((el.textContent || '').trim() === '') el.remove();
+      });
       return container.innerHTML;
+    }
+    // Plain-text-only paste (no text/html on the clipboard) — group into one
+    // <p> per blank-line-separated paragraph, matching every other content
+    // path here. A flat run of <br>-per-line with no <p> tags corrupts on
+    // reload (misrouted through the plain-text reformatting branch).
+    function _plainTextToParagraphs(text) {
+      return text.split(/\n{2,}/).map(p => p.trim()).filter(Boolean)
+        .map(p => '<p>' + escHtml(p).replace(/\n/g, '<br>') + '</p>').join('');
     }
     $('admin-fs-content')?.addEventListener('paste', e => {
       e.preventDefault();
       const cd = e.clipboardData || window.clipboardData;
       const html = cd.getData('text/html');
-      const cleaned = html ? _sanitizePastedHtml(html) : escHtml(cd.getData('text/plain')).replace(/\n/g, '<br>');
+      const cleaned = html ? _sanitizePastedHtml(html) : _plainTextToParagraphs(cd.getData('text/plain'));
       document.execCommand('insertHTML', false, cleaned || '');
     });
 
@@ -4009,7 +4088,7 @@
         updatePayload.content          = snapshot;
         updatePayload.content_snapshot = null;
         updatePayload.snapshot_at      = null;
-        updatePayload.word_count       = snapshot.trim() ? snapshot.trim().split(/\s+/).length : 0;
+        updatePayload.word_count       = _wordsFromHtml(snapshot);
       }
 
       const { error } = await db.from('chapters').update(updatePayload).eq('id', id);
