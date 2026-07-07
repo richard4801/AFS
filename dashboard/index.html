@@ -154,6 +154,14 @@
     #writer-sidebar-nav button{border:1px solid transparent;transition:all 0.2s;color:rgba(122,107,97,0.85)}
     #writer-sidebar-nav button[data-active="1"]{color:#C9A84C;background:rgba(201,168,76,0.10);border-color:rgba(201,168,76,0.22)}
     #writer-sidebar-nav button[data-active="0"]:hover{color:rgba(255,255,255,0.88);background:rgba(255,255,255,0.04)}
+    /* Draws the eye to "Writing Instructions" once she's read through the
+       whole brief — armed by scroll-to-bottom detection, cleared on click. */
+    @keyframes pulseAttention{
+      0%,100%{box-shadow:0 0 0 0 rgba(201,168,76,0.45);transform:scale(1)}
+      50%{box-shadow:0 0 0 7px rgba(201,168,76,0);transform:scale(1.015)}
+    }
+    .pulse-attention{animation:pulseAttention 1.5s ease-in-out infinite}
+    @media (prefers-reduced-motion:reduce){ .pulse-attention{animation:none} }
     /* ── Live collaboration (presence + spotlight caret) ─────────── */
     .collab-caret{position:absolute;top:0;left:0;pointer-events:none;z-index:20;will-change:transform;transition:transform .09s cubic-bezier(.33,1,.68,1);}
     .collab-caret-bar{display:block;width:2px;background:var(--cc,#C9A84C);border-radius:1px;box-shadow:0 0 6px var(--cc,#C9A84C);}
@@ -679,11 +687,16 @@
         <span id="brief-genre" class="flex-shrink-0 text-[10px] font-medium tracking-widest uppercase text-gold border border-gold/20 bg-gold/5 rounded-full px-3 py-1 mt-1"></span>
       </div>
       <p id="brief-preview" class="text-white/55 text-sm leading-relaxed line-clamp-3 mb-4"></p>
-      <div class="flex items-center justify-between gap-3">
-        <button onclick="openBriefFullscreen()" class="flex items-center gap-1.5 text-gold/70 hover:text-gold text-xs font-medium tracking-wide transition-colors">
-          <span>Read full brief</span>
-          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </button>
+      <div class="flex items-center justify-between gap-3 flex-wrap">
+        <div class="flex items-center gap-4">
+          <button onclick="openBriefFullscreen()" class="flex items-center gap-1.5 text-gold/70 hover:text-gold text-xs font-medium tracking-wide transition-colors">
+            <span>Read full brief</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </button>
+          <button onclick="openWritingInstructions()" class="flex items-center gap-1.5 text-muted hover:text-gold text-xs font-medium tracking-wide transition-colors">
+            <span>Writing Instructions</span>
+          </button>
+        </div>
         <button onclick="deleteBrief()" id="delete-brief-btn"
                 class="flex items-center gap-1.5 text-xs text-red-400/50 hover:text-red-400 transition-colors">
           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
@@ -928,7 +941,7 @@
            style="background:rgba(13,11,9,0.86);backdrop-filter:blur(22px) saturate(1.1);-webkit-backdrop-filter:blur(22px) saturate(1.1);">
         <!-- Gold hairline seam -->
         <div class="flex-shrink-0 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent"></div>
-        <div class="flex-1 overflow-y-auto thin-scroll px-6 sm:px-9 py-7 sm:py-11">
+        <div id="prompt-modal-scroll" class="flex-1 overflow-y-auto thin-scroll px-6 sm:px-9 py-7 sm:py-11">
           <span id="prompt-modal-genre" class="hidden inline-block text-[10px] font-medium tracking-widest uppercase text-gold border border-gold/25 bg-gold/10 rounded-full px-3 py-1 mb-3"></span>
           <h2 id="prompt-modal-title" class="font-serif text-2xl sm:text-3xl lg:text-[2.5rem] text-white leading-tight mb-5"></h2>
           <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-3">The Brief</p>
@@ -940,6 +953,11 @@
           </a>
         </div>
         <div class="flex-shrink-0 border-t border-white/10 px-6 sm:px-9 py-4" style="background:rgba(13,11,9,0.5)">
+          <button id="writing-instructions-btn" onclick="openWritingInstructions()"
+                  class="w-full mb-3 inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-gold/30 text-gold hover:bg-gold/10 text-xs font-semibold rounded-lg transition-colors">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            Writing Instructions
+          </button>
           <div class="flex items-center justify-between gap-4">
             <div id="prompt-modal-hint" class="text-xs text-muted min-w-0"></div>
             <div id="prompt-modal-action" class="flex-shrink-0"></div>
@@ -959,6 +977,9 @@
       </div>
       <div class="flex items-center gap-3 flex-shrink-0">
         <span id="brief-full-genre" class="hidden sm:inline-block text-[10px] font-medium tracking-widest uppercase text-gold border border-gold/20 bg-gold/5 rounded-full px-3 py-1"></span>
+        <button onclick="openWritingInstructions()" class="hidden sm:inline-flex items-center gap-1.5 text-gold/70 hover:text-gold text-xs font-medium tracking-wide transition-colors">
+          Writing Instructions
+        </button>
         <button onclick="closeBriefFullscreen()" aria-label="Close brief"
                 class="w-9 h-9 flex items-center justify-center rounded-lg border border-border text-muted hover:text-white hover:border-white/25 active:scale-95 transition-all text-2xl leading-none">×</button>
       </div>
@@ -966,6 +987,90 @@
     <!-- Body -->
     <div class="flex-1 overflow-y-auto thin-scroll">
       <div id="brief-full-body" class="max-w-2xl mx-auto px-5 sm:px-8 py-8 space-y-8"></div>
+    </div>
+  </div>
+
+  <!-- WRITING INSTRUCTIONS MODAL — a standing reference issued alongside
+       every prompt, not something tied to any one prompt's own content. -->
+  <div id="writing-instructions-modal" class="hidden fixed inset-0 z-[220] flex items-center justify-center p-0 sm:p-6" style="background:rgba(0,0,0,0.8);backdrop-filter:blur(4px)">
+    <div class="w-full sm:max-w-2xl h-full sm:h-auto sm:max-h-[88vh] bg-charcoal sm:rounded-2xl border border-gold/20 flex flex-col overflow-hidden">
+      <div class="flex-shrink-0 flex items-center justify-between px-6 sm:px-8 py-5 border-b border-border">
+        <div class="min-w-0">
+          <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-gold mb-1">Standard Reference</p>
+          <h2 class="font-serif text-xl sm:text-2xl text-white">AFS Writer Craft Guide</h2>
+        </div>
+        <button onclick="closeWritingInstructions()" aria-label="Close" class="flex-shrink-0 w-9 h-9 rounded-full border border-border hover:border-white/25 flex items-center justify-center text-muted hover:text-white transition-colors">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="flex-1 overflow-y-auto thin-scroll px-6 sm:px-8 py-7">
+        <p class="text-white/60 text-sm italic leading-relaxed mb-7">Standard instructions issued alongside every prompt. This is what separates a book that sells from one that stalls.</p>
+
+        <div class="space-y-6">
+          <section>
+            <h3 class="font-serif text-lg text-white mb-2">1. Pacing. Never Let the Drama Rest</h3>
+            <p class="text-white/75 text-sm leading-[1.9] mb-3">Keep the tension at peak, always. The moment a scene settles into comfort, calm, or explanation, you've lost the reader's momentum, and that's hard to win back.</p>
+            <p class="text-white/75 text-sm leading-[1.9] mb-3">Every chapter should leave something unresolved: a threat, a question, a reversal. If a scene feels quiet, it still needs something running underneath it. A suspicion. A ticking clock. A secret the reader knows and a character doesn't.</p>
+            <p class="text-white/75 text-sm leading-[1.9]">Cut anything that exists purely to explain. If a detail matters, show it through action or consequence instead of having a character or the narrator stop to summarize it.</p>
+          </section>
+
+          <section>
+            <h3 class="font-serif text-lg text-white mb-2">2. Every Chapter Ends on Suspense</h3>
+            <p class="text-white/75 text-sm leading-[1.9] mb-3">No chapter closes on a settled beat. Not a resolved conversation, not a character going to sleep, not a scene that wraps up neatly.</p>
+            <p class="text-white/75 text-sm leading-[1.9] mb-3">End on a discovery mid motion. A threat that hasn't landed yet. A line of dialogue that reframes everything before it. A door opening, not closing.</p>
+            <p class="text-white/75 text-sm leading-[1.9]">Here's a simple test: if you can summarize your last line as "and then things were fine for a moment," go back and rewrite the ending.</p>
+          </section>
+
+          <section>
+            <h3 class="font-serif text-lg text-white mb-2">3. The Last Free Chapter Is the Most Important One You'll Write</h3>
+            <p class="text-white/75 text-sm leading-[1.9] mb-3">This is the chapter the entire paywall rests on. Readers decide whether to pay based on what this chapter promises, not on how strong chapters 1 through 4 were.</p>
+            <p class="text-white/75 text-sm leading-[1.9]">The stakes here need to go higher than anything before it. It should raise a question the reader simply cannot walk away from. Don't resolve anything major in this chapter. Its whole job is to make paying feel necessary, not optional.</p>
+          </section>
+
+          <section>
+            <h3 class="font-serif text-lg text-white mb-2">4. The Self Test: Would I Pay to Read This?</h3>
+            <p class="text-white/75 text-sm leading-[1.9] mb-3">Ask yourself honestly before you submit anything. If the answer isn't an immediate yes, the chapter isn't ready yet. Go back and sharpen the hook, the stakes, or the ending.</p>
+            <p class="text-white/75 text-sm leading-[1.9]">This applies to every chapter, not just the paywall one. A reader who hesitates once starts hesitating every time after.</p>
+          </section>
+
+          <section>
+            <h3 class="font-serif text-lg text-white mb-2">5. Chapter Length</h3>
+            <p class="text-white/75 text-sm leading-[1.9]">Minimum 800 words. Maximum 1,200 words. Stay inside this range consistently. Chapters that run short feel thin. Chapters that run long lose their pacing.</p>
+          </section>
+
+          <section>
+            <h3 class="font-serif text-lg text-white mb-2">6. Quality and Creativity. The Prompt Is a Guide, Not a Script</h3>
+            <p class="text-white/75 text-sm leading-[1.9] mb-3">The brief gives you the pillars: the injustice, the stakes, the world. Everything else is yours to build. The specific cruelty. The pacing of the reveal. The texture of a scene. The exact words a character reaches for under pressure.</p>
+            <p class="text-white/75 text-sm leading-[1.9]">A writer who only fills in the blanks produces a flat book. A writer who brings their own instincts into the open space produces one that actually sells. If two things in the brief seem to pull in different directions, trust your own read of what makes the scene hit harder. That instinct is why you were hired.</p>
+          </section>
+
+          <section>
+            <h3 class="font-serif text-lg text-white mb-2">7. Show, Don't Tell</h3>
+            <p class="text-white/75 text-sm leading-[1.9] mb-3">Never state an emotion outright. "She felt humiliated" is a dead sentence. Prove it instead. A hand that won't stop shaking. A silence that goes on a beat too long. A detail in the room that suddenly matters more than it should.</p>
+            <p class="text-white/75 text-sm leading-[1.9]">Every emotional beat should arrive through the body, the setting, or what a character does, not through the narrator explaining what the reader is supposed to feel.</p>
+          </section>
+
+          <section>
+            <h3 class="font-serif text-lg text-white mb-2">8. Dialogue Has to Sound Like Different People</h3>
+            <p class="text-white/75 text-sm leading-[1.9]">If you could swap two characters' lines and nothing would feel off, the dialogue isn't finished yet. Every character needs their own rhythm: how they interrupt, how they go quiet, what they avoid saying outright.</p>
+          </section>
+
+          <section>
+            <h3 class="font-serif text-lg text-white mb-2">9. Originality Is Non Negotiable, and It's Your Protection Too</h3>
+            <p class="text-white/75 text-sm leading-[1.9] mb-3">Any sample material or comp title you're given is there for pacing, structure, and voice. It's not a source to pull names, settings, or plot mechanics from. If a detail from a sample sticks with you, ask what made it work emotionally, then build your own version of that effect from the ground up.</p>
+            <p class="text-white/75 text-sm leading-[1.9] mb-3">This isn't just a platform rule. A book that reads too close to existing published work gets flagged, rejected, or pulled, and that risk lands on you as much as it does the studio. Original work is the only version of this that's safe for both of us.</p>
+            <p class="text-white/75 text-sm leading-[1.9]">That also means watching your own repeated patterns. Don't reuse a phrase, a character tic, or a plot device you've already leaned on in an earlier chapter or book. If it's already been done, by you or by anyone else, find a different way in this time.</p>
+          </section>
+
+          <section>
+            <h3 class="font-serif text-lg text-white mb-2">10. Write Like a Person, Not a Formula</h3>
+            <p class="text-white/75 text-sm leading-[1.9] mb-3">Vary your sentence lengths. Let some lines run short and blunt, others longer and searching. Don't explain a character's feelings right after you've already shown them. Pick one or the other. Watch for phrasing that's too polished and too symmetrical, the kind that reads more like a summary than something actually happening on the page.</p>
+            <p class="text-white/75 text-sm leading-[1.9]">If a paragraph could describe any character in any book, it needs more of this specific character in it.</p>
+          </section>
+        </div>
+
+        <p class="text-muted/60 text-xs italic leading-relaxed mt-7 pt-5 border-t border-border">This guide applies to every AFS title, not just the current prompt. Writers should treat it as a standing reference, not a one time note.</p>
+      </div>
     </div>
   </div>
 
@@ -4463,7 +4568,30 @@
       _renderPromptModalAction(p);
       $('prompt-modal').classList.remove('hidden');
       document.body.style.overflow = 'hidden';
+      // Re-arm the "read the whole brief" nudge fresh for this prompt --
+      // resets on every open so a previously-dismissed pulse doesn't just
+      // stay dark for the next prompt she reads.
+      _promptBriefRead = false;
+      $('writing-instructions-btn')?.classList.remove('pulse-attention');
+      requestAnimationFrame(_checkPromptBriefRead);
     }
+
+    // Armed once she's scrolled to the end of the brief (or the brief
+    // never needed scrolling to begin with, for a short one) -- matches
+    // the same scroll-to-bottom pattern used for Christine's chapter
+    // reader read-tracking, just as a pure UI nudge here with nothing
+    // persisted server-side.
+    let _promptBriefRead = false;
+    function _checkPromptBriefRead() {
+      if (_promptBriefRead) return;
+      const el = $('prompt-modal-scroll');
+      if (!el) return;
+      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 24) {
+        _promptBriefRead = true;
+        $('writing-instructions-btn')?.classList.add('pulse-attention');
+      }
+    }
+    $('prompt-modal-scroll')?.addEventListener('scroll', _checkPromptBriefRead, { passive: true });
 
     function _renderPromptModalAction(p) {
       const action = $('prompt-modal-action');
@@ -4650,6 +4778,27 @@
       $('brief-fullscreen').classList.add('hidden');
       document.body.style.overflow = '';
     }
+
+    // ── Writing Instructions — a standing craft reference, the same
+    // content for every prompt, not something attached to any one of them.
+    function openWritingInstructions() {
+      $('writing-instructions-modal').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      // She's engaged with it now — stop drawing attention to the button.
+      $('writing-instructions-btn')?.classList.remove('pulse-attention');
+    }
+    function closeWritingInstructions() {
+      $('writing-instructions-modal').classList.add('hidden');
+      // Restore whichever underlying view was open (prompt modal / brief
+      // fullscreen) rather than always clearing scroll-lock — both of
+      // those set overflow:hidden themselves and stay open underneath.
+      if ($('prompt-modal').classList.contains('hidden') && $('brief-fullscreen').classList.contains('hidden')) {
+        document.body.style.overflow = '';
+      }
+    }
+    $('writing-instructions-modal').addEventListener('click', e => {
+      if (e.target === $('writing-instructions-modal')) closeWritingInstructions();
+    });
 
     async function deleteBrief() {
       if (!_briefData?.id) return;
