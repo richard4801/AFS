@@ -951,12 +951,27 @@
     }
     function closeBoardPrompt() { $('board-modal').classList.add('hidden'); document.body.style.overflow = ''; }
 
+    // Two independent sources feed the same lookup registry (signed wall +
+    // review queue). loadBooks()/loadSeReviewQueue() run concurrently in
+    // Promise.all() at startup, so each one used to reset _seBookReg = {}
+    // and repopulate from just its own rows — whichever resolved LAST wiped
+    // out the other's entries. A queue book that isn't also signed would
+    // then vanish from the registry entirely, so clicking it in the grid
+    // called openSeBook() with an id no longer in _seBookReg, which no-ops
+    // silently (if (!b) return;) — no error, book just didn't open. Each
+    // loader now only ever touches its own backing map; _seBookReg is
+    // always rebuilt as a merge of both, so neither can erase the other.
+    let _seSignedBookReg = {};
+    let _seQueueBookReg = {};
     let _seBookReg = {};
+    function _seRebuildBookReg() { _seBookReg = { ..._seSignedBookReg, ..._seQueueBookReg }; }
+
     async function loadBooks() {
       const { data, error } = await db.rpc('get_se_books');
       const rows = error ? [] : (data ?? []);
-      _seBookReg = {};
-      rows.forEach(b => { _seBookReg[b.id] = b; });
+      _seSignedBookReg = {};
+      rows.forEach(b => { _seSignedBookReg[b.id] = b; });
+      _seRebuildBookReg();
       $('books-empty').classList.toggle('hidden', rows.length > 0);
       $('books-grid').innerHTML = rows.map(b => `
         <button onclick="openSeBook('${b.id}')" class="group text-left">
@@ -977,9 +992,11 @@
     async function loadSeReviewQueue() {
       const { data, error } = await db.rpc('get_se_review_queue');
       const rows = error ? [] : (data ?? []);
+      _seQueueBookReg = {};
       rows.forEach(q => {
-        _seBookReg[q.book_id] = { id: q.book_id, title: q.title, cover_url: q.cover_url, chapter_count: q.chapter_count, total_words: q.total_words };
+        _seQueueBookReg[q.book_id] = { id: q.book_id, title: q.title, cover_url: q.cover_url, chapter_count: q.chapter_count, total_words: q.total_words };
       });
+      _seRebuildBookReg();
       $('se-review-queue-empty').classList.toggle('hidden', rows.length > 0);
       $('se-review-queue-grid').innerHTML = rows.map(q => {
         const locked = q.status === 'pending' && !q.is_current;
@@ -1031,7 +1048,8 @@
     let _seSelectedChapters = new Set();
 
     async function openSeBook(id) {
-      const b = _seBookReg[id]; if (!b) return;
+      const b = _seBookReg[id];
+      if (!b) { toast('Could not open that book — try refreshing the page.'); return; }
       _seCurrentBookId = id;
       _seSelectedChapters = new Set();
       $('sb-title').textContent = b.title;
