@@ -626,6 +626,12 @@
                  class="form-input w-full bg-obsidian border border-border text-white placeholder-muted/60 text-sm rounded-lg px-4 py-2.5"/>
         </div>
         <div>
+          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Tags <span class="text-muted font-normal">(optional — press Enter to add)</span></label>
+          <div id="pe-tags-chips" class="flex flex-wrap gap-1.5 empty:hidden mb-2"></div>
+          <input id="pe-tags-input" type="text" placeholder="e.g. Enemies to Lovers, Slow Burn"
+                 class="form-input w-full bg-obsidian border border-border text-white placeholder-muted/60 text-sm rounded-lg px-4 py-2.5"/>
+        </div>
+        <div>
           <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Brief <span class="text-gold">*</span></label>
           <textarea id="pe-brief" rows="7" placeholder="The premise, characters, tone, and any must-hit beats — what the writer reads before claiming."
                     class="form-input w-full bg-obsidian border border-border text-white placeholder-muted/60 text-sm rounded-lg px-4 py-3 resize-y leading-relaxed thin-scroll"></textarea>
@@ -2099,12 +2105,36 @@
     function openPromptEditor() {
       _peBannerFile = null;
       $('pe-title').value=''; $('pe-genre').value=''; $('pe-brief').value=''; $('pe-sample-url').value='';
+      _peTags = []; $('pe-tags-input').value=''; _renderPeTags();
       $('pe-error').classList.add('hidden');
       $('pe-banner-preview').classList.add('hidden'); $('pe-banner-preview').removeAttribute('src');
       $('pe-dropzone-hint').classList.remove('hidden'); $('pe-banner-clear').classList.add('hidden');
       $('prompt-modal').classList.remove('hidden');
     }
     function closePromptEditor() { $('prompt-modal').classList.add('hidden'); }
+
+    // ── Prompt sub-tags (chip input) ──────────────────────────────
+    let _peTags = [];
+    function _renderPeTags() {
+      $('pe-tags-chips').innerHTML = _peTags.map((t, i) => `
+        <span class="inline-flex items-center gap-1 text-[11px] font-medium text-white/80 bg-white/5 border border-border rounded-full pl-2.5 pr-1.5 py-1">
+          ${escHtml(t)}
+          <button type="button" onclick="_removePeTag(${i})" class="w-3.5 h-3.5 flex items-center justify-center rounded-full hover:bg-white/10 text-muted hover:text-white leading-none">×</button>
+        </span>`).join('');
+    }
+    function _removePeTag(i) { _peTags.splice(i, 1); _renderPeTags(); }
+    function _addPeTagFromInput() {
+      const input = $('pe-tags-input');
+      const raw = input.value.trim().replace(/,+$/, '').trim();
+      input.value = '';
+      if (!raw) return;
+      if (!_peTags.some(t => t.toLowerCase() === raw.toLowerCase())) _peTags.push(raw);
+      _renderPeTags();
+    }
+    $('pe-tags-input')?.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); _addPeTagFromInput(); }
+    });
+    $('pe-tags-input')?.addEventListener('blur', () => { if ($('pe-tags-input').value.trim()) _addPeTagFromInput(); });
     function clearPeBanner() {
       _peBannerFile = null; $('pe-banner-input').value='';
       $('pe-banner-preview').classList.add('hidden'); $('pe-banner-preview').removeAttribute('src');
@@ -2141,7 +2171,7 @@
         if (upErr) { err.textContent = 'Banner upload failed: ' + upErr.message; err.classList.remove('hidden'); btn.disabled=false; btn.textContent='Submit for Approval'; return; }
         bannerUrl = db.storage.from('prompt-banners').getPublicUrl(path).data.publicUrl;
       }
-      const { error } = await db.rpc('se_add_prompt', { p_title: title, p_brief: brief, p_genre: genre, p_banner_url: bannerUrl, p_sample_chapter_url: sampleUrl, p_sort_order: 0 });
+      const { error } = await db.rpc('se_add_prompt', { p_title: title, p_brief: brief, p_genre: genre, p_banner_url: bannerUrl, p_sample_chapter_url: sampleUrl, p_tags: _peTags, p_sort_order: 0 });
       btn.disabled = false; btn.textContent = 'Submit for Approval';
       if (error) { err.textContent = error.message; err.classList.remove('hidden'); return; }
       closePromptEditor(); toast('Submitted to the admin for approval.'); loadMyPrompts();

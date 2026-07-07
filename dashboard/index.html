@@ -943,6 +943,7 @@
         <div class="flex-shrink-0 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent"></div>
         <div id="prompt-modal-scroll" class="flex-1 overflow-y-auto thin-scroll px-6 sm:px-9 py-7 sm:py-11">
           <span id="prompt-modal-genre" class="hidden inline-block text-[10px] font-medium tracking-widest uppercase text-gold border border-gold/25 bg-gold/10 rounded-full px-3 py-1 mb-3"></span>
+          <div id="prompt-modal-tags" class="hidden flex flex-wrap gap-1.5 mb-3"></div>
           <h2 id="prompt-modal-title" class="font-serif text-2xl sm:text-3xl lg:text-[2.5rem] text-white leading-tight mb-5"></h2>
           <p class="text-[10px] font-medium tracking-[0.18em] uppercase text-muted mb-3">The Brief</p>
           <div id="prompt-modal-brief" class="text-white/80 text-[15px] sm:text-base leading-[1.95] space-y-4"></div>
@@ -4556,6 +4557,12 @@
       const genreEl = $('prompt-modal-genre');
       if (p.genre) { genreEl.textContent = p.genre; genreEl.classList.remove('hidden'); }
       else genreEl.classList.add('hidden');
+      const tagsEl = $('prompt-modal-tags');
+      const tags = Array.isArray(p.tags) ? p.tags : [];
+      if (tags.length) {
+        tagsEl.innerHTML = tags.map(t => `<span class="inline-block text-[10px] font-medium text-white/70 bg-white/5 border border-border rounded-full px-2.5 py-1">${escHtml(t)}</span>`).join('');
+        tagsEl.classList.remove('hidden');
+      } else tagsEl.classList.add('hidden');
       $('prompt-modal-title').textContent = p.title;
       $('prompt-modal-brief').innerHTML   = _briefToHtml(p.brief);
       // safeHref() HTML-escapes its return value for template interpolation --

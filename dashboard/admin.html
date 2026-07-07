@@ -1171,6 +1171,12 @@
                  class="w-full bg-obsidian border border-border text-white placeholder-muted/60 text-sm rounded-lg px-4 py-2.5 focus:outline-none focus:border-crimson/50"/>
         </div>
         <div>
+          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Tags <span class="text-muted font-normal">(optional — press Enter to add)</span></label>
+          <div id="admin-prompt-tags-chips" class="flex flex-wrap gap-1.5 empty:hidden mb-2"></div>
+          <input id="admin-prompt-tags-input" type="text" placeholder="e.g. Enemies to Lovers, Slow Burn"
+                 class="w-full bg-obsidian border border-border text-white placeholder-muted/60 text-sm rounded-lg px-4 py-2.5 focus:outline-none focus:border-crimson/50"/>
+        </div>
+        <div>
           <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Brief <span class="text-crimson-light">*</span></label>
           <textarea id="admin-prompt-brief-input" rows="7" placeholder="The premise, characters, tone, and any must-hit beats. This is what the writer reads before claiming."
                     class="w-full bg-obsidian border border-border text-white placeholder-muted/60 text-sm rounded-lg px-4 py-3 resize-y leading-relaxed focus:outline-none focus:border-crimson/50 thin-scroll"></textarea>
@@ -5168,6 +5174,29 @@
       }).join('');
     }
 
+    // ── Prompt sub-tags (chip input) ──────────────────────────────
+    let _adminPromptTags = [];
+    function _renderAdminPromptTags() {
+      $('admin-prompt-tags-chips').innerHTML = _adminPromptTags.map((t, i) => `
+        <span class="inline-flex items-center gap-1 text-[11px] font-medium text-white/80 bg-white/5 border border-border rounded-full pl-2.5 pr-1.5 py-1">
+          ${escHtml(t)}
+          <button type="button" onclick="_removeAdminPromptTag(${i})" class="w-3.5 h-3.5 flex items-center justify-center rounded-full hover:bg-white/10 text-muted hover:text-white leading-none">×</button>
+        </span>`).join('');
+    }
+    function _removeAdminPromptTag(i) { _adminPromptTags.splice(i, 1); _renderAdminPromptTags(); }
+    function _addAdminPromptTagFromInput() {
+      const input = $('admin-prompt-tags-input');
+      const raw = input.value.trim().replace(/,+$/, '').trim();
+      input.value = '';
+      if (!raw) return;
+      if (!_adminPromptTags.some(t => t.toLowerCase() === raw.toLowerCase())) _adminPromptTags.push(raw);
+      _renderAdminPromptTags();
+    }
+    $('admin-prompt-tags-input')?.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); _addAdminPromptTagFromInput(); }
+    });
+    $('admin-prompt-tags-input')?.addEventListener('blur', () => { if ($('admin-prompt-tags-input').value.trim()) _addAdminPromptTagFromInput(); });
+
     function openAdminPromptModal(id) {
       const p = id ? _adminPromptReg[id] : null;
       $('admin-prompt-id').value = p?.id || '';
@@ -5175,6 +5204,9 @@
       $('admin-prompt-genre-input').value = p?.genre || '';
       $('admin-prompt-brief-input').value = p?.brief || '';
       $('admin-prompt-sample-url-input').value = p?.sample_chapter_url || '';
+      _adminPromptTags = Array.isArray(p?.tags) ? [...p.tags] : [];
+      $('admin-prompt-tags-input').value = '';
+      _renderAdminPromptTags();
       $('admin-prompt-order-input').value = p?.sort_order ?? 0;
       $('admin-prompt-active-input').checked = p ? !!p.is_active : true;
       $('admin-prompt-modal-title').textContent = p ? 'Edit Prompt' : 'New Prompt';
@@ -5256,7 +5288,7 @@
         bannerUrl = db.storage.from('prompt-banners').getPublicUrl(path).data.publicUrl;
       }
 
-      const row = { title, genre, brief, sample_chapter_url: sampleUrl, sort_order: order, is_active: active, banner_url: bannerUrl, updated_at: new Date().toISOString() };
+      const row = { title, genre, brief, sample_chapter_url: sampleUrl, tags: _adminPromptTags, sort_order: order, is_active: active, banner_url: bannerUrl, updated_at: new Date().toISOString() };
       let error;
       if (id) {
         ({ error } = await db.from('writing_prompts').update(row).eq('id', id));
