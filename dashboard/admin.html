@@ -2315,11 +2315,23 @@
       $('stat-locked').value  = book.locked_from_chapter ?? '';
       $('chapter-list').innerHTML = '<div class="skeleton h-16 rounded-xl"></div>'.repeat(3);
       $('edit-requests-section').classList.add('hidden');
-      const [{ data: chapters }, editReqs, { data: promptLink }] = await Promise.all([
-        db.from('chapters').select('id, chapter_number, title, word_count, status').eq('book_id', book.id).order('chapter_number', { ascending: false }),
-        loadEditRequestsForBook(book.id),
-        loadSeQueueStatus(),
-        db.from('prompt_claims').select('writing_prompts(title)').eq('book_id', book.id).limit(1),
+      // Visible default instead of the button's blank unstyled markup while
+      // this loads. Each Promise.all entry is also individually caught
+      // (swallow()) so one failing query can't reject the whole batch and
+      // silently abort everything below it -- destructuring a rejected
+      // Promise.all used to throw before ever reaching updateSeQueueBtn(),
+      // renderInlineChapterList(), etc., which is exactly why the chapter
+      // list could get stuck on its loading skeleton forever with no error
+      // ever surfacing.
+      $('send-to-se-btn').disabled = true;
+      $('send-to-se-btn').className = 'w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border border-border bg-muted/10 text-muted mb-3 cursor-default';
+      $('send-to-se-btn').textContent = 'Loading…';
+      const swallow = p => Promise.resolve(p).catch(err => ({ data: null, error: err }));
+      const [{ data: chapters }, editReqs, , { data: promptLink }] = await Promise.all([
+        swallow(db.from('chapters').select('id, chapter_number, title, word_count, status').eq('book_id', book.id).order('chapter_number', { ascending: false })),
+        swallow(loadEditRequestsForBook(book.id)).then(r => Array.isArray(r) ? r : []),
+        swallow(loadSeQueueStatus()),
+        swallow(db.from('prompt_claims').select('writing_prompts(title)').eq('book_id', book.id).limit(1)),
       ]);
       // A different book may have been selected while this was in flight —
       // discard the stale response (and skip resubscribing below) rather

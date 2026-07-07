@@ -290,6 +290,18 @@
         <button onclick="setTimeout(startTour,150)" class="mt-2 text-xs text-muted/50 hover:text-gold transition-colors">↺ Replay dashboard tour</button>
       </div>
 
+      <!-- Persistent reminder — the very first thing on the page below the
+           header, so it can't be missed under the Prompts/Board sections.
+           Stays up until she's actually opened the current book, not just
+           on a timer. -->
+      <div id="se-new-book-banner" class="hidden mb-10 rounded-2xl border border-gold/30 bg-gold/10 px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <p class="text-gold text-[10px] font-bold uppercase tracking-widest mb-1">Waiting for your review</p>
+          <p id="se-new-book-banner-title" class="text-white text-sm font-medium"></p>
+        </div>
+        <button id="se-new-book-banner-btn" class="flex-shrink-0 px-4 py-2 bg-gold hover:bg-gold-light text-obsidian text-xs font-bold rounded-lg transition-colors">Start Reviewing</button>
+      </div>
+
       <!-- Review queue -->
       <section id="review-section" class="mb-12">
         <div class="flex items-end justify-between mb-4">
@@ -326,16 +338,6 @@
         <div id="board-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
         <p id="board-empty" class="hidden text-muted/60 text-sm text-center py-8 rounded-2xl border border-dashed border-border">No live prompts yet.</p>
       </section>
-
-      <!-- Persistent reminder — stays up until she's actually opened the
-           current book, not just on a timer. -->
-      <div id="se-new-book-banner" class="hidden mb-8 rounded-2xl border border-gold/30 bg-gold/10 px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <p class="text-gold text-[10px] font-bold uppercase tracking-widest mb-1">Waiting for your review</p>
-          <p id="se-new-book-banner-title" class="text-white text-sm font-medium"></p>
-        </div>
-        <button id="se-new-book-banner-btn" class="flex-shrink-0 px-4 py-2 bg-gold hover:bg-gold-light text-obsidian text-xs font-bold rounded-lg transition-colors">Start Reviewing</button>
-      </div>
 
       <!-- Books to review (pre-signing, sequential unlock) -->
       <section id="se-review-queue-section" class="mb-12">
