@@ -5307,8 +5307,23 @@
         return;
       }
       statusEl.className = 'text-[11px] text-emerald-400 mt-1.5';
-      statusEl.textContent = 'Assigned ✓';
-      showToast('Prompt assigned.');
+      statusEl.textContent = 'Assigned ✓ — now her Project Brief too';
+      showToast('Prompt assigned — it\'s now her Project Brief.');
+      // admin_assign_prompt() already wrote the in-app notification; the
+      // email side of that same notice is a client-side call (an edge
+      // function has to be reached with the current session's token),
+      // same as the manual Brief editor's saveBrief() sends.
+      const writer = (_adminAssignWriters || []).find(w => w.id === writerId);
+      if (writer?.email) {
+        const { data: { session } } = await db.auth.getSession();
+        const title = $('admin-prompt-title-input').value.trim();
+        const genre = $('admin-prompt-genre-input').value.trim() || 'Werewolf Romance';
+        fetch(`${SUPABASE_URL}/functions/v1/send-notification`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session?.access_token },
+          body: JSON.stringify({ type: 'brief_assigned', writerId, writerEmail: writer.email, writerName: writer.name || '', data: { title, genre } }),
+        }).catch(() => {});
+      }
     }
 
     async function deleteAdminPrompt() {
