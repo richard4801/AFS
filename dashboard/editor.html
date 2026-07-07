@@ -73,6 +73,21 @@
     .se-gem-wrap.se-lit { filter:none; opacity:1; }
     .se-avatar-ring { border-color:rgba(255,255,255,0.15); transition:border-color 1.8s cubic-bezier(.4,0,.2,1); }
     .se-avatar-ring.se-lit { border-color:#B79FDE; }
+
+    /* ── SE Tab Navigation (mobile bottom bar + desktop sidebar) ────
+       Same pattern as the writer dashboard's .writer-section: one
+       group visible at a time, sidebar on ≥sm, bottom bar on <sm. ── */
+    .se-tab-section{display:none!important}
+    .se-tab-section.active{display:block!important}
+    @media (max-width:639px){
+      #se-chat-float{bottom:110px!important}
+    }
+    #se-mobile-nav button{border-radius:9999px;border:1px solid transparent;transition:all 0.2s}
+    #se-mobile-nav button[data-active="1"]{color:#C9A84C;background:rgba(201,168,76,0.10);border-color:rgba(201,168,76,0.25)}
+    #se-mobile-nav button[data-active="0"]{color:rgba(122,107,97,0.75)}
+    #se-sidebar-nav button{border:1px solid transparent;transition:all 0.2s;color:rgba(122,107,97,0.85)}
+    #se-sidebar-nav button[data-active="1"]{color:#C9A84C;background:rgba(201,168,76,0.10);border-color:rgba(201,168,76,0.22)}
+    #se-sidebar-nav button[data-active="0"]:hover{color:rgba(255,255,255,0.88);background:rgba(255,255,255,0.04)}
     [x-cloak]{display:none!important;}
     #se-reader-content, #se-reader-content p { font-family:'Lora',Georgia,serif; font-size:17px; font-weight:400; line-height:1.95; letter-spacing:0.01em; color:rgba(255,255,255,0.80); }
     #se-reader-content p { margin-bottom:1.4em; }
@@ -281,7 +296,41 @@
       </nav>
     </header>
 
-    <main class="max-w-5xl mx-auto px-4 sm:px-6 pb-24 pt-28">
+    <!-- ── DESKTOP SIDEBAR NAV (hidden on mobile; mobile uses bottom bar) ── -->
+    <aside class="hidden sm:flex fixed left-0 top-0 bottom-0 z-40 w-56 flex-col border-r border-white/5"
+           style="background:rgba(13,11,9,0.55);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);">
+      <div class="px-6 pt-6 pb-9">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="15 18 110 52" height="34" style="clip-path:path('M0 0 H200 V14 H0 Z M0 17 H200 V36 H0 Z')" aria-label="AFS Publishing">
+          <g transform="translate(20,15)">
+            <text font-family="'Cinzel',Georgia,serif" font-weight="400" fill="#EEECE9" font-size="38" letter-spacing="4" x="0" y="35">AFS</text>
+            <text font-family="'Montserrat',system-ui,sans-serif" font-weight="400" fill="rgba(238,236,233,0.42)" font-size="9" letter-spacing="5" x="2" y="52">Publishing</text>
+          </g>
+        </svg>
+      </div>
+      <nav id="se-sidebar-nav" class="flex-1 px-3 space-y-1">
+        <button onclick="switchSeTab('review')" id="setab-review" data-active="1"
+                class="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium">
+          <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Review</span>
+        </button>
+        <button onclick="switchSeTab('prompts')" id="setab-prompts" data-active="0"
+                class="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium">
+          <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
+          <span>Prompts</span>
+        </button>
+        <button onclick="switchSeTab('books')" id="setab-books" data-active="0"
+                class="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium">
+          <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          <span>Books</span>
+        </button>
+      </nav>
+      <div class="px-6 py-5 border-t border-white/5">
+        <p class="text-[10px] tracking-[0.18em] uppercase" style="color:rgba(122,107,97,0.6)">Apex Fiction Studio</p>
+      </div>
+    </aside>
+
+    <main class="relative z-10 sm:ml-56 px-4 sm:px-6 pb-24 pt-28">
+    <div class="mx-auto max-w-5xl">
       <!-- Welcome -->
       <div class="mb-10">
         <p class="text-[11px] font-medium tracking-[0.22em] uppercase text-gold mb-2">Christine's Editorial Studio</p>
@@ -290,46 +339,11 @@
         <button onclick="setTimeout(startTour,150)" class="mt-2 text-xs text-muted/50 hover:text-gold transition-colors">↺ Replay dashboard tour</button>
       </div>
 
-      <!-- Review queue -->
-      <section id="review-section" class="mb-12">
-        <div class="flex items-end justify-between mb-4">
-          <div>
-            <h2 class="font-serif text-xl sm:text-2xl text-white">Awaiting your review</h2>
-            <p class="text-muted text-xs mt-0.5">Prompts submitted by the admin. Approve to send them to writers, or decline with a note.</p>
-          </div>
-          <span id="review-count" class="flex-shrink-0 text-[11px] font-bold text-gold bg-gold/10 border border-gold/25 rounded-full px-2.5 py-0.5">0</span>
-        </div>
-        <div id="review-list" class="space-y-4"></div>
-        <p id="review-empty" class="hidden text-muted/60 text-sm text-center py-10 rounded-2xl border border-dashed border-border">Nothing to review right now. You're all caught up.</p>
-      </section>
-
-      <!-- My prompts -->
-      <section id="prompts-section" class="mb-12">
-        <div class="flex items-end justify-between mb-4">
-          <div>
-            <h2 class="font-serif text-xl sm:text-2xl text-white">Your prompts</h2>
-            <p class="text-muted text-xs mt-0.5">Prompts you've written. These go to the admin for approval before reaching writers.</p>
-          </div>
-          <button onclick="openPromptEditor()" class="flex-shrink-0 inline-flex items-center gap-2 px-4 py-2.5 bg-gold hover:bg-gold-light text-obsidian text-xs font-bold rounded-xl transition-colors">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-            New Prompt
-          </button>
-        </div>
-        <div id="mine-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-        <p id="mine-empty" class="hidden text-muted/60 text-sm text-center py-10 rounded-2xl border border-dashed border-border">You haven't written any prompts yet. Tap <span class="text-gold">New Prompt</span> to begin.</p>
-      </section>
-
-      <!-- On the platform -->
-      <section id="board-section" class="mb-12">
-        <h2 class="font-serif text-xl sm:text-2xl text-white mb-1">On the platform</h2>
-        <p class="text-muted text-xs mb-4">Every prompt live for writers — available to claim, or currently in development.</p>
-        <div id="board-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-        <p id="board-empty" class="hidden text-muted/60 text-sm text-center py-8 rounded-2xl border border-dashed border-border">No live prompts yet.</p>
-      </section>
-
-      <!-- Persistent reminder — stays up until she's actually opened the
-           current book, not just on a timer. -->
-      <div id="se-new-book-banner" class="hidden mb-8 rounded-2xl border border-gold/30 bg-gold/10 px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
+      <!-- Persistent reminder — the very first thing on the page below the
+           header, so it can't be missed under the Prompts/Board sections.
+           Stays up until she's actually opened the current book, not just
+           on a timer. -->
+      <div id="se-new-book-banner" class="hidden mb-10 rounded-2xl border border-gold/30 bg-gold/10 px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
         <div>
           <p class="text-gold text-[10px] font-bold uppercase tracking-widest mb-1">Waiting for your review</p>
           <p id="se-new-book-banner-title" class="text-white text-sm font-medium"></p>
@@ -337,22 +351,93 @@
         <button id="se-new-book-banner-btn" class="flex-shrink-0 px-4 py-2 bg-gold hover:bg-gold-light text-obsidian text-xs font-bold rounded-lg transition-colors">Start Reviewing</button>
       </div>
 
-      <!-- Books to review (pre-signing, sequential unlock) -->
-      <section id="se-review-queue-section" class="mb-12">
-        <h2 class="font-serif text-xl sm:text-2xl text-white mb-1">Books to review</h2>
-        <p class="text-muted text-xs mb-4">Sent to you by the admin, in the order approved. Finish one to unlock the next.</p>
-        <div id="se-review-queue-grid" class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4"></div>
-        <p id="se-review-queue-empty" class="hidden text-muted/60 text-sm text-center py-8 rounded-2xl border border-dashed border-border">Nothing in your review queue right now.</p>
-      </section>
+      <!-- ── TAB: Review ─────────────────────────────────────────── -->
+      <div id="se-section-review" class="se-tab-section active">
+        <!-- Review queue -->
+        <section id="review-section" class="mb-12">
+          <div class="flex items-end justify-between mb-4">
+            <div>
+              <h2 class="font-serif text-xl sm:text-2xl text-white">Awaiting your review</h2>
+              <p class="text-muted text-xs mt-0.5">Prompts submitted by the admin. Approve to send them to writers, or decline with a note.</p>
+            </div>
+            <span id="review-count" class="flex-shrink-0 text-[11px] font-bold text-gold bg-gold/10 border border-gold/25 rounded-full px-2.5 py-0.5">0</span>
+          </div>
+          <div id="review-list" class="space-y-4"></div>
+          <p id="review-empty" class="hidden text-muted/60 text-sm text-center py-10 rounded-2xl border border-dashed border-border">Nothing to review right now. You're all caught up.</p>
+        </section>
+      </div>
 
-      <!-- Signed books -->
-      <section id="books-section">
-        <h2 class="font-serif text-xl sm:text-2xl text-white mb-1">Signed books</h2>
-        <p class="text-muted text-xs mb-4">Open a book to read through its chapters and give your verdict.</p>
-        <div id="books-grid" class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4"></div>
-        <p id="books-empty" class="hidden text-muted/60 text-sm text-center py-8 rounded-2xl border border-dashed border-border">No signed books yet.</p>
-      </section>
+      <!-- ── TAB: Prompts ────────────────────────────────────────── -->
+      <div id="se-section-prompts" class="se-tab-section">
+        <!-- My prompts -->
+        <section id="prompts-section" class="mb-12">
+          <div class="flex items-end justify-between mb-4">
+            <div>
+              <h2 class="font-serif text-xl sm:text-2xl text-white">Your prompts</h2>
+              <p class="text-muted text-xs mt-0.5">Prompts you've written. These go to the admin for approval before reaching writers.</p>
+            </div>
+            <button onclick="openPromptEditor()" class="flex-shrink-0 inline-flex items-center gap-2 px-4 py-2.5 bg-gold hover:bg-gold-light text-obsidian text-xs font-bold rounded-xl transition-colors">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+              New Prompt
+            </button>
+          </div>
+          <div id="mine-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+          <p id="mine-empty" class="hidden text-muted/60 text-sm text-center py-10 rounded-2xl border border-dashed border-border">You haven't written any prompts yet. Tap <span class="text-gold">New Prompt</span> to begin.</p>
+        </section>
+
+        <!-- On the platform -->
+        <section id="board-section" class="mb-12">
+          <h2 class="font-serif text-xl sm:text-2xl text-white mb-1">On the platform</h2>
+          <p class="text-muted text-xs mb-4">Every prompt live for writers — available to claim, or currently in development.</p>
+          <div id="board-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+          <p id="board-empty" class="hidden text-muted/60 text-sm text-center py-8 rounded-2xl border border-dashed border-border">No live prompts yet.</p>
+        </section>
+      </div>
+
+      <!-- ── TAB: Books ──────────────────────────────────────────── -->
+      <div id="se-section-books" class="se-tab-section">
+        <!-- Books to review (pre-signing, sequential unlock) -->
+        <section id="se-review-queue-section" class="mb-12">
+          <h2 class="font-serif text-xl sm:text-2xl text-white mb-1">Books to review</h2>
+          <p class="text-muted text-xs mb-4">Sent to you by the admin, in the order approved. Finish one to unlock the next.</p>
+          <div id="se-review-queue-grid" class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4"></div>
+          <p id="se-review-queue-empty" class="hidden text-muted/60 text-sm text-center py-8 rounded-2xl border border-dashed border-border">Nothing in your review queue right now.</p>
+        </section>
+
+        <!-- Signed books -->
+        <section id="books-section">
+          <h2 class="font-serif text-xl sm:text-2xl text-white mb-1">Signed books</h2>
+          <p class="text-muted text-xs mb-4">Open a book to read through its chapters and give your verdict.</p>
+          <div id="books-grid" class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4"></div>
+          <p id="books-empty" class="hidden text-muted/60 text-sm text-center py-8 rounded-2xl border border-dashed border-border">No signed books yet.</p>
+        </section>
+      </div>
+    </div>
     </main>
+  </div>
+
+  <!-- ── MOBILE SE FLOATING PILL NAV (sm:hidden) ────────────────────── -->
+  <div class="sm:hidden fixed inset-x-0 bottom-0 z-[55] flex justify-center pointer-events-none"
+       style="padding:0 20px max(20px,env(safe-area-inset-bottom)) 20px">
+    <nav id="se-mobile-nav"
+         class="pointer-events-auto flex items-center gap-1 rounded-full border border-white/10 shadow-2xl shadow-black/70 px-1.5 py-1.5"
+         style="background:rgba(13,11,9,0.88);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)">
+      <button onclick="switchSeTab('review')" id="wsetab-review" data-active="1"
+              class="flex flex-col items-center gap-0.5 px-4 py-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        <span class="text-[9px] font-semibold tracking-wide uppercase">Review</span>
+      </button>
+      <button onclick="switchSeTab('prompts')" id="wsetab-prompts" data-active="0"
+              class="flex flex-col items-center gap-0.5 px-4 py-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
+        <span class="text-[9px] font-semibold tracking-wide uppercase">Prompts</span>
+      </button>
+      <button onclick="switchSeTab('books')" id="wsetab-books" data-active="0"
+              class="flex flex-col items-center gap-0.5 px-4 py-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        <span class="text-[9px] font-semibold tracking-wide uppercase">Books</span>
+      </button>
+    </nav>
   </div>
 
   <!-- ══ BRIEF READER (read-only, immersive) ══ -->
@@ -1066,6 +1151,22 @@
       } catch (_) {}
       document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { loadBooks(); loadSeReviewQueue(); } });
       window.addEventListener('focus', () => { loadBooks(); loadSeReviewQueue(); });
+    }
+
+    // ── TAB NAVIGATION ───────────────────────────────────────────────
+    // Same pattern as the writer dashboard's switchWriterTab(): one
+    // section group visible at a time, desktop sidebar + mobile bottom bar.
+    const _seTabs = ['review', 'prompts', 'books'];
+    function switchSeTab(tab) {
+      _seTabs.forEach(t => {
+        const sec  = document.getElementById('se-section-' + t);
+        const btn  = document.getElementById('wsetab-' + t);
+        const sbtn = document.getElementById('setab-' + t);
+        if (sec)  sec.classList.toggle('active', t === tab);
+        if (btn)  btn.setAttribute('data-active', t === tab ? '1' : '0');
+        if (sbtn) sbtn.setAttribute('data-active', t === tab ? '1' : '0');
+      });
+      window.scrollTo({ top: 0, behavior: 'instant' });
     }
 
     // ── Book detail + chapter-level recommendations ──
@@ -2610,6 +2711,19 @@
 
       $('tour-prev-btn').classList.toggle('invisible', _tourStep === 0);
       $('tour-next-btn').textContent = step.isLast ? 'Got it →' : 'Next →';
+
+      // Tour targets live inside tab-switched sections now (see
+      // switchSeTab()) -- a target hidden behind an inactive tab has
+      // display:none and a zero-size rect, so the spotlight would land in
+      // the wrong place with no visible error. Switch to its tab first.
+      const TOUR_TARGET_TAB = {
+        'review-section': 'review',
+        'prompts-section': 'prompts',
+        'board-section': 'prompts',
+        'se-review-queue-section': 'books',
+        'books-section': 'books',
+      };
+      if (step.target && TOUR_TARGET_TAB[step.target]) switchSeTab(TOUR_TARGET_TAB[step.target]);
 
       let targetEl = step.target ? $(step.target) : null;
       if (targetEl && targetEl.classList.contains('hidden')) targetEl = null;
