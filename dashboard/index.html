@@ -4457,7 +4457,10 @@
           ? `<img src="${escHtml(p.banner_url)}" alt="" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"/>`
           : `<div class="absolute inset-0" style="background:radial-gradient(ellipse at 30% 20%,rgba(201,168,76,0.10),transparent 55%),linear-gradient(135deg,#1C1C1C,#242424)"></div>`;
         const mineDot = p.claim_state === 'mine'
-          ? `<span class="ml-2 font-mono tabular-nums text-[11px] font-semibold" data-countdown data-expires="${p.my_expires_at}">—</span>` : '';
+          ? (p.my_expires_at
+              ? `<span class="ml-2 font-mono tabular-nums text-[11px] font-semibold" data-countdown data-expires="${p.my_expires_at}">—</span>`
+              : `<span class="ml-2 text-[11px] font-medium text-gold/70">Not started</span>`)
+          : '';
         return `
           <div class="prompt-slide flex-shrink-0 w-full">
             <button onclick="openPromptModal('${p.id}')" class="relative block w-full text-left group">
@@ -4494,7 +4497,15 @@
       const strip = $('prompt-active-strip');
       if (mine) {
         $('prompt-active-title').textContent = mine.title;
-        $('prompt-active-timer').setAttribute('data-expires', mine.my_expires_at);
+        const timerEl = $('prompt-active-timer');
+        if (mine.my_expires_at) {
+          timerEl.setAttribute('data-expires', mine.my_expires_at);
+        } else {
+          // Countdown hasn't started -- she hasn't opened this one yet.
+          timerEl.removeAttribute('data-expires');
+          timerEl.textContent = 'Not started';
+          timerEl.style.color = '';
+        }
         strip.classList.remove('hidden');
       } else {
         strip.classList.add('hidden');
@@ -4581,6 +4592,18 @@
       _promptBriefRead = false;
       $('writing-instructions-btn')?.classList.remove('pulse-attention');
       requestAnimationFrame(_checkPromptBriefRead);
+      // First time she's actually opened her own claimed prompt -- starts
+      // the 72-hour countdown from right now instead of whenever it was
+      // claimed/assigned. No-op (server-side COALESCE) if already started;
+      // safe to fire every open, only the first one ever does anything.
+      if (p.claim_state === 'mine' && !p.my_expires_at && p.my_claim_id) {
+        db.rpc('mark_prompt_claim_opened', { p_claim_id: p.my_claim_id }).then(({ data, error }) => {
+          if (error || !data || _promptModalId !== id) return;
+          p.my_expires_at = data;
+          if (_promptModalId === id) _renderPromptModalAction(p);
+          renderPrompts();
+        });
+      }
     }
 
     // Armed once she's scrolled to the end of the brief (or the brief
@@ -4604,7 +4627,9 @@
       const action = $('prompt-modal-action');
       const hint   = $('prompt-modal-hint');
       if (p.claim_state === 'mine') {
-        hint.innerHTML = 'Time remaining · <span class="font-mono tabular-nums text-white/80" data-countdown data-expires="' + p.my_expires_at + '">—</span>';
+        hint.innerHTML = p.my_expires_at
+          ? 'Time remaining · <span class="font-mono tabular-nums text-white/80" data-countdown data-expires="' + p.my_expires_at + '">—</span>'
+          : '<span class="text-white/70 font-medium">72-hour countdown starts now</span> — you\'re opening it for the first time.';
         action.innerHTML =
           `<button onclick="releaseMyPrompt('${p.my_claim_id}')" class="px-4 py-2.5 border border-red-400/30 text-red-300 hover:bg-red-400/10 text-xs font-semibold rounded-xl transition-colors">Release prompt</button>`;
       } else if (p.claim_state === 'taken') {
