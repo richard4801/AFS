@@ -194,6 +194,25 @@
     </div>
   </div>
 
+  <!-- LINK BOOK TO PROMPT MODAL -->
+  <div id="prompt-link-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center px-4" style="background:rgba(0,0,0,0.82);backdrop-filter:blur(4px);">
+    <div class="relative w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-2xl shadow-black/60 max-h-[85vh] overflow-y-auto thin-scroll">
+      <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent"></div>
+      <h3 class="font-serif text-xl text-white mb-1">Link to a Prompt</h3>
+      <p class="text-muted text-xs mb-4">Choose which prompt this book was developed from.</p>
+      <div id="prompt-link-list" class="space-y-2 mb-2"></div>
+      <p id="prompt-link-empty" class="hidden text-muted/60 text-xs text-center py-6">This writer hasn't claimed any prompts yet.</p>
+      <div class="flex gap-3 mt-4">
+        <button id="prompt-link-unlink-btn" onclick="unlinkPromptClaim()" class="hidden flex-1 px-4 py-2.5 border border-red-500/30 text-red-400 hover:bg-red-500/10 text-sm font-semibold rounded-lg transition-all duration-200">
+          Unlink
+        </button>
+        <button onclick="closePromptLinkModal()" class="flex-1 px-4 py-2.5 border border-border text-muted hover:text-white text-sm rounded-lg transition-all duration-200">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- RECORD PAYOUT MODAL -->
   <div id="payout-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center px-4" style="background:rgba(0,0,0,0.82);backdrop-filter:blur(4px);">
     <div class="relative w-full max-w-md rounded-2xl border border-gold/25 bg-surface p-6 shadow-2xl shadow-black/60">
@@ -729,6 +748,9 @@
                     <p id="book-author-heading" class="text-muted text-xs mb-2"></p>
                     <span id="book-status-badge" class="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full"></span>
                     <span id="book-prompt-badge" class="hidden ml-1.5 text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full bg-gold/10 text-gold border border-gold/25"></span>
+                    <button onclick="openPromptLinkModal()" title="Link this book to a prompt" class="ml-1.5 inline-flex items-center justify-center w-5 h-5 rounded-full border border-border text-muted hover:text-white hover:border-white/20 transition-colors align-middle">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                    </button>
                   </div>
                 </div>
                 <button id="toggle-signed-btn" onclick="toggleSigned()"
@@ -2331,7 +2353,7 @@
         swallow(db.from('chapters').select('id, chapter_number, title, word_count, status').eq('book_id', book.id).order('chapter_number', { ascending: false })),
         swallow(loadEditRequestsForBook(book.id)).then(r => Array.isArray(r) ? r : []),
         swallow(loadSeQueueStatus()),
-        swallow(db.from('prompt_claims').select('writing_prompts(title)').eq('book_id', book.id).limit(1)),
+        swallow(db.from('prompt_claims').select('id, writing_prompts(title)').eq('book_id', book.id).limit(1)),
       ]);
       // A different book may have been selected while this was in flight —
       // discard the stale response (and skip resubscribing below) rather
@@ -2341,8 +2363,9 @@
       renderInlineChapterList(_cachedChapters);
       renderTotalWords(_cachedChapters);
       renderEditRequests(editReqs);
-      const promptTitle = promptLink?.[0]?.writing_prompts?.title;
-      if (promptTitle) { $('book-prompt-badge').textContent = 'From: ' + promptTitle; $('book-prompt-badge').classList.remove('hidden'); }
+      const linkedClaim = promptLink?.[0];
+      selectedBook._linkedClaimId = linkedClaim?.id || null;
+      if (linkedClaim?.writing_prompts?.title) { $('book-prompt-badge').textContent = 'From: ' + linkedClaim.writing_prompts.title; $('book-prompt-badge').classList.remove('hidden'); }
       updateSeQueueBtn();
 
       // Live status — a chapter the writer submits or edits while admin
@@ -2431,6 +2454,62 @@
       await loadSeQueueStatus();
       if (selectedBook?.id === bookId) updateSeQueueBtn();
     }
+
+    // ── Manual prompt↔book linking ──────────────────────────────────
+    // Books created before the auto-link (sql/book_outline_and_prompt_link.sql
+    // shipped) have no way to backfill the connection on their own — this is
+    // that backfill tool, plus a general override for relinking/unlinking.
+    async function openPromptLinkModal() {
+      if (!selectedBook || !selectedWriter) return;
+      $('prompt-link-modal').classList.remove('hidden');
+      $('prompt-link-list').innerHTML = '<div class="skeleton h-12 rounded-lg"></div>'.repeat(2);
+      $('prompt-link-empty').classList.add('hidden');
+      $('prompt-link-unlink-btn').classList.toggle('hidden', !selectedBook._linkedClaimId);
+      const bookId = selectedBook.id;
+      const { data, error } = await db.rpc('admin_get_writer_prompt_claims', { p_writer_id: selectedWriter.id });
+      if (selectedBook?.id !== bookId) return;
+      if (error) { showToast('Error: ' + error.message); $('prompt-link-list').innerHTML = ''; return; }
+      const claims = data || [];
+      $('prompt-link-empty').classList.toggle('hidden', claims.length > 0);
+      $('prompt-link-list').innerHTML = claims.map(c => {
+        const linked = c.book_id === bookId;
+        const linkedElsewhere = c.book_id && !linked;
+        return `
+        <button onclick='linkPromptClaim("${c.claim_id}")' ${linkedElsewhere ? 'disabled' : ''}
+                class="w-full text-left px-3 py-2.5 rounded-lg border transition-colors ${linked ? 'border-gold/40 bg-gold/10' : 'border-border hover:border-white/20'} ${linkedElsewhere ? 'opacity-40 cursor-not-allowed' : ''}">
+          <p class="text-white text-sm">${escHtml(c.prompt_title)}</p>
+          <p class="text-muted text-[11px] mt-0.5">${escHtml(c.status)} · claimed ${new Date(c.claimed_at).toLocaleDateString()}${linked ? ' · Currently linked' : ''}${linkedElsewhere ? ' · Already linked to another book' : ''}</p>
+        </button>`;
+      }).join('');
+    }
+    function closePromptLinkModal() { $('prompt-link-modal').classList.add('hidden'); }
+    async function linkPromptClaim(claimId) {
+      if (!selectedBook) return;
+      const bookId = selectedBook.id;
+      const { error } = await db.rpc('admin_link_prompt_claim_to_book', { p_claim_id: claimId, p_book_id: bookId });
+      if (selectedBook?.id !== bookId) return;
+      if (error) { showToast('Error: ' + error.message); return; }
+      showToast('Linked.');
+      closePromptLinkModal();
+      const { data } = await db.from('prompt_claims').select('id, writing_prompts(title)').eq('book_id', bookId).limit(1);
+      if (selectedBook?.id !== bookId) return;
+      const row = data?.[0];
+      selectedBook._linkedClaimId = row?.id || null;
+      if (row?.writing_prompts?.title) { $('book-prompt-badge').textContent = 'From: ' + row.writing_prompts.title; $('book-prompt-badge').classList.remove('hidden'); }
+    }
+    async function unlinkPromptClaim() {
+      if (!selectedBook?._linkedClaimId) return;
+      const bookId = selectedBook.id;
+      const claimId = selectedBook._linkedClaimId;
+      const { error } = await db.rpc('admin_unlink_prompt_claim', { p_claim_id: claimId });
+      if (selectedBook?.id !== bookId) return;
+      if (error) { showToast('Error: ' + error.message); return; }
+      showToast('Unlinked.');
+      $('book-prompt-badge').classList.add('hidden');
+      selectedBook._linkedClaimId = null;
+      closePromptLinkModal();
+    }
+    $('prompt-link-modal').addEventListener('click', e => { if (e.target === $('prompt-link-modal')) closePromptLinkModal(); });
 
     async function saveBookNotes() {
       if (!selectedBook) return;
