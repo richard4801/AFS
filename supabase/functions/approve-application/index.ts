@@ -177,7 +177,8 @@ Deno.serve(async (req) => {
   } catch (err: unknown) {
     const raw = err instanceof Error ? err.message : 'Unknown error'
     console.error('approve-application top-level error:', raw, err)
-    const message = raw // temporarily expose raw error for debugging
+    const SAFE = ['Unauthorized', 'Forbidden', 'Application not found', 'Application already processed']
+    const message = SAFE.some(s => raw.includes(s)) ? raw : 'Internal server error'
     return new Response(JSON.stringify({ error: message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: raw.includes('Unauthorized') || raw.includes('Forbidden') ? 403 : 400,
