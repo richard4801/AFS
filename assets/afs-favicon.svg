@@ -1,11 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- Dark rounded-square tile -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="AFS">
+  <!-- Dark rounded-square tile, matching the app's obsidian surface -->
   <rect width="64" height="64" rx="10" fill="#111110"/>
-  <!-- A letterform + unified horizontal slash -->
-  <g stroke="#EEECE9" stroke-width="4.5" fill="none" stroke-linecap="butt" stroke-linejoin="miter">
-    <!-- A: apex (32,8) feet (8,56)(56,56) -->
-    <polyline points="8,56 32,8 56,56"/>
-    <!-- Slash at exact mid-height y=32, edge-to-edge -->
-    <line x1="8" y1="32" x2="56" y2="32"/>
+  <!-- The real AFS wordmark's own letterform (Cinzel) and clip-path gap
+       technique, just the first letter, not a separately-drawn shape. -->
+  <g style="clip-path:path('M0 0 H64 V27 H0 Z M0 33 H64 V64 H0 Z')">
+    <text x="32" y="34" text-anchor="middle" dominant-baseline="central"
+          font-family="'Cinzel',Georgia,serif" font-weight="400" font-size="46"
+          fill="#EEECE9">A</text>
   </g>
 </svg>
