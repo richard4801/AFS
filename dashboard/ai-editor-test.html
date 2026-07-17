@@ -354,7 +354,7 @@ doc.addEventListener('input', () => {
 
 doc.addEventListener('keydown', (e) => {
   if (!slashActive) return;
-  const items = filteredCommands();
+  const items = menuItems();
   if (e.key === 'ArrowDown') { e.preventDefault(); slashSelected = (slashSelected + 1) % items.length; renderSlashMenu(); }
   else if (e.key === 'ArrowUp') { e.preventDefault(); slashSelected = (slashSelected - 1 + items.length) % items.length; renderSlashMenu(); }
   else if (e.key === 'Enter') { e.preventDefault(); if (items[slashSelected]) selectSlashCommand(items[slashSelected]); }
@@ -368,24 +368,43 @@ function checkSlashTrigger() {
   const node = range.startContainer;
   if (node.nodeType !== Node.TEXT_NODE) return closeSlashMenu();
 
+  // Find the nearest "/" before the cursor that starts a slash-command
+  // context (start of line or preceded by whitespace), with no newline or
+  // second "/" between it and the cursor. Everything after it — spaces
+  // included — becomes the typed query, so free-form instructions work.
   const textBefore = node.textContent.slice(0, range.startOffset);
-  const match = textBefore.match(/\/(\w*)$/);
-  if (!match) return closeSlashMenu();
+  const slashIdx = textBefore.lastIndexOf('/');
+  if (slashIdx === -1) return closeSlashMenu();
+  const charBeforeSlash = slashIdx > 0 ? textBefore[slashIdx - 1] : '\n';
+  if (!/[\s\n]/.test(charBeforeSlash)) return closeSlashMenu();
+  const query = textBefore.slice(slashIdx + 1);
+  if (/[\n/]/.test(query)) return closeSlashMenu();
 
-  slashFilter = match[1];
+  slashFilter = query;
   slashAnchorNode = node;
-  slashAnchorOffset = range.startOffset - match[0].length; // position of the "/"
+  slashAnchorOffset = slashIdx; // position of the "/" itself
   slashSelected = 0;
   openSlashMenu(range);
 }
 
-function filteredCommands() {
-  const f = slashFilter.toLowerCase();
-  return SLASH_COMMANDS.filter(c => c.cmd.startsWith(f));
+function menuItems() {
+  const q = slashFilter.trim();
+  const firstWord = q.split(/\s+/)[0].toLowerCase();
+  const presets = SLASH_COMMANDS.filter(c => c.cmd.startsWith(firstWord));
+  const items = presets.slice();
+  if (q) {
+    items.push({
+      cmd: '__custom__',
+      label: `Use as instruction`,
+      desc: `“${q}”`,
+      prompt: q,
+    });
+  }
+  return items;
 }
 
 function openSlashMenu(range) {
-  const items = filteredCommands();
+  const items = menuItems();
   if (!items.length) return closeSlashMenu();
   slashActive = true;
   const rect = range.getBoundingClientRect();
@@ -398,18 +417,24 @@ function openSlashMenu(range) {
 }
 
 function renderSlashMenu() {
-  const items = filteredCommands();
+  const items = menuItems();
   $('slash-menu-list').innerHTML = items.map((c, i) => `
     <div class="slash-menu-item px-3 py-2 mx-1 my-0.5 rounded-lg border border-transparent cursor-pointer ${i === slashSelected ? 'active' : ''}"
       onmousedown="event.preventDefault(); selectSlashCommandByIndex(${i})">
-      <p class="text-sm text-gold-light font-medium">${c.label}</p>
-      <p class="text-[11px] text-muted">${c.desc}</p>
+      <p class="text-sm text-gold-light font-medium">${escapeHtml(c.label)}</p>
+      <p class="text-[11px] text-muted">${escapeHtml(c.desc)}</p>
     </div>
   `).join('');
+  if (!items.length) closeSlashMenu();
+  else {
+    const list = $('slash-menu-list');
+    const active = list.querySelector('.active');
+    if (active) active.scrollIntoView({ block: 'nearest' });
+  }
 }
 
 function selectSlashCommandByIndex(i) {
-  const items = filteredCommands();
+  const items = menuItems();
   if (items[i]) selectSlashCommand(items[i]);
 }
 
