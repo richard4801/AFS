@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Editor Test — AFS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            obsidian: '#121212',
+            charcoal: '#1C1C1C',
+            surface:  '#242424',
+            border:   '#2E2E2E',
+            gold:     '#C9A84C',
+            'gold-light': '#E2C97E',
+            muted:    '#7A7A7A',
+          },
+          fontFamily: {
+            sans:  ['Inter', 'system-ui', 'sans-serif'],
+            serif: ['"DM Serif Display"', 'Georgia', 'serif'],
+          },
+        },
+      },
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    body { font-weight: 300; }
+    #doc { outline: none; white-space: pre-wrap; }
+    #doc:empty:before { content: attr(data-placeholder); color: #5a5a5a; }
+    #doc .ai-inserting { color: #E2C97E; }
+    .slash-menu-item.active { background: rgba(201,168,76,0.12); border-color: rgba(201,168,76,0.4); }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-thumb { background: #2E2E2E; border-radius: 4px; }
+    .beat-card { transition: border-color .15s ease, background .15s ease; }
+    .beat-card:hover { border-color: rgba(201,168,76,0.35); }
+    .blink-cursor::after { content:'▍'; color:#C9A84C; animation: blink 1s steps(1) infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+  </style>
+</head>
+<body class="bg-obsidian text-white font-sans antialiased min-h-screen">
+
+  <!-- Top bar -->
+  <header class="border-b border-border bg-charcoal/80 backdrop-blur sticky top-0 z-30">
+    <div class="max-w-[1400px] mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <span class="font-serif text-lg text-gold tracking-wide">AFS</span>
+        <span class="text-muted text-xs">/</span>
+        <span class="text-xs font-semibold tracking-[0.18em] uppercase text-muted">AI Editor Test</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="word-count" class="text-muted text-xs tabular-nums hidden sm:block">0 words</span>
+        <button id="settings-btn" onclick="toggleSettings(true)"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border hover:border-gold/50 text-xs text-white rounded-lg transition-colors">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          API Setup
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main layout -->
+  <main class="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
+
+    <!-- Editor column -->
+    <section class="relative">
+      <div class="rounded-2xl border border-border bg-charcoal min-h-[70vh] flex flex-col">
+        <div class="px-6 sm:px-10 pt-8 pb-2">
+          <input id="doc-title" type="text" placeholder="Untitled Chapter"
+            class="w-full bg-transparent font-serif text-2xl sm:text-3xl text-white placeholder-muted/50 focus:outline-none"/>
+          <p class="text-muted text-xs mt-2">
+            Type <span class="text-gold font-medium">/</span> on an empty line for AI commands (e.g. <code class="text-gold-light">/continue</code>) &middot; drag a beat from the sidebar to insert it
+          </p>
+        </div>
+        <div class="flex-1 px-6 sm:px-10 pb-10 relative">
+          <div id="doc" contenteditable="true" spellcheck="true" data-placeholder="Start writing, or type / for AI commands…"
+            class="prose-editor font-serif text-[17px] leading-8 text-white/90 min-h-[50vh]"></div>
+        </div>
+        <div class="border-t border-border px-6 sm:px-10 py-3 flex items-center justify-between text-xs text-muted">
+          <span id="ai-status" class="flex items-center gap-2"></span>
+          <span id="word-count-mobile" class="tabular-nums sm:hidden">0 words</span>
+        </div>
+      </div>
+
+      <!-- Slash command menu -->
+      <div id="slash-menu" class="hidden absolute z-40 w-72 bg-surface border border-border rounded-xl shadow-2xl shadow-black/60 overflow-hidden">
+        <div class="px-3 py-2 text-[10px] font-semibold tracking-widest uppercase text-muted border-b border-border">AI Commands</div>
+        <div id="slash-menu-list" class="max-h-72 overflow-y-auto py-1"></div>
+      </div>
+    </section>
+
+    <!-- Sidebar: scene beats -->
+    <aside class="space-y-4">
+      <div class="rounded-2xl border border-border bg-charcoal p-5">
+        <div class="flex items-center justify-between mb-1">
+          <h3 class="font-serif text-lg text-white">Scene Beats</h3>
+          <span class="text-[10px] font-semibold tracking-widest uppercase text-gold">Sidebar</span>
+        </div>
+        <p class="text-muted text-xs mb-4">Queue up beats. Click <span class="text-gold-light">Write</span> on a beat and the AI drafts it straight into the document at your cursor.</p>
+
+        <div id="beats-list" class="space-y-2 mb-3"></div>
+
+        <div class="space-y-2">
+          <textarea id="beat-input" rows="2" placeholder="e.g. Mara finds the letter hidden behind the mirror and realizes who really sent it."
+            class="w-full bg-obsidian border border-border rounded-lg px-3 py-2.5 text-sm text-white placeholder-muted/60 resize-y focus:outline-none focus:border-gold/60"></textarea>
+          <button onclick="addBeat()" class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-gold/10 hover:bg-gold/20 border border-gold/30 hover:border-gold/60 text-gold text-xs font-semibold rounded-lg transition-colors">
+            + Add Beat
+          </button>
+        </div>
+      </div>
+
+      <div class="rounded-2xl border border-border bg-charcoal p-5">
+        <h3 class="font-serif text-base text-white mb-2">Context Fed to the AI</h3>
+        <p class="text-muted text-xs mb-3">Optional. Helps continuations stay consistent.</p>
+        <textarea id="story-context" rows="5" placeholder="POV character, tense, tone, characters, previous events…"
+          class="w-full bg-obsidian border border-border rounded-lg px-3 py-2.5 text-xs text-white placeholder-muted/60 resize-y focus:outline-none focus:border-gold/60"></textarea>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Settings modal -->
+  <div id="settings-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+    <div class="w-full max-w-md bg-charcoal border border-border rounded-2xl p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-serif text-xl text-white">API Setup</h3>
+        <button onclick="toggleSettings(false)" class="text-muted hover:text-white">&times;</button>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-[10px] font-semibold tracking-widest uppercase text-muted mb-1.5">Endpoint (OpenAI-compatible)</label>
+          <input id="cfg-endpoint" type="text" placeholder="https://api.openai.com/v1/chat/completions"
+            class="w-full bg-obsidian border border-border rounded-lg px-3 py-2.5 text-sm text-white placeholder-muted/60 focus:outline-none focus:border-gold/60"/>
+          <p class="text-muted text-[10px] mt-1">Works with OpenAI, OpenRouter, or any server exposing a <code>/chat/completions</code>-shaped endpoint.</p>
+        </div>
+        <div>
+          <label class="block text-[10px] font-semibold tracking-widest uppercase text-muted mb-1.5">API Key</label>
+          <input id="cfg-key" type="password" placeholder="sk-…"
+            class="w-full bg-obsidian border border-border rounded-lg px-3 py-2.5 text-sm text-white placeholder-muted/60 focus:outline-none focus:border-gold/60"/>
+        </div>
+        <div>
+          <label class="block text-[10px] font-semibold tracking-widest uppercase text-muted mb-1.5">Model</label>
+          <input id="cfg-model" type="text" placeholder="gpt-4o-mini"
+            class="w-full bg-obsidian border border-border rounded-lg px-3 py-2.5 text-sm text-white placeholder-muted/60 focus:outline-none focus:border-gold/60"/>
+        </div>
+        <p class="text-muted text-[10px] leading-relaxed">
+          This is a local test page — your key is stored only in this browser's <code>localStorage</code> and sent directly from your browser to the endpoint above. Do not use this page as-is in production; a real deployment should proxy requests through a backend so the key never reaches the client.
+        </p>
+        <div class="flex gap-2 pt-1">
+          <button onclick="saveSettings()" class="flex-1 px-4 py-2.5 bg-gold text-obsidian text-sm font-bold rounded-xl hover:bg-gold-light transition-colors">Save</button>
+          <button onclick="toggleSettings(false)" class="px-4 py-2.5 bg-surface border border-border text-white text-sm rounded-xl hover:border-gold/40 transition-colors">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+// ── Config / persistence ─────────────────────────────────────
+const CFG_KEY = 'afs_ai_editor_cfg';
+function loadCfg() {
+  try { return JSON.parse(localStorage.getItem(CFG_KEY)) || {}; } catch (e) { return {}; }
+}
+function saveCfg(cfg) { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); }
+
+function toggleSettings(show) {
+  const cfg = loadCfg();
+  if (show) {
+    $('cfg-endpoint').value = cfg.endpoint || 'https://api.openai.com/v1/chat/completions';
+    $('cfg-key').value = cfg.key || '';
+    $('cfg-model').value = cfg.model || 'gpt-4o-mini';
+  }
+  $('settings-modal').classList.toggle('hidden', !show);
+}
+function saveSettings() {
+  saveCfg({
+    endpoint: $('cfg-endpoint').value.trim(),
+    key: $('cfg-key').value.trim(),
+    model: $('cfg-model').value.trim(),
+  });
+  toggleSettings(false);
+  setStatus('Settings saved.');
+}
+function $(id) { return document.getElementById(id); }
+
+// Open settings automatically on first visit if no key set
+window.addEventListener('DOMContentLoaded', () => {
+  const cfg = loadCfg();
+  if (!cfg.key) toggleSettings(true);
+  loadBeats();
+  updateWordCount();
+});
+
+// ── Status line ───────────────────────────────────────────────
+function setStatus(msg, spinning) {
+  const el = $('ai-status');
+  el.innerHTML = spinning
+    ? `<span class="inline-block w-2 h-2 rounded-full bg-gold animate-pulse"></span> ${msg}`
+    : msg ? `<span class="text-muted">${msg}</span>` : '';
+}
+
+// ── Word count ────────────────────────────────────────────────
+function countWords(text) {
+  const t = (text || '').trim();
+  return t ? t.split(/\s+/).length : 0;
+}
+function updateWordCount() {
+  const n = countWords($('doc').innerText);
+  $('word-count').textContent = n + ' words';
+  $('word-count-mobile').textContent = n + ' words';
+}
+
+// ── Scene beats (sidebar) ───────────────────────────────────────
+const BEATS_KEY = 'afs_ai_editor_beats';
+let beats = [];
+function loadBeats() {
+  try { beats = JSON.parse(localStorage.getItem(BEATS_KEY)) || []; } catch (e) { beats = []; }
+  renderBeats();
+}
+function persistBeats() { localStorage.setItem(BEATS_KEY, JSON.stringify(beats)); }
+
+function addBeat() {
+  const input = $('beat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  beats.push({ id: Date.now(), text, done: false });
+  input.value = '';
+  persistBeats();
+  renderBeats();
+}
+
+function removeBeat(id) {
+  beats = beats.filter(b => b.id !== id);
+  persistBeats();
+  renderBeats();
+}
+
+function renderBeats() {
+  const list = $('beats-list');
+  if (!beats.length) {
+    list.innerHTML = `<p class="text-muted text-xs italic py-2">No beats yet. Add one below.</p>`;
+    return;
+  }
+  list.innerHTML = beats.map(b => `
+    <div class="beat-card rounded-lg border border-border bg-obsidian px-3 py-2.5 ${b.done ? 'opacity-50' : ''}">
+      <p class="text-xs text-white/90 leading-relaxed mb-2">${escapeHtml(b.text)}</p>
+      <div class="flex items-center gap-2">
+        <button onclick="writeBeat(${b.id})" class="inline-flex items-center gap-1 px-2.5 py-1 bg-gold/10 hover:bg-gold/20 border border-gold/30 text-gold text-[10px] font-semibold rounded-md transition-colors">
+          ✦ Write
+        </button>
+        <button onclick="removeBeat(${b.id})" class="text-muted hover:text-red-400 text-[10px] ml-auto">Remove</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function writeBeat(id) {
+  const beat = beats.find(b => b.id === id);
+  if (!beat) return;
+  placeCursorAtEnd();
+  await runAI(`Write the next scene in this manuscript, dramatizing the following beat in full prose (not a summary): "${beat.text}"`);
+  beat.done = true;
+  persistBeats();
+  renderBeats();
+}
+
+// ── Slash commands ───────────────────────────────────────────
+const SLASH_COMMANDS = [
+  { cmd: 'continue', label: '/continue', desc: 'Continue writing from where the cursor is', prompt: 'Continue the manuscript from exactly where it leaves off, in the same voice, tense, and POV. Do not repeat or summarize what came before — just keep writing.' },
+  { cmd: 'describe', label: '/describe', desc: 'Expand the current scene with sensory description', prompt: 'Add vivid sensory description to the current scene — setting, atmosphere, small physical detail — without changing what happens in the plot.' },
+  { cmd: 'dialogue', label: '/dialogue', desc: 'Write the next exchange of dialogue', prompt: 'Write the next beat of this scene primarily as dialogue between the characters already present, true to their voices.' },
+  { cmd: 'rewrite', label: '/rewrite', desc: 'Rewrite the last paragraph, tighter', prompt: 'Rewrite the last paragraph of the manuscript so far — same events, tighter prose, stronger verbs, no new plot content.' },
+  { cmd: 'twist', label: '/twist', desc: 'Introduce a small complication or twist', prompt: 'Continue the scene by introducing a small, believable complication or twist that raises tension, then keep writing through it.' },
+];
+
+let slashActive = false;
+let slashFilter = '';
+let slashAnchorNode = null;
+let slashAnchorOffset = 0;
+let slashSelected = 0;
+
+const doc = $('doc');
+
+doc.addEventListener('input', () => {
+  updateWordCount();
+  checkSlashTrigger();
+});
+
+doc.addEventListener('keydown', (e) => {
+  if (!slashActive) return;
+  const items = filteredCommands();
+  if (e.key === 'ArrowDown') { e.preventDefault(); slashSelected = (slashSelected + 1) % items.length; renderSlashMenu(); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); slashSelected = (slashSelected - 1 + items.length) % items.length; renderSlashMenu(); }
+  else if (e.key === 'Enter') { e.preventDefault(); if (items[slashSelected]) selectSlashCommand(items[slashSelected]); }
+  else if (e.key === 'Escape') { closeSlashMenu(); }
+});
+
+function checkSlashTrigger() {
+  const sel = window.getSelection();
+  if (!sel.rangeCount) return closeSlashMenu();
+  const range = sel.getRangeAt(0);
+  const node = range.startContainer;
+  if (node.nodeType !== Node.TEXT_NODE) return closeSlashMenu();
+
+  const textBefore = node.textContent.slice(0, range.startOffset);
+  const match = textBefore.match(/\/(\w*)$/);
+  if (!match) return closeSlashMenu();
+
+  slashFilter = match[1];
+  slashAnchorNode = node;
+  slashAnchorOffset = range.startOffset - match[0].length; // position of the "/"
+  slashSelected = 0;
+  openSlashMenu(range);
+}
+
+function filteredCommands() {
+  const f = slashFilter.toLowerCase();
+  return SLASH_COMMANDS.filter(c => c.cmd.startsWith(f));
+}
+
+function openSlashMenu(range) {
+  const items = filteredCommands();
+  if (!items.length) return closeSlashMenu();
+  slashActive = true;
+  const rect = range.getBoundingClientRect();
+  const menu = $('slash-menu');
+  const containerRect = menu.parentElement.getBoundingClientRect();
+  menu.style.left = Math.max(0, rect.left - containerRect.left) + 'px';
+  menu.style.top = (rect.bottom - containerRect.top + 6) + 'px';
+  menu.classList.remove('hidden');
+  renderSlashMenu();
+}
+
+function renderSlashMenu() {
+  const items = filteredCommands();
+  $('slash-menu-list').innerHTML = items.map((c, i) => `
+    <div class="slash-menu-item px-3 py-2 mx-1 my-0.5 rounded-lg border border-transparent cursor-pointer ${i === slashSelected ? 'active' : ''}"
+      onmousedown="event.preventDefault(); selectSlashCommandByIndex(${i})">
+      <p class="text-sm text-gold-light font-medium">${c.label}</p>
+      <p class="text-[11px] text-muted">${c.desc}</p>
+    </div>
+  `).join('');
+}
+
+function selectSlashCommandByIndex(i) {
+  const items = filteredCommands();
+  if (items[i]) selectSlashCommand(items[i]);
+}
+
+function selectSlashCommand(command) {
+  // Remove the typed "/xyz" text
+  if (slashAnchorNode && slashAnchorNode.isConnected) {
+    const full = slashAnchorNode.textContent;
+    const before = full.slice(0, slashAnchorOffset);
+    const after = full.slice(slashAnchorOffset + 1 + slashFilter.length);
+    slashAnchorNode.textContent = before + after;
+    const range = document.createRange();
+    range.setStart(slashAnchorNode, before.length);
+    range.collapse(true);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+  closeSlashMenu();
+  runAI(command.prompt);
+}
+
+function closeSlashMenu() {
+  slashActive = false;
+  $('slash-menu').classList.add('hidden');
+}
+
+function placeCursorAtEnd() {
+  const range = document.createRange();
+  range.selectNodeContents(doc);
+  range.collapse(false);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+  doc.focus();
+}
+
+// ── AI call (streaming, OpenAI-compatible chat/completions) ────
+async function runAI(instruction) {
+  const cfg = loadCfg();
+  if (!cfg.key || !cfg.endpoint) {
+    setStatus('Set your API key first.');
+    toggleSettings(true);
+    return;
+  }
+
+  const manuscriptSoFar = doc.innerText;
+  const context = $('story-context').value.trim();
+  const title = $('doc-title').value.trim();
+
+  const systemPrompt = [
+    'You are a fiction co-writer embedded in a novel-writing editor.',
+    'Write only the new prose to be inserted — no preamble, no meta-commentary, no markdown headers, no quotes around the whole passage.',
+    'Match the established tense, POV, and voice of the existing manuscript.',
+    title ? `Chapter title: ${title}.` : '',
+    context ? `Story context / notes from the author: ${context}` : '',
+  ].filter(Boolean).join('\n');
+
+  const userPrompt = [
+    manuscriptSoFar ? `Manuscript so far:\n"""\n${manuscriptSoFar}\n"""` : '(The document is currently empty — this is the opening of the chapter.)',
+    `\nInstruction: ${instruction}`,
+  ].join('\n');
+
+  setStatus('AI is writing…', true);
+
+  // Insert a live text node at the cursor (or end) that we stream tokens into.
+  const sel = window.getSelection();
+  let insertNode;
+  if (sel.rangeCount && doc.contains(sel.getRangeAt(0).startContainer)) {
+    const range = sel.getRangeAt(0);
+    insertNode = document.createTextNode('');
+    range.insertNode(insertNode);
+    range.setStartAfter(insertNode);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  } else {
+    insertNode = document.createTextNode('');
+    doc.appendChild(insertNode);
+  }
+  // Ensure a separating space/newline if inserting right after existing text
+  if (insertNode.previousSibling && insertNode.previousSibling.textContent &&
+      !/\s$/.test(insertNode.previousSibling.textContent)) {
+    insertNode.textContent = ' ';
+  }
+
+  try {
+    const res = await fetch(cfg.endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${cfg.key}`,
+      },
+      body: JSON.stringify({
+        model: cfg.model || 'gpt-4o-mini',
+        stream: true,
+        temperature: 0.9,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+      }),
+    });
+
+    if (!res.ok || !res.body) {
+      const errText = await res.text().catch(() => '');
+      throw new Error(`API error ${res.status}: ${errText.slice(0, 300)}`);
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith('data:')) continue;
+        const data = trimmed.slice(5).trim();
+        if (data === '[DONE]') continue;
+        try {
+          const json = JSON.parse(data);
+          const delta = json.choices?.[0]?.delta?.content || '';
+          if (delta) {
+            insertNode.textContent += delta;
+            updateWordCount();
+          }
+        } catch (e) { /* ignore partial/non-JSON keepalive lines */ }
+      }
+    }
+    setStatus('Done.');
+  } catch (err) {
+    console.error(err);
+    setStatus('Error: ' + err.message);
+  } finally {
+    setTimeout(() => setStatus(''), 4000);
+    updateWordCount();
+  }
+}
+
+// Close slash menu on outside click
+document.addEventListener('click', (e) => {
+  if (!$('slash-menu').contains(e.target) && e.target !== doc) closeSlashMenu();
+});
+</script>
+</body>
+</html>
