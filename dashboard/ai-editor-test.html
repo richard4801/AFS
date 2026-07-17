@@ -156,6 +156,20 @@
             class="w-full bg-obsidian border border-border rounded-lg px-3 py-2.5 text-sm text-white placeholder-muted/60 focus:outline-none focus:border-gold/60 mt-2"/>
           <p id="fetch-models-status" class="text-muted text-[10px] mt-1"></p>
         </div>
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="block text-[10px] font-semibold tracking-widest uppercase text-muted">Temperature</label>
+            <span id="cfg-temp-value" class="text-xs text-gold-light tabular-nums font-medium">0.9</span>
+          </div>
+          <input id="cfg-temperature" type="range" min="0" max="2" step="0.05" value="0.9"
+            oninput="$('cfg-temp-value').textContent = Number($('cfg-temperature').value).toFixed(2)"
+            class="w-full accent-gold cursor-pointer"/>
+          <div class="flex justify-between text-[10px] text-muted mt-1">
+            <span>0 — deterministic</span>
+            <span>1 — balanced</span>
+            <span>2 — wild</span>
+          </div>
+        </div>
         <p class="text-muted text-[10px] leading-relaxed">
           This is a local test page — your key is stored only in this browser's <code>localStorage</code> and sent directly from your browser to the endpoint above. Do not use this page as-is in production; a real deployment should proxy requests through a backend so the key never reaches the client.
         </p>
@@ -185,6 +199,9 @@ function toggleSettings(show) {
     $('cfg-model-manual').value = cfg.model || '';
     populateModelSelect([], cfg.model || '');
     $('fetch-models-status').textContent = '';
+    const temp = cfg.temperature !== undefined ? cfg.temperature : 0.9;
+    $('cfg-temperature').value = temp;
+    $('cfg-temp-value').textContent = Number(temp).toFixed(2);
   }
   $('settings-modal').classList.toggle('hidden', !show);
 }
@@ -198,6 +215,7 @@ function saveSettings() {
     baseUrl: $('cfg-baseurl').value.trim().replace(/\/$/, ''),
     key: $('cfg-key').value.trim(),
     model: currentModel(),
+    temperature: Number($('cfg-temperature').value),
   });
   toggleSettings(false);
   setStatus('Settings saved.');
@@ -530,7 +548,7 @@ async function runAI(instruction) {
       body: JSON.stringify({
         model: cfg.model,
         stream: true,
-        temperature: 0.9,
+        temperature: cfg.temperature !== undefined ? cfg.temperature : 0.9,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
