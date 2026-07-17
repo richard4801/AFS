@@ -132,10 +132,10 @@
       </div>
       <div class="space-y-4">
         <div>
-          <label class="block text-[10px] font-semibold tracking-widest uppercase text-muted mb-1.5">Endpoint (OpenAI-compatible)</label>
-          <input id="cfg-endpoint" type="text" placeholder="https://api.openai.com/v1/chat/completions"
+          <label class="block text-[10px] font-semibold tracking-widest uppercase text-muted mb-1.5">Base URL (OpenAI-compatible)</label>
+          <input id="cfg-baseurl" type="text" placeholder="https://api.openai.com/v1"
             class="w-full bg-obsidian border border-border rounded-lg px-3 py-2.5 text-sm text-white placeholder-muted/60 focus:outline-none focus:border-gold/60"/>
-          <p class="text-muted text-[10px] mt-1">Works with OpenAI, OpenRouter, or any server exposing a <code>/chat/completions</code>-shaped endpoint.</p>
+          <p class="text-muted text-[10px] mt-1">No trailing path — just the base. The page appends <code>/chat/completions</code> and <code>/models</code> itself.</p>
         </div>
         <div>
           <label class="block text-[10px] font-semibold tracking-widest uppercase text-muted mb-1.5">API Key</label>
@@ -143,9 +143,18 @@
             class="w-full bg-obsidian border border-border rounded-lg px-3 py-2.5 text-sm text-white placeholder-muted/60 focus:outline-none focus:border-gold/60"/>
         </div>
         <div>
-          <label class="block text-[10px] font-semibold tracking-widest uppercase text-muted mb-1.5">Model</label>
-          <input id="cfg-model" type="text" placeholder="gpt-4o-mini"
-            class="w-full bg-obsidian border border-border rounded-lg px-3 py-2.5 text-sm text-white placeholder-muted/60 focus:outline-none focus:border-gold/60"/>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="block text-[10px] font-semibold tracking-widest uppercase text-muted">Model</label>
+            <button type="button" onclick="fetchModels()" id="fetch-models-btn"
+              class="text-[10px] font-semibold text-gold hover:text-gold-light transition-colors">Fetch Models ↻</button>
+          </div>
+          <select id="cfg-model"
+            class="w-full bg-obsidian border border-border rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-gold/60">
+            <option value="">— fetch models or type your own below —</option>
+          </select>
+          <input id="cfg-model-manual" type="text" placeholder="…or type a model ID manually"
+            class="w-full bg-obsidian border border-border rounded-lg px-3 py-2.5 text-sm text-white placeholder-muted/60 focus:outline-none focus:border-gold/60 mt-2"/>
+          <p id="fetch-models-status" class="text-muted text-[10px] mt-1"></p>
         </div>
         <p class="text-muted text-[10px] leading-relaxed">
           This is a local test page — your key is stored only in this browser's <code>localStorage</code> and sent directly from your browser to the endpoint above. Do not use this page as-is in production; a real deployment should proxy requests through a backend so the key never reaches the client.
@@ -169,22 +178,72 @@ function saveCfg(cfg) { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); }
 function toggleSettings(show) {
   const cfg = loadCfg();
   if (show) {
-    $('cfg-endpoint').value = cfg.endpoint || 'https://api.openai.com/v1/chat/completions';
+    // Migrate old {endpoint} shape (full /chat/completions URL) to {baseUrl}
+    const baseUrl = cfg.baseUrl || (cfg.endpoint ? cfg.endpoint.replace(/\/chat\/completions\/?$/, '') : 'https://api.openai.com/v1');
+    $('cfg-baseurl').value = baseUrl;
     $('cfg-key').value = cfg.key || '';
-    $('cfg-model').value = cfg.model || 'gpt-4o-mini';
+    $('cfg-model-manual').value = cfg.model || '';
+    populateModelSelect([], cfg.model || '');
+    $('fetch-models-status').textContent = '';
   }
   $('settings-modal').classList.toggle('hidden', !show);
 }
+function currentModel() {
+  const manual = $('cfg-model-manual').value.trim();
+  if (manual) return manual;
+  return $('cfg-model').value.trim();
+}
 function saveSettings() {
   saveCfg({
-    endpoint: $('cfg-endpoint').value.trim(),
+    baseUrl: $('cfg-baseurl').value.trim().replace(/\/$/, ''),
     key: $('cfg-key').value.trim(),
-    model: $('cfg-model').value.trim(),
+    model: currentModel(),
   });
   toggleSettings(false);
   setStatus('Settings saved.');
 }
 function $(id) { return document.getElementById(id); }
+
+function populateModelSelect(models, selected) {
+  const sel = $('cfg-model');
+  if (!models.length) {
+    sel.innerHTML = `<option value="">— fetch models or type your own below —</option>`;
+    return;
+  }
+  sel.innerHTML = models.map(id =>
+    `<option value="${escapeAttr(id)}" ${id === selected ? 'selected' : ''}>${escapeAttr(id)}</option>`
+  ).join('');
+}
+function escapeAttr(s) { return String(s).replace(/"/g, '&quot;'); }
+
+async function fetchModels() {
+  const baseUrl = $('cfg-baseurl').value.trim().replace(/\/$/, '');
+  const key = $('cfg-key').value.trim();
+  const statusEl = $('fetch-models-status');
+  if (!baseUrl || !key) {
+    statusEl.textContent = 'Enter Base URL and API Key first.';
+    statusEl.className = 'text-red-400 text-[10px] mt-1';
+    return;
+  }
+  statusEl.textContent = 'Fetching…';
+  statusEl.className = 'text-muted text-[10px] mt-1';
+  try {
+    const res = await fetch(`${baseUrl}/models`, {
+      headers: { 'Authorization': `Bearer ${key}` },
+    });
+    if (!res.ok) throw new Error(`${res.status} ${await res.text().catch(()=> '')}`);
+    const json = await res.json();
+    const ids = (json.data || json.models || []).map(m => m.id || m.name || m).filter(Boolean);
+    if (!ids.length) throw new Error('No models returned.');
+    populateModelSelect(ids, ids[0]);
+    $('cfg-model-manual').value = '';
+    statusEl.textContent = `${ids.length} model(s) loaded — pick one above.`;
+    statusEl.className = 'text-gold text-[10px] mt-1';
+  } catch (err) {
+    statusEl.textContent = 'Fetch failed: ' + err.message.slice(0, 160);
+    statusEl.className = 'text-red-400 text-[10px] mt-1';
+  }
+}
 
 // Open settings automatically on first visit if no key set
 window.addEventListener('DOMContentLoaded', () => {
@@ -390,8 +449,8 @@ function placeCursorAtEnd() {
 // ── AI call (streaming, OpenAI-compatible chat/completions) ────
 async function runAI(instruction) {
   const cfg = loadCfg();
-  if (!cfg.key || !cfg.endpoint) {
-    setStatus('Set your API key first.');
+  if (!cfg.key || !cfg.baseUrl || !cfg.model) {
+    setStatus('Set your API key, base URL, and model first.');
     toggleSettings(true);
     return;
   }
@@ -437,14 +496,14 @@ async function runAI(instruction) {
   }
 
   try {
-    const res = await fetch(cfg.endpoint, {
+    const res = await fetch(`${cfg.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${cfg.key}`,
       },
       body: JSON.stringify({
-        model: cfg.model || 'gpt-4o-mini',
+        model: cfg.model,
         stream: true,
         temperature: 0.9,
         messages: [
