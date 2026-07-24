@@ -28,13 +28,13 @@ function acceptanceEmailHtml(name: string, email: string, actionLink: string): s
   </div>
 
   <!-- Headline -->
-  <h1 style="font-size:34px;color:#F0ECE6;margin:0 0 6px;font-weight:normal;line-height:1.15;">You've been selected.</h1>
+  <h1 style="font-size:34px;color:#F0ECE6;margin:0 0 6px;font-weight:normal;line-height:1.15;">Your application has been reviewed.</h1>
   <p style="font-size:11px;color:#C9A84C;letter-spacing:0.22em;margin:0 0 36px;text-transform:uppercase;">Apex Fiction Studio</p>
 
   <!-- Body -->
   <p style="font-size:16px;color:#9A8A78;line-height:1.85;margin:0 0 18px;">Dear ${n},</p>
-  <p style="font-size:16px;color:#9A8A78;line-height:1.85;margin:0 0 18px;">We received hundreds of applications. Yours stood out.</p>
-  <p style="font-size:16px;color:#9A8A78;line-height:1.85;margin:0 0 36px;">After careful review, we are delighted to welcome you to Apex Fiction Studio as a commissioned writer. The work you create here will reach readers around the world — and you will be compensated for every word you deliver.</p>
+  <p style="font-size:16px;color:#9A8A78;line-height:1.85;margin:0 0 18px;">Thank you for applying to Apex Fiction Studio. We've reviewed your application and would like to move forward with you.</p>
+  <p style="font-size:16px;color:#9A8A78;line-height:1.85;margin:0 0 36px;">Set up your writer account below to get started.</p>
 
   <div style="height:1px;background:rgba(201,168,76,0.12);margin-bottom:32px;"></div>
 
@@ -165,7 +165,7 @@ Deno.serve(async (req) => {
           from: 'Apex Fiction Studio <notifications@apexfictionstudio.com>',
           reply_to: ['admin@apexfictionstudio.com'],
           to: [app.email],
-          subject: `You've been selected — Apex Fiction Studio`,
+          subject: `Your Application Has Been Reviewed — Apex Fiction Studio`,
           html: acceptanceEmailHtml(app.name, app.email, actionLink),
         }),
       })

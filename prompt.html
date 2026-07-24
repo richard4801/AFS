@@ -192,11 +192,8 @@
           <svg class="w-6 h-6 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
         </div>
         <h3 class="font-serif text-xl text-white mb-2">Thanks — we'll be in touch.</h3>
-        <p class="text-muted text-sm leading-relaxed mb-6">We read every submission personally. Keep reading the brief in the meantime.</p>
-        <div class="flex flex-col gap-2.5">
-          <a href="index.html#apply" class="text-gold hover:text-gold-light text-xs font-medium transition-colors">Prefer to apply right now? Full Application →</a>
-          <button onclick="closeJoinModal()" class="text-muted hover:text-white text-xs transition-colors">Continue Reading</button>
-        </div>
+        <p class="text-muted text-sm leading-relaxed mb-6">We read every application personally.</p>
+        <button onclick="closeJoinModal()" class="text-muted hover:text-white text-xs transition-colors">Continue Reading</button>
       </div>
 
     </div>
@@ -307,11 +304,11 @@
 
         if (!currentPrompt) return;
 
-        // Cooldown — don't let the same browser spam leads for this prompt
-        const cooldownKey = 'afs_lead_sent_' + currentPrompt.id;
+        // Cooldown — don't let the same browser submit twice for this prompt
+        const cooldownKey = 'afs_app_sent_' + currentPrompt.id;
         const lastSent = localStorage.getItem(cooldownKey);
         if (lastSent && (Date.now() - Number(lastSent)) < 3600000) {
-          errBox.textContent = "You've already sent us your details for this prompt. We'll be in touch.";
+          errBox.textContent = "You've already applied for this prompt. We'll be in touch.";
           errBox.classList.remove('hidden');
           return;
         }
@@ -348,12 +345,12 @@
 
         let error;
         try {
-          const result = await db.from('prompt_leads').insert({
-            prompt_id: currentPrompt.id, name, email, experience,
+          const result = await db.from('applications').insert({
+            prompt_id: currentPrompt.id, source: 'prompt_link', name, email, experience,
           });
           error = result.error;
         } catch (networkErr) {
-          console.error('AFS lead network error:', networkErr);
+          console.error('AFS application network error:', networkErr);
           btn.disabled = false;
           btnLbl.textContent = 'Join & Send';
           spinner.classList.add('hidden');
@@ -367,10 +364,12 @@
         spinner.classList.add('hidden');
 
         if (error) {
-          console.error('AFS lead error:', error);
+          console.error('AFS application error:', error);
           let msg = 'Something went wrong. Please try again.';
-          if (error.code === '42501' || error.code === '23514') {
-            msg = 'This prompt may no longer be accepting interest — it might already be claimed.';
+          if (error.code === '23505') {
+            msg = 'An application with this email already exists. Reach out to us directly if you need to update it.';
+          } else if (error.code === '42501' || (error.message && error.message.toLowerCase().includes('security'))) {
+            msg = 'Submissions are temporarily unavailable. Please try again in a few minutes or email us directly.';
           } else if (error.message) {
             msg = 'Error: ' + error.message;
           }
