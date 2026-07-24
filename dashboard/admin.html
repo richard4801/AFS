@@ -1142,9 +1142,16 @@
     <div class="w-full sm:max-w-lg h-full sm:h-auto sm:max-h-[90vh] bg-charcoal sm:rounded-2xl border border-border flex flex-col overflow-hidden">
       <div class="flex-shrink-0 flex items-center justify-between px-5 py-4 border-b border-border">
         <h3 id="admin-prompt-modal-title" class="font-serif text-lg text-white">New Prompt</h3>
-        <button onclick="closeAdminPromptModal()" class="w-8 h-8 rounded-full border border-border hover:border-white/25 flex items-center justify-center text-muted hover:text-white transition-colors">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
-        </button>
+        <div class="flex items-center gap-2">
+          <button id="admin-prompt-share-btn" type="button" onclick="copyAdminPromptShareLink()" title="Copy a public link to share this prompt outside the platform"
+                  class="hidden items-center gap-1.5 px-3 py-1.5 border border-gold/30 hover:border-gold/60 text-gold hover:text-gold-light text-[11px] font-semibold rounded-lg transition-colors">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            Share
+          </button>
+          <button onclick="closeAdminPromptModal()" class="w-8 h-8 rounded-full border border-border hover:border-white/25 flex items-center justify-center text-muted hover:text-white transition-colors">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
       </div>
       <div class="flex-1 overflow-y-auto thin-scroll px-5 py-5 space-y-4">
         <input type="hidden" id="admin-prompt-id"/>
@@ -1205,6 +1212,10 @@
             <button type="button" onclick="assignPromptToWriter()" class="flex-shrink-0 px-4 py-2.5 bg-gold/10 hover:bg-gold/20 border border-gold/30 text-gold text-xs font-semibold rounded-lg transition-colors">Assign</button>
           </div>
           <p id="admin-prompt-assign-status" class="text-[11px] text-muted mt-1.5"></p>
+        </div>
+        <div id="admin-prompt-leads-block" class="hidden pt-2 border-t border-border">
+          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2 mt-3">Interested Writers <span class="text-muted font-normal">(from the public share link)</span></label>
+          <div id="admin-prompt-leads-list" class="space-y-2"></div>
         </div>
       </div>
       <div class="flex-shrink-0 flex items-center gap-3 px-5 py-4 border-t border-border">
@@ -5099,6 +5110,13 @@
       _adminPromptReg = {};
       prompts.forEach(p => { _adminPromptReg[p.id] = p; });
 
+      const { data: leadRows } = await db.from('prompt_leads').select('prompt_id, status');
+      const newLeadCounts = {};
+      (leadRows || []).forEach(l => {
+        if (l.status !== 'new') return;
+        newLeadCounts[l.prompt_id] = (newLeadCounts[l.prompt_id] || 0) + 1;
+      });
+
       const sb = $('admin-prompts-sidebar');
       if (sb) sb.innerHTML = prompts.length ? prompts.map(p => `
         <button onclick="openAdminPromptModal('${p.id}')" class="w-full text-left px-3 py-2 rounded-lg text-white/65 hover:text-white hover:bg-white/[0.03] transition-colors flex items-center gap-2">
@@ -5121,13 +5139,17 @@
           : !p.is_active ? badge('Hidden', 'text-muted bg-white/5 border border-border')
           : claim ? badge('In development', 'text-gold bg-gold/10 border border-gold/25')
           : badge('Available', 'text-emerald-400 bg-emerald-400/10 border border-emerald-400/25');
+        const leadCount = newLeadCounts[p.id] || 0;
         return `
         <div class="rounded-2xl border border-border bg-surface overflow-hidden">
           <button onclick="openAdminPromptModal('${p.id}')" class="block w-full text-left group">
             <div class="relative aspect-[2/1] bg-charcoal overflow-hidden">
               ${banner}
               <div class="absolute inset-0" style="background:linear-gradient(to top,rgba(13,11,9,0.85),transparent 60%)"></div>
-              <div class="absolute top-2.5 right-2.5">${statusBadge}</div>
+              <div class="absolute top-2.5 right-2.5 flex items-center gap-1.5">
+                ${leadCount ? badge(leadCount + ' new lead' + (leadCount > 1 ? 's' : ''), 'text-crimson-light bg-crimson/12 border border-crimson/30') : ''}
+                ${statusBadge}
+              </div>
               <div class="absolute bottom-0 left-0 right-0 p-3">
                 ${p.genre ? `<span class="inline-block text-[8px] font-semibold tracking-widest uppercase text-gold/90 mb-1">${escHtml(p.genre)}</span>` : ''}
                 <h4 class="font-serif text-white text-base leading-tight truncate">${escHtml(p.title)}</h4>
@@ -5230,7 +5252,71 @@
         prev.removeAttribute('src'); prev.classList.add('hidden'); hint.classList.remove('hidden'); clr.classList.add('hidden');
       }
       $('admin-prompt-delete-btn').classList.toggle('hidden', !p);
+      $('admin-prompt-share-btn').classList.toggle('hidden', !p);
+      $('admin-prompt-share-btn').classList.toggle('flex', !!p);
+      $('admin-prompt-leads-block').classList.toggle('hidden', !p);
+      if (p) _loadAdminPromptLeads(p.id); else $('admin-prompt-leads-list').innerHTML = '';
       $('admin-prompt-modal').classList.remove('hidden');
+    }
+
+    function copyAdminPromptShareLink() {
+      const id = $('admin-prompt-id').value;
+      if (!id) return;
+      const url = `https://apexfictionstudio.com/prompt.html?id=${id}`;
+      navigator.clipboard.writeText(url).then(() => {
+        showToast('Share link copied ✓');
+      }).catch(() => {
+        prompt('Copy this link to share the prompt outside the platform:', url);
+      });
+    }
+
+    const PROMPT_LEAD_STATUS = {
+      new:       { label: 'New',       cls: 'text-gold bg-gold/10 border-gold/25' },
+      contacted: { label: 'Contacted', cls: 'text-white/70 bg-white/5 border-border' },
+      invited:   { label: 'Invited',   cls: 'text-emerald-300 bg-emerald-400/10 border-emerald-400/25' },
+      dismissed: { label: 'Dismissed', cls: 'text-muted bg-white/5 border-border' },
+    };
+
+    async function _loadAdminPromptLeads(promptId) {
+      const list = $('admin-prompt-leads-list');
+      list.innerHTML = '<p class="text-muted/60 text-xs">Loading…</p>';
+      const { data, error } = await db.from('prompt_leads')
+        .select('id, name, email, experience, status, created_at')
+        .eq('prompt_id', promptId)
+        .order('created_at', { ascending: false });
+      if ($('admin-prompt-id').value !== promptId) return; // modal moved on while this was in flight
+      if (error) { list.innerHTML = '<p class="text-red-400 text-xs">Failed to load.</p>'; return; }
+      const leads = data || [];
+      if (!leads.length) { list.innerHTML = '<p class="text-muted/60 text-xs">No one has joined via the share link yet.</p>'; return; }
+      list.innerHTML = leads.map(l => {
+        const st = PROMPT_LEAD_STATUS[l.status] || PROMPT_LEAD_STATUS.new;
+        const when = new Date(l.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        return `
+        <div class="rounded-lg border border-border bg-obsidian px-3 py-2.5">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <p class="text-white text-sm font-medium truncate">${escHtml(l.name)}</p>
+              <a href="mailto:${escHtml(l.email)}" class="text-crimson-light hover:text-crimson text-xs break-all">${escHtml(l.email)}</a>
+              ${l.experience ? `<p class="text-white/60 text-xs mt-1 leading-relaxed">${escHtml(l.experience)}</p>` : ''}
+            </div>
+            <span class="flex-shrink-0 text-[9px] font-bold uppercase tracking-wide border rounded-full px-2 py-0.5 ${st.cls}">${st.label}</span>
+          </div>
+          <div class="flex items-center justify-between gap-2 mt-2">
+            <span class="text-muted text-[10px]">${when}</span>
+            <select onchange="updateAdminPromptLeadStatus('${l.id}', this.value, '${promptId}')" class="bg-charcoal border border-border text-white/70 text-[10px] rounded-md px-1.5 py-1 focus:outline-none focus:border-crimson/50">
+              ${Object.entries(PROMPT_LEAD_STATUS).map(([k, v]) => `<option value="${k}" ${l.status === k ? 'selected' : ''}>${v.label}</option>`).join('')}
+            </select>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    async function updateAdminPromptLeadStatus(leadId, status, promptId) {
+      const { error } = await db.from('prompt_leads')
+        .update({ status, reviewed_at: new Date().toISOString(), reviewed_by: currentUserId })
+        .eq('id', leadId);
+      if (error) { showToast('Error: ' + error.message); return; }
+      _loadAdminPromptLeads(promptId);
     }
 
     function closeAdminPromptModal() { $('admin-prompt-modal').classList.add('hidden'); }
@@ -5866,6 +5952,11 @@
       db.channel('admin-prompts-live')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'writing_prompts' }, () => { if (_promptsLoaded) loadAdminPrompts(); })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'prompt_claims' }, () => { if (_promptsLoaded) loadAdminPrompts(); })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'prompt_leads' }, () => {
+          if (_promptsLoaded) loadAdminPrompts();
+          const openId = $('admin-prompt-id').value;
+          if (openId) _loadAdminPromptLeads(openId);
+        })
         .subscribe();
       await Promise.all([ loadWritersList(), loadWriters(), loadRecentEarnings(), _loadPendingBadge(), loadAdminSeNotes() ]);
       // On mobile, start on the writers list
