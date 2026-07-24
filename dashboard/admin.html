@@ -5251,7 +5251,7 @@
     async function copyAdminPromptShareLink() {
       const id = $('admin-prompt-id').value;
       if (!id) return;
-      const url = `https://apexfictionstudio.com/prompt.html?id=${id}`;
+      const url = `${SUPABASE_URL}/functions/v1/share-prompt?id=${id}`;
       try {
         if (!navigator.clipboard) throw new Error('Clipboard API unavailable');
         await navigator.clipboard.writeText(url);
