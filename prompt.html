@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/svg+xml" href="assets/afs-favicon.svg"/>
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png"/>
+  <link rel="apple-touch-icon" sizes="192x192" href="assets/favicon-192.png"/>
+  <meta name="robots" content="noindex, follow"/>
+
+  <title id="page-title">A Writing Prompt — Apex Fiction Studio</title>
+  <meta name="description" content="A commissioned writing prompt from Apex Fiction Studio."/>
+
+  <!-- Open Graph (static — this page has no server render, so previews show
+       the studio's own branding rather than the specific prompt's banner) -->
+  <meta property="og:type"        content="website"/>
+  <meta property="og:title"       content="A Writing Prompt — Apex Fiction Studio"/>
+  <meta property="og:description" content="We commission talented writers to create serialised fiction for a global audience. Read the brief and see if it's yours to write."/>
+  <meta property="og:image"       content="https://apexfictionstudio.com/assets/og-image.png"/>
+  <meta property="og:site_name"   content="Apex Fiction Studio"/>
+  <meta name="twitter:card"        content="summary_large_image"/>
+  <meta name="twitter:title"       content="A Writing Prompt — Apex Fiction Studio"/>
+  <meta name="twitter:image"       content="https://apexfictionstudio.com/assets/og-image.png"/>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            obsidian:  '#121212',
+            charcoal:  '#1C1C1C',
+            surface:   '#242424',
+            border:    '#2E2E2E',
+            gold:      '#C9A84C',
+            'gold-light': '#E2C97E',
+            crimson:   '#A31621',
+            'crimson-light': '#C82333',
+            muted:     '#7A7A7A',
+          },
+          fontFamily: {
+            sans:  ['Inter', 'system-ui', 'sans-serif'],
+            serif: ['"DM Serif Display"', 'Georgia', 'serif'],
+          },
+        },
+      },
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@400&display=swap" rel="stylesheet" />
+  <style>
+    html { background-color: #121212; }
+    .form-input:focus { outline: none; border-color: #C9A84C; box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.15); }
+    .brief-body p { margin-bottom: 1.1em; }
+    .brief-body p:last-child { margin-bottom: 0; }
+  </style>
+</head>
+
+<body class="bg-obsidian text-white font-sans antialiased selection:bg-gold selection:text-obsidian">
+
+  <!-- ═══ NAV ═══ -->
+  <header class="fixed top-4 sm:top-5 inset-x-0 z-40 flex justify-center px-3 sm:px-5">
+    <nav class="flex items-center justify-between gap-3 sm:gap-6 w-full max-w-xl rounded-full bg-obsidian/70 backdrop-blur-md border border-white/10 shadow-xl shadow-black/60 px-3 sm:px-4 py-2.5">
+      <a href="index.html" class="flex items-center flex-shrink-0">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="15 18 110 52" height="34" style="clip-path:path('M0 0 H200 V14 H0 Z M0 17 H200 V36 H0 Z')" aria-label="AFS Publishing">
+          <g transform="translate(20,15)">
+            <text font-family="'Cinzel',Georgia,serif" font-weight="400" fill="#EEECE9" font-size="38" letter-spacing="4" x="0" y="35">AFS</text>
+            <text font-family="'Montserrat',system-ui,sans-serif" font-weight="400" fill="rgba(238,236,233,0.42)" font-size="9" letter-spacing="5" x="2" y="52">Publishing</text>
+          </g>
+        </svg>
+      </a>
+      <a href="dashboard/login.html" class="inline-flex items-center px-3 py-1.5 text-muted hover:text-white text-xs font-medium transition-colors duration-200">
+        Writer Login
+      </a>
+    </nav>
+  </header>
+
+  <main class="pt-28 sm:pt-32 pb-24 px-4 sm:px-6 max-w-3xl mx-auto">
+
+    <!-- Loading state -->
+    <div id="state-loading" class="animate-pulse space-y-5">
+      <div class="aspect-[2/1] rounded-2xl bg-surface border border-border"></div>
+      <div class="h-4 w-24 rounded-full bg-surface"></div>
+      <div class="h-9 w-2/3 rounded-lg bg-surface"></div>
+      <div class="h-4 w-full rounded bg-surface"></div>
+      <div class="h-4 w-5/6 rounded bg-surface"></div>
+    </div>
+
+    <!-- Not-found / unavailable state -->
+    <div id="state-notfound" class="hidden text-center py-16">
+      <p class="text-[11px] font-medium tracking-widest uppercase text-gold mb-4">Apex Fiction Studio</p>
+      <h1 class="font-serif text-3xl sm:text-4xl text-white mb-4">This prompt isn't available.</h1>
+      <p class="text-muted text-sm sm:text-base leading-relaxed max-w-md mx-auto mb-8">
+        It may have been claimed, taken down, or the link is incorrect. Take a look at what else we're commissioning.
+      </p>
+      <a href="index.html" class="inline-flex items-center gap-2 px-6 py-3 bg-gold hover:bg-gold-light text-obsidian text-sm font-semibold rounded-lg transition-colors duration-200">
+        Visit Apex Fiction Studio
+      </a>
+    </div>
+
+    <!-- Prompt content -->
+    <article id="state-prompt" class="hidden">
+      <div id="prompt-banner-wrap" class="relative aspect-[2/1] rounded-2xl overflow-hidden border border-border bg-charcoal mb-6">
+        <img id="prompt-banner" class="hidden absolute inset-0 w-full h-full object-cover" alt=""/>
+        <div id="prompt-banner-fallback" class="absolute inset-0" style="background:radial-gradient(ellipse at 30% 20%,rgba(163,22,33,0.14),transparent 55%),linear-gradient(135deg,#1C1C1C,#242424)"></div>
+        <div class="absolute inset-0" style="background:linear-gradient(to top,rgba(13,11,9,0.75),transparent 55%)"></div>
+      </div>
+
+      <p class="text-[11px] font-medium tracking-widest uppercase text-gold mb-3">A Writing Prompt from Apex Fiction Studio</p>
+      <div class="flex flex-wrap items-center gap-2 mb-3">
+        <span id="prompt-genre" class="hidden text-[10px] font-semibold tracking-widest uppercase text-gold/90 bg-gold/10 border border-gold/25 rounded-full px-2.5 py-1"></span>
+        <span id="prompt-tags" class="hidden flex flex-wrap gap-1.5"></span>
+      </div>
+      <h1 id="prompt-title" class="font-serif text-3xl sm:text-4xl text-white leading-tight mb-6"></h1>
+
+      <div id="prompt-brief" class="brief-body text-white/80 text-[15px] sm:text-base leading-[1.9] mb-8"></div>
+
+      <a id="prompt-sample-link" href="#" target="_blank" rel="noopener noreferrer"
+         class="hidden inline-flex items-center gap-2 text-sm text-gold hover:text-gold-light transition-colors mb-8">
+        Read a Sample Chapter
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg>
+      </a>
+
+      <div class="rounded-2xl border border-gold/25 bg-surface p-6 sm:p-8 text-center">
+        <h2 class="font-serif text-xl sm:text-2xl text-white mb-2">Want to write this one?</h2>
+        <p class="text-muted text-sm mb-5">Tell us a little about yourself — takes ten seconds.</p>
+        <button onclick="openJoinModal()" class="inline-flex items-center gap-2 px-6 py-3 bg-gold hover:bg-gold-light text-obsidian text-sm font-semibold rounded-lg transition-colors duration-200">
+          I Want to Write This
+        </button>
+      </div>
+    </article>
+
+  </main>
+
+  <footer class="border-t border-border py-10 px-6">
+    <div class="max-w-3xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+      <p class="text-muted text-xs tracking-wide text-center">© 2026 Apex Fiction Studio. All rights reserved.</p>
+      <a href="index.html#apply" class="text-gold hover:text-gold-light transition-colors duration-150 text-xs font-medium">Full Application →</a>
+    </div>
+  </footer>
+
+  <!-- ═══ JOIN MODAL ═══ -->
+  <div id="join-modal" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6" style="background:rgba(0,0,0,0.75);backdrop-filter:blur(4px)">
+    <div class="w-full sm:max-w-md bg-charcoal sm:rounded-2xl border border-border overflow-hidden">
+
+      <div id="join-form-wrap" class="p-6 sm:p-8">
+        <div class="flex items-start justify-between gap-3 mb-1">
+          <h3 class="font-serif text-xl text-white">Interested in Writing This?</h3>
+          <button onclick="closeJoinModal()" class="flex-shrink-0 w-8 h-8 rounded-full border border-border hover:border-white/25 flex items-center justify-center text-muted hover:text-white transition-colors">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <p class="text-muted text-sm mb-6">Just your name, email, and a line about your writing experience. We'll be in touch.</p>
+
+        <form id="join-form" class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-white/70 tracking-wide mb-2" for="lead-name">Full Name</label>
+            <input id="lead-name" name="name" type="text" autocomplete="name" placeholder="Jane Moriarty" required
+                   class="form-input w-full bg-obsidian border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-2.5 transition-all duration-200"/>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-white/70 tracking-wide mb-2" for="lead-email">Email Address</label>
+            <input id="lead-email" name="email" type="email" autocomplete="email" placeholder="jane@email.com" required
+                   class="form-input w-full bg-obsidian border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-2.5 transition-all duration-200"/>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-white/70 tracking-wide mb-2" for="lead-experience">Writing Experience</label>
+            <input id="lead-experience" name="experience" type="text" placeholder="e.g. New to writing, or 2 years on Wattpad"
+                   class="form-input w-full bg-obsidian border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-2.5 transition-all duration-200"/>
+          </div>
+
+          <!-- Honeypot -->
+          <div style="position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;" aria-hidden="true" tabindex="-1">
+            <label for="lead-website">Website</label>
+            <input type="text" id="lead-website" name="website" autocomplete="off" tabindex="-1" value=""/>
+          </div>
+
+          <div id="join-error" class="hidden text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-2.5"></div>
+
+          <button id="join-submit-btn" type="submit"
+                  class="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gold hover:bg-gold-light text-obsidian text-sm font-semibold rounded-lg transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed">
+            <span id="join-submit-label">Join & Send</span>
+            <svg id="join-submit-spinner" class="hidden animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
+          </button>
+        </form>
+      </div>
+
+      <!-- Success state -->
+      <div id="join-success" class="hidden p-6 sm:p-8 text-center">
+        <div class="w-14 h-14 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center mx-auto mb-5">
+          <svg class="w-6 h-6 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+        </div>
+        <h3 class="font-serif text-xl text-white mb-2">Thanks — we'll be in touch.</h3>
+        <p class="text-muted text-sm leading-relaxed mb-6">We read every submission personally. Keep reading the brief in the meantime.</p>
+        <div class="flex flex-col gap-2.5">
+          <a href="index.html#apply" class="text-gold hover:text-gold-light text-xs font-medium transition-colors">Prefer to apply right now? Full Application →</a>
+          <button onclick="closeJoinModal()" class="text-muted hover:text-white text-xs transition-colors">Continue Reading</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    (function () {
+      const SUPABASE_URL      = 'https://qbqsbdswcqmrxoizgfrw.supabase.co';
+      const SUPABASE_ANON_KEY = 'sb_publishable_v0fbhx8NkRNxYYVw8VGz_g_7Eqja11K';
+      const { createClient } = supabase;
+      const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+      function $(id) { return document.getElementById(id); }
+      function escHtml(s) {
+        return String(s ?? '')
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
+      }
+      function briefToHtml(raw) {
+        return String(raw || '').split(/\n{2,}/).map(par =>
+          `<p>${escHtml(par.trim()).replace(/\n/g, '<br>')}</p>`).join('');
+      }
+
+      const params   = new URLSearchParams(location.search);
+      const promptId = (params.get('id') || '').trim();
+      const UUID_RE   = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+      let currentPrompt = null;
+      let joinShown     = false;
+      let joinOpenedAt  = 0;
+
+      function showNotFound() {
+        $('state-loading').classList.add('hidden');
+        $('state-notfound').classList.remove('hidden');
+      }
+
+      function renderPrompt(p) {
+        $('state-loading').classList.add('hidden');
+        $('state-prompt').classList.remove('hidden');
+
+        document.title = p.title + ' — Apex Fiction Studio';
+        $('page-title').textContent = p.title + ' — Apex Fiction Studio';
+
+        if (p.banner_url) {
+          $('prompt-banner').src = p.banner_url;
+          $('prompt-banner').classList.remove('hidden');
+          $('prompt-banner-fallback').classList.add('hidden');
+        }
+
+        if (p.genre) {
+          $('prompt-genre').textContent = p.genre;
+          $('prompt-genre').classList.remove('hidden');
+        }
+
+        const tags = Array.isArray(p.tags) ? p.tags : [];
+        if (tags.length) {
+          $('prompt-tags').innerHTML = tags.map(t =>
+            `<span class="inline-block text-[10px] font-medium text-white/70 bg-white/5 border border-border rounded-full px-2.5 py-1">${escHtml(t)}</span>`
+          ).join('');
+          $('prompt-tags').classList.remove('hidden');
+        }
+
+        $('prompt-title').textContent = p.title;
+        $('prompt-brief').innerHTML   = briefToHtml(p.brief);
+
+        const sampleUrl = (p.sample_chapter_url || '').trim();
+        if (/^https?:\/\//i.test(sampleUrl)) {
+          const link = $('prompt-sample-link');
+          link.href = sampleUrl;
+          link.classList.remove('hidden');
+        }
+      }
+
+      async function init() {
+        if (!promptId || !UUID_RE.test(promptId)) { showNotFound(); return; }
+        const { data, error } = await db.from('writing_prompts')
+          .select('id, title, brief, genre, banner_url, tags, sample_chapter_url')
+          .eq('id', promptId)
+          .maybeSingle();
+        if (error || !data) { showNotFound(); return; }
+        currentPrompt = data;
+        renderPrompt(data);
+        setTimeout(() => { if (!joinShown) openJoinModal(); }, 6000);
+      }
+
+      window.openJoinModal = function () {
+        joinShown    = true;
+        joinOpenedAt = Date.now();
+        $('join-form-wrap').classList.remove('hidden');
+        $('join-success').classList.add('hidden');
+        $('join-modal').classList.remove('hidden');
+      };
+      window.closeJoinModal = function () {
+        $('join-modal').classList.add('hidden');
+      };
+      $('join-modal').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeJoinModal(); });
+
+      const form    = $('join-form');
+      const btn     = $('join-submit-btn');
+      const btnLbl  = $('join-submit-label');
+      const spinner = $('join-submit-spinner');
+      const errBox  = $('join-error');
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        errBox.classList.add('hidden');
+
+        if (!currentPrompt) return;
+
+        // Cooldown — don't let the same browser spam leads for this prompt
+        const cooldownKey = 'afs_lead_sent_' + currentPrompt.id;
+        const lastSent = localStorage.getItem(cooldownKey);
+        if (lastSent && (Date.now() - Number(lastSent)) < 3600000) {
+          errBox.textContent = "You've already sent us your details for this prompt. We'll be in touch.";
+          errBox.classList.remove('hidden');
+          return;
+        }
+
+        // Honeypot
+        const honeypot = form.website ? form.website.value : '';
+        if (honeypot !== '') {
+          $('join-form-wrap').classList.add('hidden');
+          $('join-success').classList.remove('hidden');
+          return;
+        }
+
+        // Minimum time since the modal opened — a real person needs at
+        // least a moment to read the fields and type into them.
+        if ((Date.now() - joinOpenedAt) < 1200) {
+          errBox.textContent = 'Please take a moment to complete the form.';
+          errBox.classList.remove('hidden');
+          return;
+        }
+
+        const name       = form.name.value.trim();
+        const email      = form.email.value.trim().toLowerCase();
+        const experience = form.experience.value.trim() || null;
+
+        if (name.length < 1 || name.length > 120 || email.length > 200 || (experience && experience.length > 2000)) {
+          errBox.textContent = 'Please check your entries and try again.';
+          errBox.classList.remove('hidden');
+          return;
+        }
+
+        btn.disabled = true;
+        btnLbl.textContent = 'Sending…';
+        spinner.classList.remove('hidden');
+
+        let error;
+        try {
+          const result = await db.from('prompt_leads').insert({
+            prompt_id: currentPrompt.id, name, email, experience,
+          });
+          error = result.error;
+        } catch (networkErr) {
+          console.error('AFS lead network error:', networkErr);
+          btn.disabled = false;
+          btnLbl.textContent = 'Join & Send';
+          spinner.classList.add('hidden');
+          errBox.textContent = 'Network error — please check your connection and try again.';
+          errBox.classList.remove('hidden');
+          return;
+        }
+
+        btn.disabled = false;
+        btnLbl.textContent = 'Join & Send';
+        spinner.classList.add('hidden');
+
+        if (error) {
+          console.error('AFS lead error:', error);
+          let msg = 'Something went wrong. Please try again.';
+          if (error.code === '42501' || error.code === '23514') {
+            msg = 'This prompt may no longer be accepting interest — it might already be claimed.';
+          } else if (error.message) {
+            msg = 'Error: ' + error.message;
+          }
+          errBox.textContent = msg;
+          errBox.classList.remove('hidden');
+          return;
+        }
+
+        localStorage.setItem(cooldownKey, String(Date.now()));
+        $('join-form-wrap').classList.add('hidden');
+        $('join-success').classList.remove('hidden');
+      });
+
+      init();
+    })();
+  </script>
+
+</body>
+</html>
