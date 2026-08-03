@@ -1046,6 +1046,18 @@
             <p class="text-muted text-[11px] mt-1.5">Links, platform handles, or published titles. New writers welcome — describe your practice instead.</p>
           </div>
 
+          <!-- Country -->
+          <div>
+            <label class="block text-xs font-medium text-white/70 tracking-wide mb-2" for="country">Country</label>
+            <input
+              id="country"
+              name="country"
+              type="text"
+              placeholder="e.g. Nigeria"
+              class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 transition-all duration-200 focus:ring-0"
+              required />
+          </div>
+
           <!-- Logline -->
           <div>
             <label class="block text-xs font-medium text-white/70 tracking-wide mb-2" for="logline">1-Sentence Book Logline</label>
@@ -1207,12 +1219,18 @@
         const name           = form.fullName.value.trim();
         const email          = form.email.value.trim().toLowerCase();
         const experience     = form.experience.value.trim() || null;
+        const country        = form.country.value.trim();
         const logline        = form.logline.value.trim();
         const sampleLink     = form.sampleChapters.value.trim();
 
         // ── Field length caps ─────────────────────────────────────────────
         if (name.length > 120 || email.length > 200 || logline.length > 300 || (experience && experience.length > 2000)) {
           errBox.textContent = 'Your submission exceeds allowed length limits.';
+          errBox.classList.remove('hidden');
+          return;
+        }
+        if (!country || country.length > 100) {
+          errBox.textContent = 'Please enter your country.';
           errBox.classList.remove('hidden');
           return;
         }
@@ -1234,7 +1252,7 @@
         spinner.classList.remove('hidden');
 
         // sample_chapters_url migration not yet run in DB; store link in test_scene (the existing column)
-        const payload = { name, email, experience, logline, test_scene: sampleLink };
+        const payload = { name, email, experience, country, logline, test_scene: sampleLink };
 
         let error;
         try {

@@ -274,8 +274,8 @@
           <p class="text-muted text-[11px] mt-1.5">Writer gets a 30-day window after signing to request a switch, unless the Flat Rate 30,000-word threshold locks it in first.</p>
         </div>
         <div>
-          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Sign-In Bonus <span class="text-muted font-normal">(optional)</span></label>
-          <input id="send-contract-bonus" type="number" step="0.01" min="0" placeholder="0.00"
+          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Sign-In Bonus (&#8358;) <span class="text-muted font-normal">(optional)</span></label>
+          <input id="send-contract-bonus" type="number" step="1" min="0" placeholder="0"
                  class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-3 py-2.5"/>
           <p class="text-muted text-[11px] mt-1.5">Leave blank for no sign-in bonus. If set, it's forfeited automatically at 30,000 words or when the 30-day window closes.</p>
         </div>
@@ -807,6 +807,16 @@
                         class="w-full px-3 py-1.5 bg-transparent hover:bg-red-500/10 border border-transparent hover:border-red-500/25 text-red-400/40 hover:text-red-400 text-xs rounded-lg transition-all duration-200">
                   Delete Book
                 </button>
+              </div>
+
+              <!-- Transfer Book -->
+              <div class="rounded-xl border border-border bg-surface p-4">
+                <p class="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted mb-2">Transfer Book</p>
+                <div class="flex gap-2">
+                  <select id="book-transfer-writer" class="flex-1 bg-charcoal border border-border text-white text-xs rounded-lg px-2.5 py-2 focus:outline-none focus:border-crimson/50"></select>
+                  <button onclick="transferBookToWriter()" class="flex-shrink-0 px-3 py-2 bg-gold/10 hover:bg-gold/20 border border-gold/30 text-gold text-xs font-semibold rounded-lg transition-colors">Transfer</button>
+                </div>
+                <p id="book-transfer-status" class="text-[11px] text-muted mt-1.5"></p>
               </div>
 
               <!-- Writer's outline (read-only here — set at book creation) -->
@@ -2381,6 +2391,7 @@
       $('book-author-heading').textContent = `by ${selectedWriter?.name ?? 'Unknown'}`;
       $('book-cover-initial').textContent  = book.title[0] || '?';
       $('book-notes-input').value          = book.admin_notes || '';
+      _populateBookTransferWriters();
       if (book.outline) { $('book-outline-text').textContent = book.outline; $('book-outline-card').classList.remove('hidden'); }
       else { $('book-outline-card').classList.add('hidden'); }
       $('book-prompt-badge').classList.add('hidden');
@@ -5429,6 +5440,47 @@
       }
     }
 
+    // ── Transfer a book to another writer ────────────────────────────
+    let _bookTransferWriters = null;
+    async function _populateBookTransferWriters() {
+      const sel = $('book-transfer-writer');
+      if (!sel) return;
+      sel.innerHTML = '<option>Loading…</option>';
+      const { data } = await db.from('profiles')
+        .select('id, name, email')
+        .eq('is_admin', false).eq('is_senior_editor', false)
+        .order('name');
+      _bookTransferWriters = (data || []).filter(w => w.id !== selectedWriter?.id);
+      if (!_bookTransferWriters.length) { sel.innerHTML = '<option value="">No other writers</option>'; return; }
+      sel.innerHTML = _bookTransferWriters
+        .map(w => `<option value="${w.id}">${escHtml(w.name || w.email || 'Writer')}</option>`)
+        .join('');
+    }
+
+    async function transferBookToWriter() {
+      const book     = selectedBook;
+      const newId    = $('book-transfer-writer').value;
+      const statusEl = $('book-transfer-status');
+      if (!book?.id || !newId) return;
+      const target = (_bookTransferWriters || []).find(w => w.id === newId);
+      if (!confirm('Transfer "' + book.title + '" to ' + (target?.name || 'this writer') + '? They\'ll get full ownership and access to all its chapters — it will no longer appear under ' + (selectedWriter?.name || 'the current writer') + '.')) return;
+      statusEl.className = 'text-[11px] text-muted mt-1.5';
+      statusEl.textContent = 'Transferring…';
+      const { error } = await db.rpc('admin_transfer_book', { p_book_id: book.id, p_new_writer_id: newId });
+      if (error) {
+        statusEl.className = 'text-[11px] text-red-400 mt-1.5';
+        statusEl.textContent = error.message;
+        return;
+      }
+      showToast('"' + book.title + '" transferred to ' + (target?.name || 'writer') + ' ✓');
+      // The book no longer belongs to the writer currently being viewed —
+      // back out to their (now-updated) book list rather than showing a
+      // book detail view for a book that's no longer theirs.
+      const ownerId = selectedWriter?.id;
+      backToWriterBooks();
+      if (ownerId) _loadWriterBooksList(ownerId);
+    }
+
     async function deleteAdminPrompt() {
       const id = $('admin-prompt-id').value;
       if (!id) return;
@@ -6164,7 +6216,7 @@
       if (c.sign_in_bonus_amount) {
         const st = BONUS_STATUS_STYLE[c.sign_in_bonus_status] || BONUS_STATUS_STYLE.ACTIVE;
         html += '<div class="pt-2 border-t border-border/60 flex items-center justify-between gap-2 flex-wrap">'
-              + '<span class="text-white/70 text-xs">Sign-In Bonus: <span class="text-white font-medium">$' + Number(c.sign_in_bonus_amount).toFixed(2) + '</span></span>'
+              + '<span class="text-white/70 text-xs">Sign-In Bonus: <span class="text-white font-medium">&#8358;' + Number(c.sign_in_bonus_amount).toLocaleString() + '</span></span>'
               + '<span class="text-[9px] font-bold uppercase tracking-wide border rounded-full px-2 py-0.5 ' + st.cls + '">' + st.label + '</span>'
               + '</div>';
         if (c.sign_in_bonus_status === 'ACTIVE') {
