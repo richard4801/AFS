@@ -143,6 +143,18 @@ Deno.serve(async (req) => {
         name:  app.name,
         email: app.email,
       }, { onConflict: 'id', ignoreDuplicates: true })
+
+      // The upsert above is a no-op in the common path -- generateLink()
+      // already triggers handle_new_user(), which inserts the profiles
+      // row first. Backfill country from the application separately so
+      // it isn't silently dropped by ignoreDuplicates; only fills it in
+      // if still unset, so it can never clobber anything.
+      if (app.country) {
+        await adminClient.from('profiles')
+          .update({ country: app.country })
+          .eq('id', linkData.user.id)
+          .is('country', null)
+      }
     }
 
     // Mark as approved

@@ -419,9 +419,19 @@
       <div id="comp-model-locked" class="hidden mb-3">
         <p class="text-muted text-xs">Locked to this model &mdash; the 30-day switch window has closed.</p>
       </div>
-      <div id="comp-model-progress-wrap" class="hidden mb-3">
-        <div class="flex items-center justify-between text-[11px] text-muted mb-1"><span id="comp-model-progress-words">0 / 30,000 words</span><span id="comp-model-progress-pct">0%</span></div>
-        <div class="h-1.5 rounded-full bg-white/10 overflow-hidden"><div id="comp-model-progress-bar" class="h-full bg-gold transition-all duration-300" style="width:0%"></div></div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+        <div id="comp-mode-flat" class="rounded-xl border p-3 transition-opacity duration-200">
+          <p class="text-[10px] font-semibold uppercase tracking-wide text-muted mb-2">Flat Rate</p>
+          <p id="comp-flat-earned" class="text-white font-serif text-lg mb-0.5">₦0</p>
+          <p class="text-muted text-[11px] mb-2.5">earned to date &middot; &#8358;2/word</p>
+          <div class="flex items-center justify-between text-[10px] text-muted mb-1"><span id="comp-model-progress-words">0 / 30,000 words</span><span id="comp-model-progress-pct">0%</span></div>
+          <div class="h-1.5 rounded-full bg-white/10 overflow-hidden"><div id="comp-model-progress-bar" class="h-full bg-gold transition-all duration-300" style="width:0%"></div></div>
+        </div>
+        <div id="comp-mode-shared" class="rounded-xl border p-3 transition-opacity duration-200">
+          <p class="text-[10px] font-semibold uppercase tracking-wide text-muted mb-2">Shared Revenue</p>
+          <p class="text-white font-serif text-lg mb-0.5">50% Split</p>
+          <p class="text-muted text-[11px]">Tracked from platform royalties &mdash; see Earnings &amp; Payouts for your latest payout.</p>
+        </div>
       </div>
       <div id="comp-model-bonus" class="hidden flex items-center justify-between gap-2 pt-3 border-t border-border/60">
         <span class="text-white/70 text-xs">Sign-In Bonus: <span id="comp-model-bonus-amount" class="text-white font-medium"></span></span>
@@ -3390,7 +3400,7 @@
         return () => _notifGoToChapter(n.chapter_id);
       }
       if (n.type === 'income_posted') return () => switchWriterTab('earnings');
-      if (n.type === 'brief_assigned') return () => switchWriterTab('books');
+      if (n.type === 'brief_assigned' || n.type === 'book_transferred') return () => switchWriterTab('books');
       return null;
     }
 
@@ -5104,6 +5114,9 @@
     }
 
     // ── Dual compensation model — writer-facing banner ──────────────
+    // Flat Rate is NGN-only — the studio's writer pool is overwhelmingly
+    // Nigerian, so there's no per-writer currency branching here.
+    const FLAT_RATE_PER_WORD_NGN = 2;
     const COMP_BONUS_STATUS = {
       ACTIVE:               { label: 'Bonus Active',    cls: 'text-gold bg-gold/10 border-gold/25' },
       CLAIMED:              { label: 'Bonus Paid',      cls: 'text-emerald-300 bg-emerald-400/10 border-emerald-400/25' },
@@ -5135,19 +5148,31 @@
         _ensureCountdownTicker();
       }
 
-      $('comp-model-progress-wrap').classList.toggle('hidden', !isFlat);
-      if (isFlat) {
-        const words = c.cumulative_word_count || 0;
-        const pct = Math.min(100, Math.round((words / 30000) * 100));
-        $('comp-model-progress-words').textContent = words.toLocaleString() + ' / 30,000 words';
-        $('comp-model-progress-pct').textContent = pct + '%';
-        $('comp-model-progress-bar').style.width = pct + '%';
-      }
+      // Flat-rate earnings are a live estimate (words × ₦2/word) shown for
+      // reference regardless of which model is currently active — only the
+      // active card's styling (not its numbers) reflects the current model.
+      // This is NOT the writer's actual payout record; admin's existing
+      // manual earnings/payouts ledger remains the record of what's been
+      // paid.
+      const words = c.cumulative_word_count || 0;
+      const pct = Math.min(100, Math.round((words / 30000) * 100));
+      const earnedNgn = words * FLAT_RATE_PER_WORD_NGN;
+      $('comp-model-progress-words').textContent = words.toLocaleString() + ' / 30,000 words';
+      $('comp-model-progress-pct').textContent = pct + '%';
+      $('comp-model-progress-bar').style.width = pct + '%';
+      $('comp-flat-earned').textContent = '₦' + earnedNgn.toLocaleString();
+
+      const flatCard    = $('comp-mode-flat');
+      const sharedCard  = $('comp-mode-shared');
+      const activeCls   = 'rounded-xl border p-3 transition-opacity duration-200 border-gold/30 bg-charcoal';
+      const inactiveCls = 'rounded-xl border p-3 transition-opacity duration-200 border-border bg-charcoal/40 opacity-50 pointer-events-none';
+      flatCard.className   = isFlat ? activeCls : inactiveCls;
+      sharedCard.className = isFlat ? inactiveCls : activeCls;
 
       const bonusBlock = $('comp-model-bonus');
       if (c.sign_in_bonus_amount) {
         bonusBlock.classList.remove('hidden');
-        $('comp-model-bonus-amount').textContent = '$' + Number(c.sign_in_bonus_amount).toFixed(2);
+        $('comp-model-bonus-amount').textContent = '₦' + Number(c.sign_in_bonus_amount).toLocaleString();
         const st = COMP_BONUS_STATUS[c.sign_in_bonus_status] || COMP_BONUS_STATUS.ACTIVE;
         const pill = $('comp-model-bonus-pill');
         pill.textContent = st.label;
