@@ -255,6 +255,45 @@
     </div>
   </div>
 
+  <!-- SEND CONTRACT MODAL -->
+  <div id="send-contract-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center px-4" style="background:rgba(0,0,0,0.82);backdrop-filter:blur(4px);">
+    <div class="relative w-full max-w-md rounded-2xl border border-crimson/25 bg-surface p-6 shadow-2xl shadow-black/60">
+      <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-crimson/40 to-transparent"></div>
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="font-serif text-xl text-white">Send Contract</h3>
+        <button onclick="closeSendContractModal()" class="text-muted hover:text-white text-2xl leading-none w-7 h-7 flex items-center justify-center">×</button>
+      </div>
+      <p id="send-contract-writer" class="text-gold text-xs font-medium mb-4"></p>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Compensation Model</label>
+          <select id="send-contract-model" class="w-full bg-charcoal border border-border text-white text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:border-crimson/50">
+            <option value="FLAT_RATE">Flat Rate</option>
+            <option value="SHARED_REVENUE">Shared Revenue</option>
+          </select>
+          <p class="text-muted text-[11px] mt-1.5">Writer gets a 30-day window after signing to request a switch, unless the Flat Rate 30,000-word threshold locks it in first.</p>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Sign-In Bonus <span class="text-muted font-normal">(optional)</span></label>
+          <input id="send-contract-bonus" type="number" step="0.01" min="0" placeholder="0.00"
+                 class="form-input w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-3 py-2.5"/>
+          <p class="text-muted text-[11px] mt-1.5">Leave blank for no sign-in bonus. If set, it's forfeited automatically at 30,000 words or when the 30-day window closes.</p>
+        </div>
+        <div id="send-contract-error" class="hidden text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2"></div>
+        <div class="flex gap-3 pt-1">
+          <button id="send-contract-submit-btn" onclick="confirmSendContract()"
+                  class="flex-1 px-4 py-2.5 bg-crimson hover:bg-crimson-light border border-crimson/60 hover:border-crimson text-white text-sm font-semibold rounded-lg transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed">
+            Send Contract
+          </button>
+          <button onclick="closeSendContractModal()"
+                  class="px-4 py-2.5 border border-border text-muted hover:text-white text-sm rounded-lg transition-all duration-200">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ASSIGN BRIEF MODAL -->
   <div id="brief-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center px-4" style="background:rgba(0,0,0,0.82);backdrop-filter:blur(4px);">
     <div class="relative w-full max-w-lg rounded-2xl border border-border bg-surface p-6 shadow-2xl shadow-black/60 max-h-[90vh] overflow-y-auto thin-scroll">
@@ -651,7 +690,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22 6 12 13 2 6"/></svg>
                 <span id="invite-btn-label">Send Password Reset</span>
               </button>
-              <button onclick="selectedWriter && sendContractToWriter(selectedWriter.id, selectedWriter.name, selectedWriter.email)"
+              <button onclick="selectedWriter && openSendContractModal(selectedWriter.id, selectedWriter.name, selectedWriter.email)"
                       class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-crimson hover:bg-crimson-light border border-crimson/60 hover:border-crimson text-white text-xs font-semibold rounded-lg transition-all duration-200 shadow-md shadow-crimson/20">
                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                 Send Contract
@@ -5963,7 +6002,9 @@
           : '<span class="text-muted text-xs">Sent ' + new Date(c.sent_at).toLocaleDateString('en-GB', { day:'numeric', month:'short' }) + '</span>';
         return '<div class="rounded-xl border border-border bg-surface p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">'
           + '<div><p class="text-white text-sm font-medium mb-0.5">' + escHtml(name) + '</p>' + signedInfo + '</div>'
-          + '<div class="flex items-center gap-2 flex-shrink-0">'
+          + '<div class="flex items-center gap-2 flex-shrink-0 flex-wrap">'
+          + _compModelBadge(c)
+          + (c.status === 'signed' ? _bonusStatusPill(c) : '')
           + '<span class="text-[10px] font-bold uppercase tracking-wider border rounded-full px-2 py-0.5 ' + statusColor + '">' + c.status + '</span>'
           + (c.status === 'signed' ? '<button onclick="viewSignedContract(\'' + c.id + '\')" class="text-xs text-muted hover:text-white border border-border hover:border-white/20 rounded-full px-3 py-1 transition-colors">View</button>' : '')
           + '<button onclick="deleteContract(\'' + c.id + '\')" class="text-red-400/40 hover:text-red-400 transition-colors p-1 rounded-md hover:bg-red-500/10" title="Delete contract"><svg xmlns=\'http://www.w3.org/2000/svg\' width=\'13\' height=\'13\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><polyline points=\'3 6 5 6 21 6\'/><path d=\'M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6\'/><path d=\'M10 11v6\'/><path d=\'M14 11v6\'/><path d=\'M9 6V4h6v2\'/></svg></button>'
@@ -5971,9 +6012,34 @@
       }).join('');
     }
 
-    async function sendContractToWriter(writerId, writerName, writerEmail) {
+    // ── Dual compensation model — shared display helpers ────────────
+    function _compModelBadge(c) {
+      return c.compensation_model === 'SHARED_REVENUE'
+        ? '<span class="text-[9px] font-bold uppercase tracking-wide text-indigo-300 bg-indigo-400/10 border border-indigo-400/25 rounded-full px-2 py-0.5">Shared Revenue</span>'
+        : '<span class="text-[9px] font-bold uppercase tracking-wide text-white/60 bg-white/5 border border-border rounded-full px-2 py-0.5">Flat Rate</span>';
+    }
+    const BONUS_STATUS_STYLE = {
+      ACTIVE:               { label: 'Bonus Active',    cls: 'text-gold bg-gold/10 border-gold/25' },
+      CLAIMED:              { label: 'Bonus Paid',      cls: 'text-emerald-300 bg-emerald-400/10 border-emerald-400/25' },
+      EXPIRED:              { label: 'Bonus Expired',   cls: 'text-muted bg-white/5 border-border' },
+      FORFEITED_WORD_LIMIT: { label: 'Bonus Forfeited', cls: 'text-red-300 bg-red-400/10 border-red-400/25' },
+    };
+    function _bonusStatusPill(c) {
+      if (!c.sign_in_bonus_amount || !c.sign_in_bonus_status) return '';
+      const st = BONUS_STATUS_STYLE[c.sign_in_bonus_status] || BONUS_STATUS_STYLE.ACTIVE;
+      return '<span class="text-[9px] font-bold uppercase tracking-wide border rounded-full px-2 py-0.5 ' + st.cls + '">' + st.label + '</span>';
+    }
+    function _daysLeft(dateStr) {
+      if (!dateStr) return null;
+      const ms = new Date(dateStr).getTime() - Date.now();
+      return Math.max(0, Math.ceil(ms / 86400000));
+    }
+
+    async function sendContractToWriter(writerId, writerName, writerEmail, model, bonusAmount) {
       const { error } = await db.rpc('admin_send_contract', {
-        p_writer_id: writerId, p_doc_version: 'v1'
+        p_writer_id: writerId, p_doc_version: 'v1',
+        p_compensation_model: model || 'FLAT_RATE',
+        p_sign_in_bonus_amount: bonusAmount ?? null,
       });
       if (error) { showToast('Error sending contract: ' + error.message); return; }
 
@@ -6023,7 +6089,7 @@
           + '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 3 3.5 9-3.5 9 19-9Z"/></svg>'
           + '</button></div>';
         const sendBtn = $('contract-send-btn');
-        if (sendBtn) sendBtn.addEventListener('click', () => sendContractToWriter(writer.id, writer.name || '', writer.email));
+        if (sendBtn) sendBtn.addEventListener('click', () => openSendContractModal(writer.id, writer.name || '', writer.email));
         $('contracts-empty').classList.add('hidden');
         return;
       }
@@ -6035,6 +6101,7 @@
           + '<p class="text-muted text-xs">Signed at: <span class="text-white">' + new Date(contract.signed_at).toLocaleString('en-GB') + '</span></p>'
           + '<p class="text-muted text-xs">Document version: ' + contract.doc_version + '</p>'
           + '</div>'
+          + _compensationDetailBlock(contract)
         : '<p class="text-gold text-xs mt-3">Pending signature &mdash; writer has not yet signed.</p>';
       $('contracts-list').innerHTML =
         '<div class="rounded-xl border border-border bg-surface p-6">'
@@ -6043,6 +6110,105 @@
         + signedHtml
         + '</div>';
       $('contracts-empty').classList.add('hidden');
+    }
+
+    // ── Dual compensation model — contract-detail block (model, bonus,
+    //    30-day window, word progress, admin overrides) ─────────────
+    function _compensationDetailBlock(c) {
+      const daysLeft   = _daysLeft(c.transition_expires_at);
+      const windowOpen = daysLeft !== null && daysLeft > 0
+        && !(c.compensation_model === 'FLAT_RATE' && c.cumulative_word_count >= 30000);
+      const otherModel = c.compensation_model === 'FLAT_RATE' ? 'SHARED_REVENUE' : 'FLAT_RATE';
+      const otherLabel = otherModel === 'FLAT_RATE' ? 'Flat Rate' : 'Shared Revenue';
+
+      let html = '<div class="mt-4 rounded-xl bg-charcoal border border-border p-4 space-y-3">';
+      html += '<div class="flex items-center justify-between gap-2 flex-wrap">'
+            + '<span class="text-white/70 text-xs font-medium">Compensation Model</span>'
+            + _compModelBadge(c)
+            + '</div>';
+      html += '<p class="text-muted text-[11px]">'
+            + (windowOpen ? daysLeft + ' day' + (daysLeft === 1 ? '' : 's') + ' left to switch to ' + escHtml(otherLabel)
+                          : 'Switch window closed — locked to ' + escHtml(c.compensation_model === 'FLAT_RATE' ? 'Flat Rate' : 'Shared Revenue'))
+            + '</p>'
+            + '<button onclick="adminSetCompensationModel(\'' + c.id + '\',\'' + otherModel + '\')" class="text-[11px] text-crimson-light hover:text-crimson-light/80 underline decoration-dotted">'
+            + 'Override: switch to ' + escHtml(otherLabel) + ' now'
+            + '</button>';
+
+      if (c.compensation_model === 'FLAT_RATE') {
+        const pct = Math.min(100, Math.round((c.cumulative_word_count / 30000) * 100));
+        html += '<div>'
+              + '<div class="flex items-center justify-between text-[11px] text-muted mb-1"><span>' + (c.cumulative_word_count || 0).toLocaleString() + ' / 30,000 words</span><span>' + pct + '%</span></div>'
+              + '<div class="h-1.5 rounded-full bg-white/10 overflow-hidden"><div class="h-full bg-gold" style="width:' + pct + '%"></div></div>'
+              + '</div>';
+      }
+
+      if (c.sign_in_bonus_amount) {
+        const st = BONUS_STATUS_STYLE[c.sign_in_bonus_status] || BONUS_STATUS_STYLE.ACTIVE;
+        html += '<div class="pt-2 border-t border-border/60 flex items-center justify-between gap-2 flex-wrap">'
+              + '<span class="text-white/70 text-xs">Sign-In Bonus: <span class="text-white font-medium">$' + Number(c.sign_in_bonus_amount).toFixed(2) + '</span></span>'
+              + '<span class="text-[9px] font-bold uppercase tracking-wide border rounded-full px-2 py-0.5 ' + st.cls + '">' + st.label + '</span>'
+              + '</div>';
+        if (c.sign_in_bonus_status === 'ACTIVE') {
+          html += '<button onclick="adminMarkBonusClaimed(\'' + c.id + '\')" class="text-[11px] text-emerald-300 hover:text-emerald-200 underline decoration-dotted">Mark bonus as paid</button>';
+        } else if (c.sign_in_bonus_status === 'EXPIRED' || c.sign_in_bonus_status === 'FORFEITED_WORD_LIMIT') {
+          html += '<button onclick="adminReinstateBonus(\'' + c.id + '\')" class="text-[11px] text-gold hover:text-gold-light underline decoration-dotted">Reinstate bonus</button>';
+        }
+      }
+
+      html += '</div>';
+      return html;
+    }
+
+    async function adminSetCompensationModel(contractId, model) {
+      if (!confirm('Override this contract to ' + (model === 'FLAT_RATE' ? 'Flat Rate' : 'Shared Revenue') + '? This bypasses the writer\'s own switch window.')) return;
+      const { error } = await db.rpc('admin_set_compensation_model', { p_contract_id: contractId, p_model: model });
+      if (error) { showToast('Error: ' + error.message); return; }
+      showToast('Compensation model updated ✓');
+      _contractsLoaded = false; await loadContractsSection(); _contractsLoaded = true;
+    }
+
+    async function adminReinstateBonus(contractId) {
+      const { error } = await db.rpc('admin_reinstate_bonus', { p_contract_id: contractId });
+      if (error) { showToast('Error: ' + error.message); return; }
+      showToast('Bonus reinstated ✓');
+      _contractsLoaded = false; await loadContractsSection(); _contractsLoaded = true;
+    }
+
+    async function adminMarkBonusClaimed(contractId) {
+      const { error } = await db.rpc('admin_mark_bonus_claimed', { p_contract_id: contractId });
+      if (error) { showToast('Error: ' + error.message); return; }
+      showToast('Bonus marked as paid ✓');
+      _contractsLoaded = false; await loadContractsSection(); _contractsLoaded = true;
+    }
+
+    // ── Send Contract modal ──────────────────────────────────────────
+    let _sendContractTarget = null;
+    function openSendContractModal(writerId, writerName, writerEmail) {
+      _sendContractTarget = { writerId, writerName, writerEmail };
+      $('send-contract-writer').textContent = 'For: ' + (writerName || writerEmail);
+      $('send-contract-model').value = 'FLAT_RATE';
+      $('send-contract-bonus').value = '';
+      $('send-contract-error').classList.add('hidden');
+      $('send-contract-modal').classList.remove('hidden');
+    }
+    function closeSendContractModal() { $('send-contract-modal').classList.add('hidden'); }
+    $('send-contract-modal').addEventListener('click', e => { if (e.target === $('send-contract-modal')) closeSendContractModal(); });
+
+    async function confirmSendContract() {
+      if (!_sendContractTarget) return;
+      const model = $('send-contract-model').value;
+      const bonusRaw = $('send-contract-bonus').value.trim();
+      const bonus = bonusRaw === '' ? null : parseFloat(bonusRaw);
+      if (bonusRaw !== '' && (isNaN(bonus) || bonus < 0)) {
+        $('send-contract-error').textContent = 'Bonus amount must be a positive number, or left blank.';
+        $('send-contract-error').classList.remove('hidden');
+        return;
+      }
+      const btn = $('send-contract-submit-btn');
+      btn.disabled = true;
+      await sendContractToWriter(_sendContractTarget.writerId, _sendContractTarget.writerName, _sendContractTarget.writerEmail, model, bonus);
+      btn.disabled = false;
+      closeSendContractModal();
     }
 
     async function viewSignedContract(contractId) {
