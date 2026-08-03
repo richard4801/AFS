@@ -402,6 +402,33 @@
       </div>
     </div>
 
+    <!-- COMPENSATION MODEL WIDGET (shown once contract is signed) -->
+    <div id="comp-model-banner" class="hidden relative rounded-2xl border border-border bg-surface p-5 sm:p-6 mb-8 overflow-hidden">
+      <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent"></div>
+      <div class="flex items-center justify-between gap-3 flex-wrap mb-3">
+        <div>
+          <p class="text-[10px] font-semibold tracking-widest uppercase text-muted mb-1">Compensation</p>
+          <h3 id="comp-model-label" class="text-white text-lg font-serif"></h3>
+        </div>
+        <span id="comp-model-badge" class="text-[10px] font-bold uppercase tracking-wide border rounded-full px-2.5 py-1"></span>
+      </div>
+      <div id="comp-model-window" class="hidden mb-3">
+        <p class="text-muted text-xs mb-1.5">Switch window closes in <span data-countdown data-expires="" class="font-mono tabular-nums font-semibold"></span></p>
+        <button id="comp-model-switch-btn" onclick="requestModelSwitch()" class="text-xs text-gold hover:text-gold-light underline decoration-dotted">Switch to <span id="comp-model-switch-target"></span></button>
+      </div>
+      <div id="comp-model-locked" class="hidden mb-3">
+        <p class="text-muted text-xs">Locked to this model &mdash; the 30-day switch window has closed.</p>
+      </div>
+      <div id="comp-model-progress-wrap" class="hidden mb-3">
+        <div class="flex items-center justify-between text-[11px] text-muted mb-1"><span id="comp-model-progress-words">0 / 30,000 words</span><span id="comp-model-progress-pct">0%</span></div>
+        <div class="h-1.5 rounded-full bg-white/10 overflow-hidden"><div id="comp-model-progress-bar" class="h-full bg-gold transition-all duration-300" style="width:0%"></div></div>
+      </div>
+      <div id="comp-model-bonus" class="hidden flex items-center justify-between gap-2 pt-3 border-t border-border/60">
+        <span class="text-white/70 text-xs">Sign-In Bonus: <span id="comp-model-bonus-amount" class="text-white font-medium"></span></span>
+        <span id="comp-model-bonus-pill" class="text-[9px] font-bold uppercase tracking-wide border rounded-full px-2 py-0.5"></span>
+      </div>
+    </div>
+
     <!-- ONBOARDING WELCOME CARD (hidden by default, shown for new writers) -->
     <div id="onboarding-card" class="hidden relative rounded-2xl border border-gold/30 bg-surface p-6 sm:p-8 mb-8 overflow-hidden">
       <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/60 to-transparent"></div>
@@ -5029,6 +5056,12 @@
       db.channel('writer-brief-' + currentUserId)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'briefs', filter: 'writer_id=eq.' + currentUserId }, () => loadBrief())
         .subscribe();
+      // Live — word-count sync, an admin override, or a bonus
+      // reinstatement/claim all reflect in the compensation banner
+      // without a reload.
+      db.channel('writer-contract-' + currentUserId)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'contracts', filter: 'writer_id=eq.' + currentUserId }, () => checkContractStatus())
+        .subscribe();
       await loadBooks();
       checkContractStatus();
 
@@ -5056,7 +5089,7 @@
       const { data: { user } } = await db.auth.getUser();
       if (!user) return;
       const { data: rows } = await db.from('contracts')
-        .select('id,status,signed_at,name_signed,doc_version')
+        .select('id,status,signed_at,name_signed,doc_version,compensation_model,transition_expires_at,cumulative_word_count,sign_in_bonus_amount,sign_in_bonus_status')
         .eq('writer_id', user.id)
         .order('created_at', { ascending: false })
         .limit(1);
@@ -5065,7 +5098,75 @@
       _contractId = c.id;
       if (c.status === 'pending') {
         $('contract-banner').classList.remove('hidden');
+      } else if (c.status === 'signed') {
+        _renderCompModelBanner(c);
       }
+    }
+
+    // ── Dual compensation model — writer-facing banner ──────────────
+    const COMP_BONUS_STATUS = {
+      ACTIVE:               { label: 'Bonus Active',    cls: 'text-gold bg-gold/10 border-gold/25' },
+      CLAIMED:              { label: 'Bonus Paid',      cls: 'text-emerald-300 bg-emerald-400/10 border-emerald-400/25' },
+      EXPIRED:              { label: 'Bonus Expired',   cls: 'text-muted bg-white/5 border-border' },
+      FORFEITED_WORD_LIMIT: { label: 'Bonus Forfeited', cls: 'text-red-300 bg-red-400/10 border-red-400/25' },
+    };
+
+    function _renderCompModelBanner(c) {
+      _contractId = c.id;
+      $('comp-model-banner').classList.remove('hidden');
+
+      const isFlat = c.compensation_model === 'FLAT_RATE';
+      $('comp-model-label').textContent = isFlat ? 'Flat Rate' : 'Shared Revenue';
+      const badge = $('comp-model-badge');
+      badge.textContent = isFlat ? 'Flat Rate' : 'Shared Revenue';
+      badge.className = 'text-[10px] font-bold uppercase tracking-wide border rounded-full px-2.5 py-1 '
+        + (isFlat ? 'text-white/60 bg-white/5 border-border' : 'text-indigo-300 bg-indigo-400/10 border-indigo-400/25');
+
+      const now       = Date.now();
+      const expiresAt = c.transition_expires_at ? Date.parse(c.transition_expires_at) : null;
+      const wordLocked = isFlat && (c.cumulative_word_count || 0) >= 30000;
+      const windowOpen = !!(expiresAt && expiresAt > now && !wordLocked);
+
+      $('comp-model-window').classList.toggle('hidden', !windowOpen);
+      $('comp-model-locked').classList.toggle('hidden', windowOpen);
+      if (windowOpen) {
+        $('comp-model-window').querySelector('[data-countdown]').setAttribute('data-expires', c.transition_expires_at);
+        $('comp-model-switch-target').textContent = isFlat ? 'Shared Revenue' : 'Flat Rate';
+        _ensureCountdownTicker();
+      }
+
+      $('comp-model-progress-wrap').classList.toggle('hidden', !isFlat);
+      if (isFlat) {
+        const words = c.cumulative_word_count || 0;
+        const pct = Math.min(100, Math.round((words / 30000) * 100));
+        $('comp-model-progress-words').textContent = words.toLocaleString() + ' / 30,000 words';
+        $('comp-model-progress-pct').textContent = pct + '%';
+        $('comp-model-progress-bar').style.width = pct + '%';
+      }
+
+      const bonusBlock = $('comp-model-bonus');
+      if (c.sign_in_bonus_amount) {
+        bonusBlock.classList.remove('hidden');
+        $('comp-model-bonus-amount').textContent = '$' + Number(c.sign_in_bonus_amount).toFixed(2);
+        const st = COMP_BONUS_STATUS[c.sign_in_bonus_status] || COMP_BONUS_STATUS.ACTIVE;
+        const pill = $('comp-model-bonus-pill');
+        pill.textContent = st.label;
+        pill.className = 'text-[9px] font-bold uppercase tracking-wide border rounded-full px-2 py-0.5 ' + st.cls;
+      } else {
+        bonusBlock.classList.add('hidden');
+      }
+    }
+
+    async function requestModelSwitch() {
+      if (!_contractId) return;
+      const btn = $('comp-model-switch-btn');
+      if (btn) btn.disabled = true;
+      const { data, error } = await db.rpc('request_model_switch', { p_contract_id: _contractId });
+      if (btn) btn.disabled = false;
+      if (error) { showToast('Error: ' + error.message); return; }
+      const updated = Array.isArray(data) ? data[0] : data;
+      if (updated) _renderCompModelBanner(updated);
+      showToast('Compensation model updated ✓');
     }
 
     function _buildContractHTML(profile, signedName) {
@@ -5174,7 +5275,7 @@
       // Goes through a narrow RPC (not a raw table update) so a writer's
       // signing action can only ever set status/signed_at/name_signed/
       // user_agent on their own pending contract — nothing else.
-      const { error } = await db.rpc('sign_contract', {
+      const { data: signedRows, error } = await db.rpc('sign_contract', {
         p_contract_id: _contractId,
         p_name_signed: name,
         p_user_agent:  navigator.userAgent,
@@ -5197,6 +5298,11 @@
         ' at ' + now.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
       $('contract-banner').classList.add('hidden');
       $('contract-progress').style.width = '100%';
+
+      // Show the compensation-model banner immediately, using the row
+      // sign_contract() already returned rather than a second round-trip.
+      const signedRow = Array.isArray(signedRows) ? signedRows[0] : signedRows;
+      if (signedRow) _renderCompModelBanner(signedRow);
 
       // Immediately refresh rank — DB trigger sets bronze the moment signing completes
       const { data: { user } } = await db.auth.getUser();
