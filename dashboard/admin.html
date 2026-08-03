@@ -4259,10 +4259,10 @@
       // Email notification to writer on chapter approval
       const writerProfile = allProfiles.find(p => p.id === writerId);
       if (writerProfile?.email) {
-        const { data: { session } } = await db.auth.getSession();
+        const _accessToken = await _getFreshAccessToken();
         fetch(`${SUPABASE_URL}/functions/v1/send-notification`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session?.access_token },
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _accessToken },
           body: JSON.stringify({ type: 'chapter_approved', writerId, writerEmail: writerProfile.email, writerName: writerProfile.name, data: { chapterNumber: selectedChapter?.chapter_number ?? '', title: selectedChapter?.title ?? '', wordCount: selectedChapter?.word_count ?? '' } }),
         }).catch(() => {});
       }
@@ -4331,10 +4331,10 @@
         // Email notification for chapter rejection
         const writerProfile = allProfiles.find(p => p.id === writerId);
         if (writerProfile?.email) {
-          const { data: { session } } = await db.auth.getSession();
+          const _accessToken = await _getFreshAccessToken();
           fetch(`${SUPABASE_URL}/functions/v1/send-notification`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session?.access_token },
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _accessToken },
             body: JSON.stringify({ type: 'chapter_rejected', writerId, writerEmail: writerProfile.email, writerName: writerProfile.name, data: { chapterNumber: chNum, title: chTitle } }),
           }).catch(() => {});
         }
@@ -4472,10 +4472,10 @@
         // Email notification (requires send-notification Edge Function + RESEND_API_KEY)
         const writerProfile = allProfiles?.find(p => p.id === writerId);
         if (writerProfile?.email) {
-          const { data: { session } } = await db.auth.getSession();
+          const _accessToken = await _getFreshAccessToken();
           fetch(`${SUPABASE_URL}/functions/v1/send-notification`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session?.access_token },
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _accessToken },
             body: JSON.stringify({ type: 'income_posted', writerId, writerEmail: writerProfile.email, writerName: writerProfile.name, data: { amount, date } }),
           }).catch(() => {});
         }
@@ -4724,9 +4724,10 @@
         body: `Your project brief "${briefTitle}" has been assigned. Open your dashboard to read it.`,
       }).catch(() => {});
       if (writerProfile?.email) {
+        const _accessToken = await _getFreshAccessToken();
         fetch(`${SUPABASE_URL}/functions/v1/send-notification`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session?.access_token },
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _accessToken },
           body: JSON.stringify({ type: 'brief_assigned', writerId, writerEmail: writerProfile.email, writerName: writerProfile.name || selectedWriter?.name || '', data: { title: briefTitle, genre: briefGenre } }),
         }).catch(() => {});
       }
@@ -4881,14 +4882,14 @@
       appBtn.disabled = true;
       appBtn.textContent = 'Sending invite…';
 
-      const { data: { session } } = await db.auth.getSession();
+      const _accessToken = await _getFreshAccessToken();
       let result;
       try {
         const res = await fetch(`${SUPABASE_URL}/functions/v1/approve-application`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + session.access_token,
+            'Authorization': 'Bearer ' + _accessToken,
           },
           body: JSON.stringify({
             applicationId: id,
@@ -5417,12 +5418,12 @@
       // same as the manual Brief editor's saveBrief() sends.
       const writer = (_adminAssignWriters || []).find(w => w.id === writerId);
       if (writer?.email) {
-        const { data: { session } } = await db.auth.getSession();
+        const _accessToken = await _getFreshAccessToken();
         const title = $('admin-prompt-title-input').value.trim();
         const genre = $('admin-prompt-genre-input').value.trim() || 'Werewolf Romance';
         fetch(`${SUPABASE_URL}/functions/v1/send-notification`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session?.access_token },
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _accessToken },
           body: JSON.stringify({ type: 'brief_assigned', writerId, writerEmail: writer.email, writerName: writer.name || '', data: { title, genre } }),
         }).catch(() => {});
       }
@@ -5487,6 +5488,24 @@
       _adminTickCountdowns();
       if (_adminCountdownTick) return;
       _adminCountdownTick = setInterval(_adminTickCountdowns, 1000);
+    }
+
+    // Returns a definitely-non-expired access token for Authorization
+    // headers sent to Edge Functions. getSession() alone can hand back a
+    // cached, already-expired token (its own auto-refresh isn't
+    // guaranteed to have fired yet, e.g. after the tab sat backgrounded)
+    // — the Edge Function then rejects it as "Unauthorized" even though
+    // a token was technically present. Force a refresh whenever the
+    // cached token is expired or expires within the next minute.
+    async function _getFreshAccessToken() {
+      let { data: { session } } = await db.auth.getSession();
+      if (!session) return null;
+      const expiresInMs = (session.expires_at || 0) * 1000 - Date.now();
+      if (expiresInMs < 60000) {
+        const { data, error } = await db.auth.refreshSession();
+        if (!error && data?.session) session = data.session;
+      }
+      return session?.access_token || null;
     }
 
     function showToast(msg) {
@@ -6044,13 +6063,13 @@
       if (error) { showToast('Error sending contract: ' + error.message); return; }
 
       // Send branded contract email via Edge Function
-      const { data: { session } } = await db.auth.getSession();
-      if (!session?.access_token) { showToast('Contract recorded, but your session expired before the email could send — refresh and resend.'); return; }
+      const _accessToken = await _getFreshAccessToken();
+      if (!_accessToken) { showToast('Contract recorded, but your session expired before the email could send — refresh and resend.'); return; }
       const notifRes = await fetch(`${SUPABASE_URL}/functions/v1/send-notification`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + session.access_token,
+          'Authorization': 'Bearer ' + _accessToken,
         },
         body: JSON.stringify({
           type: 'contract_sent',
