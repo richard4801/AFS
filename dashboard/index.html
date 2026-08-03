@@ -5173,6 +5173,19 @@
       flatCard.className   = isFlat ? activeCls : inactiveCls;
       sharedCard.className = isFlat ? inactiveCls : activeCls;
 
+      // The pre-existing "This Month / All-Time / Words Written / Rank
+      // Bonus" stats block is a Shared Revenue concept (royalties, the
+      // $100/$120/$140 rank-milestone bonus) -- grey it out the same way
+      // while Flat Rate is active. This is display-only: renderStats()
+      // keeps computing and writing its numbers underneath exactly as
+      // before, including the word-count milestone tracking, so nothing
+      // stops accruing just because it's visually dimmed.
+      const statsGrid = $('stats-grid');
+      if (statsGrid) {
+        statsGrid.className = 'grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8 transition-all duration-200'
+          + (isFlat ? ' opacity-40 grayscale pointer-events-none' : '');
+      }
+
       const bonusBlock = $('comp-model-bonus');
       if (c.sign_in_bonus_amount) {
         bonusBlock.classList.remove('hidden');
