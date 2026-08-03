@@ -5164,8 +5164,12 @@
 
       const flatCard    = $('comp-mode-flat');
       const sharedCard  = $('comp-mode-shared');
-      const activeCls   = 'rounded-xl border p-3 transition-opacity duration-200 border-gold/30 bg-charcoal';
-      const inactiveCls = 'rounded-xl border p-3 transition-opacity duration-200 border-border bg-charcoal/40 opacity-50 pointer-events-none';
+      // Plain opacity barely reads as "dimmed" on an already-dark card
+      // sitting on an already-dark page -- grayscale (kills the gold/white
+      // contrast, not just its intensity) is what actually makes the
+      // inactive card look disabled.
+      const activeCls   = 'rounded-xl border p-3 transition-all duration-200 border-gold/30 bg-charcoal';
+      const inactiveCls = 'rounded-xl border p-3 transition-all duration-200 border-border bg-charcoal/40 opacity-40 grayscale pointer-events-none';
       flatCard.className   = isFlat ? activeCls : inactiveCls;
       sharedCard.className = isFlat ? inactiveCls : activeCls;
 
