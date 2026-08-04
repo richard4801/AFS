@@ -441,7 +441,7 @@
                 <svg class="w-3 h-3 text-crimson" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
               </span>
               <div>
-                <p class="text-white font-medium text-sm">Flat-rate pay: <span class="text-crimson">$10–$15 / 1k words</span></p>
+                <p class="text-white font-medium text-sm">Flat-rate pay: <span id="trap-rate" class="text-crimson">$6–$10 / 1k words</span></p>
                 <p class="text-muted text-xs mt-0.5">Capped earnings regardless of performance. Your ceiling is your starting point.</p>
               </div>
             </li>
@@ -1299,6 +1299,43 @@
         success.classList.remove('hidden');
         success.scrollIntoView({ behavior: 'smooth', block: 'center' });
       });
+    })();
+  </script>
+
+  <!-- Content Mill Trap rate: shown in the visitor's local currency where
+       we actually know it (Nigeria), USD for everyone else. IP geolocation
+       is a third party call (visitor IP leaves the site) -- acceptable
+       here since the stakes are just "which marketing currency shows up",
+       not anything tied to a real payment or account, unlike writer pay
+       currency (which is self-declared, not auto-detected, elsewhere on
+       this site). Fails silently to the default USD text already in the
+       page if the API is slow, blocked, or rate-limited. -->
+  <script>
+    (function () {
+      const el = document.getElementById('trap-rate');
+      if (!el) return;
+
+      // Debug override for testing without a VPN/IP spoof --
+      // ?debug_country=NG forces the Naira text, any other value forces
+      // the USD text. Never affects a real visitor unless they add this
+      // to the URL themselves.
+      const debugCountry = new URLSearchParams(location.search).get('debug_country');
+      if (debugCountry) {
+        if (debugCountry.toUpperCase() === 'NG') el.textContent = '₦1–₦2 / word';
+        return;
+      }
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 3000);
+      fetch('https://ipapi.co/json/', { signal: controller.signal })
+        .then(r => r.json())
+        .then(data => {
+          if (data && data.country_code === 'NG') {
+            el.textContent = '₦1–₦2 / word';
+          }
+        })
+        .catch(() => { /* keep the default $6–$10 / 1k words already in the page */ })
+        .finally(() => clearTimeout(timeout));
     })();
   </script>
 
