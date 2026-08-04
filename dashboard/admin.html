@@ -6302,13 +6302,19 @@
       const sigDate  = c.signed_at
         ? new Date(c.signed_at).toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })
         : new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
+      const track = c.compensation_model === 'SHARED_REVENUE' ? 'Shared Revenue' : 'Flat Rate';
+      const bonusClause = c.sign_in_bonus_amount
+        ? 'A one-time sign-in bonus of ₦' + Number(c.sign_in_bonus_amount).toLocaleString() + ' is granted upon execution of this Agreement, subject to Section 6.6.'
+        : 'No sign-in bonus applies to this Agreement.';
       const filled = html
-        .replace(/\{\{WRITER_NAME\}\}/g,      escHtml(wName))
-        .replace(/\{\{WRITER_EMAIL\}\}/g,     escHtml(wEmail))
-        .replace(/\{\{WRITER_COUNTRY\}\}/g,   escHtml(wCountry))
-        .replace(/\{\{WRITER_PAYMENT\}\}/g,   escHtml(wPayment))
-        .replace(/\{\{EFFECTIVE_DATE\}\}/g,   sigDate)
-        .replace(/\{\{WRITER_SIGNATURE\}\}/g, escHtml(c.name_signed || ''));
+        .replace(/\{\{WRITER_NAME\}\}/g,         escHtml(wName))
+        .replace(/\{\{WRITER_EMAIL\}\}/g,        escHtml(wEmail))
+        .replace(/\{\{WRITER_COUNTRY\}\}/g,      escHtml(wCountry))
+        .replace(/\{\{WRITER_PAYMENT\}\}/g,      escHtml(wPayment))
+        .replace(/\{\{EFFECTIVE_DATE\}\}/g,      sigDate)
+        .replace(/\{\{WRITER_SIGNATURE\}\}/g,    escHtml(c.name_signed || ''))
+        .replace(/\{\{COMPENSATION_MODEL\}\}/g,  escHtml(track))
+        .replace(/\{\{SIGN_IN_BONUS_CLAUSE\}\}/g, escHtml(bonusClause));
 
       const blob = new Blob([filled], { type: 'text/html' });
       const url  = URL.createObjectURL(blob);

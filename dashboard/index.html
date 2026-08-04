@@ -5212,22 +5212,31 @@
       showToast('Compensation model updated ✓');
     }
 
-    function _buildContractHTML(profile, signedName) {
+    // compModel/bonusAmount describe the PENDING contract's terms at the
+    // moment it's opened for signing -- the same fields admin sets when
+    // sending the contract (dashboard/admin.html's Send Contract modal).
+    function _buildContractHTML(profile, signedName, compModel, bonusAmount) {
       const name    = profile.full_name || profile.name || '{{WRITER_NAME}}';
       const email   = profile.email     || '{{WRITER_EMAIL}}';
       const country = profile.country   || '{{WRITER_COUNTRY}}';
       const payment = profile.payoneer  || profile.bank_details || profile.payment_info || '{{WRITER_PAYMENT}}';
       const date    = new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
       const sig     = signedName ? escHtml(signedName) : '';
+      const track   = compModel === 'SHARED_REVENUE' ? 'Shared Revenue' : 'Flat Rate';
+      const bonusClause = bonusAmount
+        ? 'A one-time sign-in bonus of ₦' + Number(bonusAmount).toLocaleString() + ' is granted upon execution of this Agreement, subject to Section 6.6.'
+        : 'No sign-in bonus applies to this Agreement.';
       return fetch('../assets/contract-v1.html')
         .then(r => r.text())
         .then(html => html
-          .replace(/\{\{WRITER_NAME\}\}/g,      escHtml(name))
-          .replace(/\{\{WRITER_EMAIL\}\}/g,      escHtml(email))
-          .replace(/\{\{WRITER_COUNTRY\}\}/g,    escHtml(country))
-          .replace(/\{\{WRITER_PAYMENT\}\}/g,    escHtml(payment))
-          .replace(/\{\{EFFECTIVE_DATE\}\}/g,    date)
-          .replace(/\{\{WRITER_SIGNATURE\}\}/g,  sig)
+          .replace(/\{\{WRITER_NAME\}\}/g,        escHtml(name))
+          .replace(/\{\{WRITER_EMAIL\}\}/g,        escHtml(email))
+          .replace(/\{\{WRITER_COUNTRY\}\}/g,      escHtml(country))
+          .replace(/\{\{WRITER_PAYMENT\}\}/g,      escHtml(payment))
+          .replace(/\{\{EFFECTIVE_DATE\}\}/g,      date)
+          .replace(/\{\{WRITER_SIGNATURE\}\}/g,    sig)
+          .replace(/\{\{COMPENSATION_MODEL\}\}/g,  escHtml(track))
+          .replace(/\{\{SIGN_IN_BONUS_CLAUSE\}\}/g, escHtml(bonusClause))
         );
     }
 
@@ -5252,7 +5261,11 @@
       // Load personalized contract into iframe
       const { data: { user } } = await db.auth.getUser();
       const { data: profile } = await db.from('profiles').select('*').eq('id', user.id).single();
-      const html = await _buildContractHTML(profile || {});
+      const { data: pendingContract } = await db.from('contracts')
+        .select('compensation_model, sign_in_bonus_amount')
+        .eq('id', _contractId)
+        .maybeSingle();
+      const html = await _buildContractHTML(profile || {}, null, pendingContract?.compensation_model, pendingContract?.sign_in_bonus_amount);
       const blob = new Blob([html], { type: 'text/html' });
       const blobUrl = URL.createObjectURL(blob);
       const iframe = $('contract-iframe');
