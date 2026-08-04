@@ -783,7 +783,21 @@
                     </div>
                   </div>
                   <div class="flex-1 min-w-0">
-                    <h2 id="book-title-heading" class="font-serif text-lg text-white leading-tight mb-1"></h2>
+                    <div id="book-title-display" class="flex items-center gap-1.5 mb-1">
+                      <h2 id="book-title-heading" class="font-serif text-lg text-white leading-tight truncate"></h2>
+                      <button onclick="startEditBookTitle()" title="Edit title" class="flex-shrink-0 text-muted hover:text-white transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                      </button>
+                    </div>
+                    <div id="book-title-edit" class="hidden flex items-center gap-1.5 mb-1">
+                      <input id="book-title-input" type="text" class="flex-1 min-w-0 bg-charcoal border border-border text-white font-serif text-sm rounded-lg px-2 py-1.5 focus:outline-none focus:border-crimson/50"/>
+                      <button onclick="saveBookTitle()" title="Save" class="flex-shrink-0 text-emerald-400 hover:text-emerald-300 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      </button>
+                      <button onclick="cancelEditBookTitle()" title="Cancel" class="flex-shrink-0 text-muted hover:text-white transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                      </button>
+                    </div>
                     <p id="book-author-heading" class="text-muted text-xs mb-2"></p>
                     <span id="book-status-badge" class="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full"></span>
                     <span id="book-prompt-badge" class="hidden ml-1.5 text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full bg-gold/10 text-gold border border-gold/25"></span>
@@ -2388,6 +2402,8 @@
       selectedChapter = null;
       showView('view-book-chapters');
       $('book-title-heading').textContent  = book.title;
+      $('book-title-display').classList.remove('hidden');
+      $('book-title-edit').classList.add('hidden');
       $('book-author-heading').textContent = `by ${selectedWriter?.name ?? 'Unknown'}`;
       $('book-cover-initial').textContent  = book.title[0] || '?';
       $('book-notes-input').value          = book.admin_notes || '';
@@ -2586,6 +2602,42 @@
       closePromptLinkModal();
     }
     $('prompt-link-modal').addEventListener('click', e => { if (e.target === $('prompt-link-modal')) closePromptLinkModal(); });
+
+    function startEditBookTitle() {
+      if (!selectedBook) return;
+      $('book-title-input').value = selectedBook.title;
+      $('book-title-display').classList.add('hidden');
+      $('book-title-edit').classList.remove('hidden');
+      $('book-title-input').focus();
+      $('book-title-input').select();
+    }
+
+    function cancelEditBookTitle() {
+      $('book-title-edit').classList.add('hidden');
+      $('book-title-display').classList.remove('hidden');
+    }
+
+    async function saveBookTitle() {
+      if (!selectedBook) return;
+      const title = $('book-title-input').value.trim();
+      if (!title) { showToast('Title cannot be empty.'); return; }
+      if (title.length > 200) { showToast('Title is too long.'); return; }
+      const { error } = await db.from('books').update({ title }).eq('id', selectedBook.id);
+      if (error) { showToast('Error: ' + error.message); return; }
+      selectedBook.title = title;
+      $('book-title-heading').textContent = title;
+      $('book-cover-initial').textContent = title[0] || '?';
+      cancelEditBookTitle();
+      showToast('Title updated ✓');
+      // Refresh the visible book grid so the new title shows there too --
+      // mutating selectedBook in place doesn't touch already-rendered DOM.
+      if (selectedWriter?.id) _loadWriterBooksList(selectedWriter.id);
+    }
+
+    $('book-title-input')?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); saveBookTitle(); }
+      else if (e.key === 'Escape') { e.preventDefault(); cancelEditBookTitle(); }
+    });
 
     async function saveBookNotes() {
       if (!selectedBook) return;
