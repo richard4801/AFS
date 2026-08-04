@@ -4413,6 +4413,38 @@
       document.execCommand('insertHTML', false, cleaned || '');
     });
 
+    // Copying out of this editor picked up a dark background-color inline
+    // style on the copied fragment -- Chrome bakes the page's *effective*
+    // background into rich-text copies from a dark-themed contenteditable,
+    // even though nothing here sets one explicitly. Pasting into a
+    // white-background editor (Google Docs etc.) then shows a dark block
+    // behind the text. Same fix as paste, just the outbound direction:
+    // build the clipboard HTML ourselves through the same sanitizer that
+    // already strips every inline style/attribute, instead of letting the
+    // browser serialize whatever it wants onto the clipboard.
+    function _selectionHtml() {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return '';
+      const container = document.createElement('div');
+      for (let i = 0; i < sel.rangeCount; i++) container.appendChild(sel.getRangeAt(i).cloneContents());
+      return container.innerHTML;
+    }
+    $('fs-content').addEventListener('copy', e => {
+      const html = _selectionHtml();
+      if (!html) return;
+      e.clipboardData.setData('text/html', _sanitizePastedHtml(html));
+      e.clipboardData.setData('text/plain', window.getSelection().toString());
+      e.preventDefault();
+    });
+    $('fs-content').addEventListener('cut', e => {
+      const html = _selectionHtml();
+      if (!html) return;
+      e.clipboardData.setData('text/html', _sanitizePastedHtml(html));
+      e.clipboardData.setData('text/plain', window.getSelection().toString());
+      e.preventDefault();
+      document.execCommand('delete', false, null);
+    });
+
     // Cache toolbar buttons once — avoids querySelector on every keystroke
     const _fsToolBtns = ['bold','italic','underline'].map(cmd =>
       document.querySelector('#fullscreen-editor .fs-tool-btn[data-cmd="'+cmd+'"]'));
