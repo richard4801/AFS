@@ -3541,6 +3541,24 @@
       return t.trim() ? t.trim().split(/\s+/).length : 0;
     }
     function _wordsIn(text) { return text.trim() ? text.trim().split(/\s+/).length : 0; }
+    // Range.toString() doesn't insert any separator at a block-element
+    // boundary -- two adjacent <p>s come out as "...cheeks."What's..."
+    // with the two words jammed together, silently merging the last word
+    // of one paragraph with the first word of the next and undercounting
+    // by one word per paragraph break. .innerText gets this right (it's
+    // rendering-aware, inserting a line break at each block boundary) but
+    // only works on elements that are actually laid out -- briefly attach
+    // the (detached) clone off-screen to get an accurate reading, then
+    // remove it.
+    function _renderedText(container) {
+      container.style.position = 'fixed';
+      container.style.left = '-99999px';
+      container.style.top = '0';
+      document.body.appendChild(container);
+      const text = container.innerText || container.textContent || '';
+      container.remove();
+      return text;
+    }
     // When there's an active (non-collapsed) selection inside the editor,
     // show its own word count against the total, Google-Docs style.
     function _fsSelectionWordCount() {
@@ -3549,7 +3567,9 @@
       const range = sel.getRangeAt(0);
       const root = $('fs-content');
       if (!root || !root.contains(range.commonAncestorContainer)) return null;
-      return _wordsIn(range.toString());
+      const clone = document.createElement('div');
+      clone.appendChild(range.cloneContents());
+      return _wordsIn(_renderedText(clone));
     }
     function updateFSWordCount() {
       const total = fswc();

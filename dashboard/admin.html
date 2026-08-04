@@ -3047,16 +3047,30 @@
       return t.trim() ? t.trim().split(/\s+/).length : 0;
     }
     function _wordsIn(text) { return text.trim() ? text.trim().split(/\s+/).length : 0; }
+    // Neither .textContent nor Range.toString() insert any separator at a
+    // block-element boundary -- two adjacent <p>s come out as
+    // "...cheeks."What's..." with the two words jammed together, silently
+    // merging the last word of one paragraph with the first word of the
+    // next and undercounting by one word per paragraph break. .innerText
+    // gets this right (it's rendering-aware, inserting a line break at
+    // each block boundary) but only works on elements that are actually
+    // laid out -- briefly attach the (detached) container off-screen to
+    // get an accurate reading, then remove it.
+    function _renderedText(container) {
+      container.style.position = 'fixed';
+      container.style.left = '-99999px';
+      container.style.top = '0';
+      document.body.appendChild(container);
+      const text = container.innerText || container.textContent || '';
+      container.remove();
+      return text;
+    }
     // Word count from a raw HTML string (e.g. a content_snapshot) — parses
     // into a detached node and counts rendered text, matching adminFsWc().
-    // Counting the raw markup string directly (splitting on whitespace) was
-    // the actual cause of the list-vs-editor word-count mismatch: it counts
-    // whitespace inside tag attributes as extra words, and undercounts
-    // wherever two tags touch with no whitespace between them.
     function _wordsFromHtml(html) {
       const tmp = document.createElement('div');
       tmp.innerHTML = _sanitizePastedHtml(html || '');
-      return _wordsIn(tmp.textContent || '');
+      return _wordsIn(_renderedText(tmp));
     }
     // When there's an active (non-collapsed) selection inside the editor,
     // show its own word count against the total, Google-Docs style.
@@ -3066,7 +3080,9 @@
       const range = sel.getRangeAt(0);
       const root = $('admin-fs-content');
       if (!root || !root.contains(range.commonAncestorContainer)) return null;
-      return _wordsIn(range.toString());
+      const clone = document.createElement('div');
+      clone.appendChild(range.cloneContents());
+      return _wordsIn(_renderedText(clone));
     }
     function updateAdminFsWc() {
       const total = adminFsWc();
