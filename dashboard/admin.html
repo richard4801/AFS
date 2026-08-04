@@ -2832,9 +2832,9 @@
     function renderInlineChapterList(chapters) {
       const container = $('chapter-list');
       if (!chapters.length) { container.innerHTML = `<p class="text-muted text-sm px-2">No chapters yet.</p>`; return; }
-      const sMap   = { draft:'bg-muted/20 text-muted', submitted:'bg-gold/15 text-gold border border-gold/20', approved:'bg-emerald-400/15 text-emerald-400 border border-emerald-400/20', revision_requested:'bg-red-400/12 text-red-400 border border-red-400/20' };
-      const sLabel = { draft:'Draft', submitted:'Awaiting Review', approved:'Approved', revision_requested:'Revisions Due' };
-      const badge  = s => '<span class="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full ' + (sMap[s]||'bg-muted/10 text-muted') + '">' + (sLabel[s] || s.replace('_',' ')) + '</span>';
+      const sMap   = { submitted:'bg-gold/15 text-gold border border-gold/20', approved:'bg-emerald-400/15 text-emerald-400 border border-emerald-400/20', revision_requested:'bg-red-400/12 text-red-400 border border-red-400/20' };
+      const sLabel = { submitted:'Awaiting Review', approved:'Approved', revision_requested:'Revisions Due' };
+      const badge  = s => s === 'draft' ? '' : '<span class="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full ' + (sMap[s]||'bg-muted/10 text-muted') + '">' + (sLabel[s] || s.replace('_',' ')) + '</span>';
       container.innerHTML = chapters.map(ch => {
         _adminChapReg.set(ch.id, ch);
         const canApprove = ch.status === 'submitted' || ch.status === 'revision_requested';
@@ -3748,7 +3748,7 @@
       const canReject  = s === 'submitted';
       $('fs-approve-btn').disabled = !canApprove;
       $('fs-reject-btn').disabled  = !canReject;
-      $('fs-chapter-status').textContent = s ? s.replace('_', ' ') : '';
+      $('fs-chapter-status').textContent = (s && s !== 'draft') ? s.replace('_', ' ') : '';
     }
     function openAdminFSEditor() {
       $('admin-fs-chapnum').textContent = selectedChapter ? 'Ch. ' + selectedChapter.chapter_number : '';
@@ -3756,25 +3756,7 @@
       $('admin-fs-content').innerHTML = adminContentToEditable(selectedChapter?.content ?? '');
       $('admin-fs-error').classList.add('hidden');
       document.execCommand('defaultParagraphSeparator', false, 'p');
-      updateAdminFsWc();
       _updateFsApproveRejectButtons();
-      // Self-heal: if the stored word_count doesn't match what's actually
-      // on the page (e.g. a chapter whose count was corrupted by the old
-      // doReject() bug), quietly correct it now rather than leave the
-      // chapter list showing a stale number until the next edit/save.
-      if (selectedChapter?.id) {
-        const _liveWc = adminFsWc();
-        if (selectedChapter.word_count !== _liveWc) {
-          selectedChapter.word_count = _liveWc;
-          const _cached = (_cachedChapters || []).find(c => c.id === selectedChapter.id);
-          if (_cached) _cached.word_count = _liveWc;
-          const _reg = _adminChapReg?.get(selectedChapter.id);
-          if (_reg) _reg.word_count = _liveWc;
-          renderInlineChapterList(_cachedChapters || []);
-          renderTotalWords(_cachedChapters || []);
-          db.from('chapters').update({ word_count: _liveWc }).eq('id', selectedChapter.id).then(() => {});
-        }
-      }
       // Reset auto-save state
       _adminAsUnsaved = false;
       clearTimeout(_adminAsTimer);
@@ -3812,6 +3794,38 @@
       }
 
       setTimeout(() => { $('admin-fs-content').focus(); _renderCommentOverlayAdmin(); }, 60);
+
+      // Word count depends on .innerText, which needs the content to
+      // actually be laid out -- reading it in the same tick as the
+      // classList.remove('hidden') above (or worse, before it, as this
+      // used to run) can still see a display:none ancestor and get back
+      // an empty/incorrect result. That used to show a briefly-wrong
+      // count that only fixed itself once some later interaction (e.g. a
+      // click, via the mouseup listener) forced a recount -- and worse,
+      // the self-heal write below would have persisted that wrong number
+      // to the database on every first open. Deferring one frame
+      // guarantees layout has caught up before either read happens.
+      requestAnimationFrame(() => {
+        updateAdminFsWc();
+        // Self-heal: if the stored word_count doesn't match what's
+        // actually on the page (e.g. a chapter whose count was corrupted
+        // by the old doReject() bug), quietly correct it now rather than
+        // leave the chapter list showing a stale number until the next
+        // edit/save.
+        if (selectedChapter?.id) {
+          const _liveWc = adminFsWc();
+          if (selectedChapter.word_count !== _liveWc) {
+            selectedChapter.word_count = _liveWc;
+            const _cached = (_cachedChapters || []).find(c => c.id === selectedChapter.id);
+            if (_cached) _cached.word_count = _liveWc;
+            const _reg = _adminChapReg?.get(selectedChapter.id);
+            if (_reg) _reg.word_count = _liveWc;
+            renderInlineChapterList(_cachedChapters || []);
+            renderTotalWords(_cachedChapters || []);
+            db.from('chapters').update({ word_count: _liveWc }).eq('id', selectedChapter.id).then(() => {});
+          }
+        }
+      });
     }
 
     function adminFsClose() {
@@ -6118,8 +6132,13 @@
         .subscribe();
       // Live — sidebar pending-dots (chapters), new applications badge,
       // and the contracts section all react without a reload or reselect.
+      // '*' (not just UPDATE) -- a writer's brand-new chapter is an INSERT,
+      // not an UPDATE, so filtering to UPDATE only meant the pending-dot
+      // (and the admin's cue to approve/reject) never appeared for a
+      // writer's first submission on a chapter, only for edits to one that
+      // already existed.
       db.channel('admin-chapters-live')
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chapters' }, () => loadWritersList())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'chapters' }, () => loadWritersList())
         .subscribe();
       db.channel('admin-applications-live')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'applications' }, () => {

@@ -2028,8 +2028,10 @@
           badge.classList.add('hidden');
           editingChapter.status = 'published';
           db.from('chapters').update({ status: 'published' }).eq('id', chapter.id).then(() => {});
+        } else if (s === 'draft') {
+          badge.classList.add('hidden');
         } else {
-          const sm = { draft:'bg-muted/20 text-muted', submitted:'bg-gold/15 text-gold', revision_requested:'bg-red-400/15 text-red-400' };
+          const sm = { submitted:'bg-gold/15 text-gold', revision_requested:'bg-red-400/15 text-red-400' };
           badge.className = 'text-[10px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full mt-1 inline-block ' + (sm[s] || 'bg-muted/20 text-muted');
           badge.textContent = s.replace('_', ' ');
           badge.classList.remove('hidden');
@@ -2471,7 +2473,8 @@
         return;
       }
       const statusBadge = s => {
-        const map = { draft:'bg-muted/20 text-muted', submitted:'bg-gold/15 text-gold', approved:'bg-emerald-400/15 text-emerald-400', revision_requested:'bg-red-400/15 text-red-400' };
+        if (s === 'draft') return '';
+        const map = { submitted:'bg-gold/15 text-gold', approved:'bg-emerald-400/15 text-emerald-400', revision_requested:'bg-red-400/15 text-red-400' };
         return '<span class="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full ' + (map[s]||'bg-muted/10 text-muted') + '">' + s.replace('_',' ') + '</span>';
       };
       container.innerHTML = chapters.map(ch => {
@@ -4238,7 +4241,6 @@
       $('fs-content').innerHTML = contentToEditable(_originalChapterContent);
       $('fs-error-bar').classList.add('hidden');
       document.execCommand('defaultParagraphSeparator', false, 'p');
-      updateFSWordCount();
 
       // Reset auto-save state
       _asUnsaved = false;
@@ -4264,10 +4266,14 @@
         if (saved) {
           try {
             const d = JSON.parse(saved);
-            if (d?.content && !($('fs-content').innerText || '').trim()) {
+            // textContent, not innerText -- the editor is still hidden at
+            // this point (visibility toggles further down), and innerText
+            // is unreliable on a display:none element. This check only
+            // needs to know "is there real content already," which
+            // textContent answers correctly regardless of layout state.
+            if (d?.content && !($('fs-content').textContent || '').trim()) {
               $('fs-content').innerHTML = d.content;
               if (d.title) $('fs-title').value = d.title;
-              updateFSWordCount();
             }
           } catch (_) {}
         }
@@ -4302,6 +4308,14 @@
         s.removeAllRanges(); s.addRange(r);
         _renderCommentOverlay();
       }, 60);
+
+      // .innerText needs the content actually laid out -- reading it
+      // before the classList.remove('hidden') above (as this used to run)
+      // can see a display:none ancestor and get back an empty/wrong
+      // result, briefly showing an incorrect count until some later
+      // interaction forced a recount. Deferring one frame guarantees
+      // layout has caught up.
+      requestAnimationFrame(updateFSWordCount);
     }
 
     let _fsOpenedDirectly = false;
