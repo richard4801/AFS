@@ -1314,6 +1314,17 @@
     (function () {
       const el = document.getElementById('trap-rate');
       if (!el) return;
+
+      // Debug override for testing without a VPN/IP spoof --
+      // ?debug_country=NG forces the Naira text, any other value forces
+      // the USD text. Never affects a real visitor unless they add this
+      // to the URL themselves.
+      const debugCountry = new URLSearchParams(location.search).get('debug_country');
+      if (debugCountry) {
+        if (debugCountry.toUpperCase() === 'NG') el.textContent = '₦1–₦2 / word';
+        return;
+      }
+
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 3000);
       fetch('https://ipapi.co/json/', { signal: controller.signal })
