@@ -4343,6 +4343,17 @@
       const KEEP_TAGS = new Set(['P', 'BR', 'DIV', 'STRONG', 'B', 'EM', 'I', 'U']);
       (function walk(node) {
         [...node.childNodes].forEach(child => {
+          if (child.nodeType === 8) {
+            // HTML comments -- Word paste embeds substantial MSO metadata
+            // this way (e.g. conditional comments wrapping an <xml> block).
+            // Never rendered, so the live word count (reads the rendered
+            // DOM) correctly ignores it -- but left in the saved content
+            // string, the server-side count (regex-based, no notion of
+            // "comment") read its text as real words. That's what actually
+            // caused the list-preview vs. in-editor word-count mismatch.
+            child.remove();
+            return;
+          }
           if (child.nodeType === 3) {
             // Word/Google Docs paste routinely carries non-breaking spaces —
             // normalize to a regular space so they don't behave like
