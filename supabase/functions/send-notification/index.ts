@@ -17,7 +17,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-type EventType = 'income_posted' | 'chapter_approved' | 'chapter_rejected' | 'brief_assigned' | 'contract_sent'
+type EventType = 'income_posted' | 'chapter_approved' | 'chapter_rejected' | 'brief_assigned' | 'contract_sent' | 'kyc_approved' | 'kyc_rejected'
 
 interface Payload {
   type: EventType
@@ -140,6 +140,43 @@ const templates: Record<EventType, (p: Payload) => { subject: string; html: stri
         <a href="https://apexfictionstudio.com/dashboard/index.html"
            style="display:inline-block;background:#C9A84C;color:#121212;font-size:13px;font-weight:700;padding:12px 24px;border-radius:8px;text-decoration:none;">
           View Your Dashboard →
+        </a>
+        <p style="color:#3A3A3A;font-size:11px;margin-top:40px;">© 2026 Apex Fiction Studio</p>
+      </div>`,
+  }),
+
+  kyc_approved: ({ writerName }) => ({
+    subject: `Identity verified — Apex Fiction Studio`,
+    html: `
+      <div style="background:#121212;color:#fff;font-family:Inter,sans-serif;max-width:520px;margin:0 auto;padding:40px 32px;">
+        <div style="font-family:Georgia,serif;font-size:22px;color:#C9A84C;margin-bottom:8px;">Apex Fiction Studio</div>
+        <div style="height:1px;background:linear-gradient(90deg,transparent,#C9A84C,transparent);opacity:.4;margin-bottom:32px;"></div>
+        <h1 style="font-family:Georgia,serif;font-size:28px;color:#fff;margin:0 0 16px;">Identity Verified</h1>
+        <p style="color:#7A7A7A;font-size:15px;line-height:1.7;margin:0 0 24px;">
+          Hi ${escHtml(writerName)}, your ID has been reviewed and verified. You're all set.
+        </p>
+        <a href="https://apexfictionstudio.com/dashboard/index.html"
+           style="display:inline-block;background:#C9A84C;color:#121212;font-size:13px;font-weight:700;padding:12px 24px;border-radius:8px;text-decoration:none;">
+          View Your Dashboard →
+        </a>
+        <p style="color:#3A3A3A;font-size:11px;margin-top:40px;">© 2026 Apex Fiction Studio</p>
+      </div>`,
+  }),
+
+  kyc_rejected: ({ writerName, data }) => ({
+    subject: `Action needed — Identity verification — Apex Fiction Studio`,
+    html: `
+      <div style="background:#121212;color:#fff;font-family:Inter,sans-serif;max-width:520px;margin:0 auto;padding:40px 32px;">
+        <div style="font-family:Georgia,serif;font-size:22px;color:#C9A84C;margin-bottom:8px;">Apex Fiction Studio</div>
+        <div style="height:1px;background:linear-gradient(90deg,transparent,#C9A84C,transparent);opacity:.4;margin-bottom:32px;"></div>
+        <h1 style="font-family:Georgia,serif;font-size:28px;color:#fff;margin:0 0 16px;">We Couldn't Verify Your ID</h1>
+        <p style="color:#7A7A7A;font-size:15px;line-height:1.7;margin:0 0 ${data.reason ? '16px' : '24px'};">
+          Hi ${escHtml(writerName)}, your ID submission needs another look before we can verify your account.
+        </p>
+        ${data.reason ? `<div style="background:#1a0f0f;border:1px solid #4a1a1a;border-radius:12px;padding:16px 20px;margin-bottom:28px;"><p style="margin:0 0 6px;color:#9a4a4a;font-size:11px;letter-spacing:.12em;text-transform:uppercase;">Reason</p><p style="margin:0;color:#d4a0a0;font-size:14px;line-height:1.7;">${escHtml(data.reason)}</p></div>` : ''}
+        <a href="https://apexfictionstudio.com/dashboard/index.html"
+           style="display:inline-block;background:#C9A84C;color:#121212;font-size:13px;font-weight:700;padding:12px 24px;border-radius:8px;text-decoration:none;">
+          Resubmit Your ID →
         </a>
         <p style="color:#3A3A3A;font-size:11px;margin-top:40px;">© 2026 Apex Fiction Studio</p>
       </div>`,
