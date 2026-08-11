@@ -278,6 +278,62 @@
     </div>
   </div>
 
+  <!-- KYC (IDENTITY VERIFICATION) MODAL — no close button by design; the
+       only way past it is to submit a valid ID. Shown immediately after
+       contract signing, and automatically for any already-signed writer
+       who hasn't verified yet. -->
+  <div id="kyc-modal" class="hidden fixed inset-0 z-[85] flex items-center justify-center px-4 py-6 overflow-y-auto" style="background:rgba(0,0,0,0.94);backdrop-filter:blur(6px);">
+    <div class="relative w-full max-w-md rounded-2xl border border-gold/25 bg-surface p-6 sm:p-7 shadow-2xl shadow-black/60 my-auto">
+      <div class="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold/40 to-transparent"></div>
+      <p class="text-[10px] font-semibold tracking-widest uppercase text-gold mb-1.5">Identity Verification</p>
+      <h2 class="font-serif text-2xl text-white mb-2">Verify Your Identity</h2>
+      <p class="text-white/60 text-sm leading-relaxed mb-5">
+        To keep writing and receive payment, we need a valid government-issued ID on file. A National ID Card, NIN Slip, International Passport, Driver's License, or Voter's Card all work. This only takes a minute.
+      </p>
+
+      <div id="kyc-rejected-notice" class="hidden mb-5 text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2.5">
+        <p class="font-semibold mb-1">Your last submission wasn't accepted</p>
+        <p id="kyc-rejection-reason" class="text-red-300"></p>
+      </div>
+
+      <div id="kyc-form-state" class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">ID Type</label>
+          <select id="kyc-id-type" class="form-input w-full bg-charcoal border border-border text-white text-sm rounded-lg px-4 py-3">
+            <option value="national_id">National ID Card</option>
+            <option value="nin_slip">NIN Slip</option>
+            <option value="passport">International Passport</option>
+            <option value="drivers_license">Driver's License</option>
+            <option value="voters_card">Voter's Card</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Photo of Your ID</label>
+          <label for="kyc-file-input" class="flex items-center justify-center gap-2 w-full border border-dashed border-border hover:border-gold/40 rounded-lg px-4 py-6 cursor-pointer transition-colors text-center">
+            <div>
+              <svg class="w-5 h-5 text-muted mx-auto mb-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <span id="kyc-file-label" class="text-muted text-xs">Tap to upload a photo or scan (JPG, PNG, or PDF)</span>
+            </div>
+          </label>
+          <input id="kyc-file-input" type="file" accept="image/*,.pdf" class="hidden"/>
+        </div>
+        <div id="kyc-error" class="hidden text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2"></div>
+        <button id="kyc-submit-btn" onclick="submitKyc()"
+                class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-gold text-obsidian text-xs font-bold rounded-xl hover:bg-gold-light transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed">
+          Submit for Verification
+        </button>
+      </div>
+
+      <div id="kyc-submitted-state" class="hidden text-center py-4">
+        <div class="inline-flex items-center gap-2 text-green-400 text-sm font-medium mb-1">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Submitted for review
+        </div>
+        <p class="text-muted text-xs">We'll notify you once it's been reviewed.</p>
+      </div>
+    </div>
+  </div>
+
   <!-- NAV -->
   <header class="fixed top-4 sm:top-5 left-0 right-0 sm:left-56 z-50 flex justify-center px-3 sm:px-5 pointer-events-none">
     <nav class="pointer-events-auto flex items-center justify-between gap-3 sm:gap-6 w-full max-w-4xl rounded-full bg-obsidian/70 backdrop-blur-md border border-white/10 shadow-xl shadow-black/60 px-4 py-2.5">
@@ -3404,6 +3460,7 @@
       }
       if (n.type === 'income_posted') return () => switchWriterTab('earnings');
       if (n.type === 'brief_assigned' || n.type === 'book_transferred') return () => switchWriterTab('books');
+      if (n.type === 'kyc_rejected') return () => checkKycStatus();
       return null;
     }
 
@@ -5149,6 +5206,12 @@
       db.channel('writer-contract-' + currentUserId)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'contracts', filter: 'writer_id=eq.' + currentUserId }, () => checkContractStatus())
         .subscribe();
+      // Live — an admin approving/rejecting a submitted ID re-checks the
+      // gate immediately, instead of leaving a rejected writer unblocked
+      // (or an approved one still staring at the modal) until next reload.
+      db.channel('writer-kyc-' + currentUserId)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'kyc_verifications', filter: 'writer_id=eq.' + currentUserId }, () => checkKycStatus())
+        .subscribe();
       await loadBooks();
       checkContractStatus();
 
@@ -5187,7 +5250,86 @@
         $('contract-banner').classList.remove('hidden');
       } else if (c.status === 'signed') {
         _renderCompModelBanner(c);
+        // KYC only kicks in once a contract is actually signed — an
+        // unsigned writer is already gated by the contract banner, and
+        // this also naturally covers every writer who signed before this
+        // feature existed: their contract is already 'signed', so the
+        // very next load runs this same check and prompts them.
+        checkKycStatus();
       }
+    }
+
+    // ── KYC (IDENTITY VERIFICATION) ──────────────────────────────────
+    const KYC_BUCKET = 'kyc-documents';
+    let _kycFile = null;
+
+    async function checkKycStatus() {
+      const { data: row } = await db.from('kyc_verifications')
+        .select('id_type, status, rejection_reason')
+        .eq('writer_id', currentUserId)
+        .maybeSingle();
+      if (!row || row.status === 'rejected') openKycModal(row);
+      else closeKycModal();
+    }
+
+    function openKycModal(row) {
+      const rejected = row?.status === 'rejected';
+      $('kyc-rejected-notice').classList.toggle('hidden', !rejected);
+      if (rejected) $('kyc-rejection-reason').textContent = row.rejection_reason || 'Please try again with a clearer photo.';
+      if (row?.id_type) $('kyc-id-type').value = row.id_type;
+      $('kyc-form-state').classList.remove('hidden');
+      $('kyc-submitted-state').classList.add('hidden');
+      $('kyc-error').classList.add('hidden');
+      _kycFile = null;
+      $('kyc-file-input').value = '';
+      $('kyc-file-label').textContent = 'Tap to upload a photo or scan (JPG, PNG, or PDF)';
+      $('kyc-modal').classList.remove('hidden');
+      _lockBodyScroll();
+    }
+
+    function closeKycModal() {
+      if ($('kyc-modal').classList.contains('hidden')) return;
+      $('kyc-modal').classList.add('hidden');
+      _unlockBodyScroll();
+    }
+
+    $('kyc-file-input')?.addEventListener('change', e => {
+      const file = e.target.files?.[0] || null;
+      _kycFile = file;
+      $('kyc-file-label').textContent = file ? file.name : 'Tap to upload a photo or scan (JPG, PNG, or PDF)';
+    });
+
+    async function submitKyc() {
+      const idType = $('kyc-id-type').value;
+      const errEl = $('kyc-error');
+      errEl.classList.add('hidden');
+      if (!_kycFile) { errEl.textContent = 'Please choose a photo or scan of your ID.'; errEl.classList.remove('hidden'); return; }
+      if (_kycFile.size > 10 * 1024 * 1024) { errEl.textContent = 'File is too large. Maximum size is 10MB.'; errEl.classList.remove('hidden'); return; }
+
+      const btn = $('kyc-submit-btn');
+      btn.disabled = true;
+      btn.textContent = 'Submitting…';
+
+      const safeName = _kycFile.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+      const path = `${currentUserId}/${Date.now()}-${safeName}`;
+      const { error: upErr } = await db.storage.from(KYC_BUCKET).upload(path, _kycFile);
+      if (upErr) {
+        btn.disabled = false; btn.textContent = 'Submit for Verification';
+        errEl.textContent = 'Upload failed: ' + upErr.message; errEl.classList.remove('hidden');
+        return;
+      }
+
+      const { error } = await db.rpc('submit_kyc', { p_id_type: idType, p_id_image_path: path });
+      btn.disabled = false;
+      btn.textContent = 'Submit for Verification';
+      if (error) {
+        errEl.textContent = 'Could not submit: ' + error.message; errEl.classList.remove('hidden');
+        return;
+      }
+
+      $('kyc-form-state').classList.add('hidden');
+      $('kyc-submitted-state').classList.remove('hidden');
+      setTimeout(closeKycModal, 2200);
     }
 
     // ── Dual compensation model — writer-facing banner ──────────────
@@ -5446,8 +5588,10 @@
         if (updatedProfile) initRankProfile(updatedProfile);
       }
 
-      // Close modal after 3 seconds
-      setTimeout(closeContractModal, 3000);
+      // Close the contract modal after 3 seconds, then immediately prompt
+      // for identity verification — "immediately after signing" is the
+      // whole point, so this doesn't wait for the next page load.
+      setTimeout(() => { closeContractModal(); checkKycStatus(); }, 3000);
     }
 
     function showContractError(msg) {

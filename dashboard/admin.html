@@ -136,6 +136,12 @@
       <span class="text-[9px] font-semibold tracking-wide uppercase">Contracts</span>
       <span id="tab-contracts-badge" class="hidden absolute top-1.5 right-2 min-w-[16px] h-4 px-1 rounded-full bg-gold text-obsidian text-[9px] font-bold flex items-center justify-center"></span>
     </button>
+    <button id="tab-kyc" onclick="switchSection('kyc')"
+            class="relative flex-shrink-0 flex-1 min-w-[60px] flex flex-col items-center gap-1 px-1 py-2.5 text-muted border-t-2 border-transparent hover:text-white transition-colors duration-200">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M15 8h4M15 12h4M5 16h14"/></svg>
+      <span class="text-[9px] font-semibold tracking-wide uppercase">KYC</span>
+      <span id="tab-kyc-badge" class="hidden absolute top-1.5 right-2 min-w-[16px] h-4 px-1 rounded-full bg-gold text-obsidian text-[9px] font-bold flex items-center justify-center"></span>
+    </button>
     <button id="tab-payments" onclick="switchSection('payments')"
             class="flex-shrink-0 flex-1 min-w-[60px] flex flex-col items-center gap-1 px-1 py-2.5 text-muted border-t-2 border-transparent hover:text-white transition-colors duration-200">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
@@ -542,6 +548,12 @@
           <span data-dsk-badge="contracts" class="hidden absolute right-4 top-1/2 -translate-y-1/2 min-w-[18px] h-[18px] px-1 rounded-full bg-gold text-obsidian text-[9px] font-bold inline-flex items-center justify-center"></span>
         </button>
 
+        <button data-dsk-tab="kyc" onclick="switchSection('kyc')"
+                class="desk-nav-btn w-full text-left pl-6 pr-4 py-3 border-l-[2px] border-transparent text-muted hover:text-white hover:bg-white/5 transition-colors duration-150 relative">
+          <span class="text-[10px] font-bold tracking-[0.26em] uppercase">KYC</span>
+          <span data-dsk-badge="kyc" class="hidden absolute right-4 top-1/2 -translate-y-1/2 min-w-[18px] h-[18px] px-1 rounded-full bg-gold text-obsidian text-[9px] font-bold inline-flex items-center justify-center"></span>
+        </button>
+
         <button data-dsk-tab="payments" onclick="switchSection('payments')"
                 class="desk-nav-btn w-full text-left pl-6 pr-4 py-3 border-l-[2px] border-transparent text-muted hover:text-white hover:bg-white/5 transition-colors duration-150">
           <span class="text-[10px] font-bold tracking-[0.26em] uppercase">Payments</span>
@@ -615,6 +627,29 @@
         <div id="sidebar-contracts" class="hidden flex-col">
           <p class="px-4 pt-4 pb-2 text-[9px] font-bold tracking-[0.22em] uppercase text-muted/70">Contract Status</p>
           <div id="contract-writer-list" class="px-2 pb-4 space-y-0.5"></div>
+        </div>
+
+        <!-- KYC sub-panel -->
+        <div id="sidebar-kyc" class="hidden flex-col">
+          <p class="px-4 pt-4 pb-2 text-[9px] font-bold tracking-[0.22em] uppercase text-muted/70">Verification</p>
+          <div class="px-3 pb-4 space-y-2">
+            <div class="rounded-xl bg-obsidian border border-border p-3 text-center">
+              <p id="kyc-pending-count" class="text-2xl font-bold text-gold font-serif">—</p>
+              <p class="text-[9px] text-muted tracking-widest uppercase mt-0.5">Pending</p>
+            </div>
+            <div class="rounded-xl bg-obsidian border border-border p-3 text-center">
+              <p id="kyc-approved-count" class="text-2xl font-bold text-green-400 font-serif">—</p>
+              <p class="text-[9px] text-muted tracking-widest uppercase mt-0.5">Approved</p>
+            </div>
+            <div class="rounded-xl bg-obsidian border border-border p-3 text-center">
+              <p id="kyc-rejected-count" class="text-2xl font-bold text-red-400 font-serif">—</p>
+              <p class="text-[9px] text-muted tracking-widest uppercase mt-0.5">Rejected</p>
+            </div>
+            <div class="rounded-xl bg-obsidian border border-border p-3 text-center">
+              <p id="kyc-none-count" class="text-2xl font-bold text-muted font-serif">—</p>
+              <p class="text-[9px] text-muted tracking-widest uppercase mt-0.5">Not Submitted</p>
+            </div>
+          </div>
         </div>
 
         <!-- Prompts sub-panel -->
@@ -1084,6 +1119,40 @@
           <p class="text-white/60 text-sm font-medium mb-1">No contracts sent yet</p>
           <p class="text-muted text-xs">Select a writer from the sidebar to send their contract.</p>
         </div>
+      </div>
+
+      <!-- KYC PANEL -->
+      <div id="panel-kyc" class="hidden p-5 md:p-7">
+        <div class="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <p class="text-[10px] font-bold tracking-[0.22em] uppercase text-crimson-light mb-1.5">Identity Verification</p>
+            <h2 class="font-serif text-2xl sm:text-3xl text-white mb-1">KYC Review</h2>
+            <p class="text-muted text-sm">Review and approve the government ID each writer submitted.</p>
+          </div>
+          <div class="flex gap-1.5 flex-shrink-0 flex-wrap">
+            <button id="kyc-filter-pending"  onclick="filterKyc('pending')"
+                    class="px-3 py-1.5 rounded-lg text-[10px] font-semibold tracking-wide uppercase border transition-colors bg-gold/15 text-gold border-gold/30">
+              Pending
+            </button>
+            <button id="kyc-filter-approved" onclick="filterKyc('approved')"
+                    class="px-3 py-1.5 rounded-lg text-[10px] font-semibold tracking-wide uppercase border transition-colors text-muted border-transparent hover:text-white hover:bg-white/5">
+              Approved
+            </button>
+            <button id="kyc-filter-rejected" onclick="filterKyc('rejected')"
+                    class="px-3 py-1.5 rounded-lg text-[10px] font-semibold tracking-wide uppercase border transition-colors text-muted border-transparent hover:text-white hover:bg-white/5">
+              Rejected
+            </button>
+            <button id="kyc-filter-none" onclick="filterKyc('none')"
+                    class="px-3 py-1.5 rounded-lg text-[10px] font-semibold tracking-wide uppercase border transition-colors text-muted border-transparent hover:text-white hover:bg-white/5">
+              Not Submitted
+            </button>
+            <button id="kyc-filter-all"      onclick="filterKyc('all')"
+                    class="px-3 py-1.5 rounded-lg text-[10px] font-semibold tracking-wide uppercase border transition-colors text-muted border-transparent hover:text-white hover:bg-white/5">
+              All
+            </button>
+          </div>
+        </div>
+        <div id="kyc-list" class="space-y-3"></div>
       </div>
 
       <!-- PROMPTS PANEL -->
@@ -2075,13 +2144,14 @@
 
     // ── SECTION SWITCHING ───────────────────────────────────────────
     let _contractsLoaded = false;
+    let _kycLoaded = false;
     function switchSection(section) {
-      ['writers','income','applications','payments','contracts','prompts','senotes'].forEach(s => {
+      ['writers','income','applications','payments','contracts','kyc','prompts','senotes'].forEach(s => {
         const tab = $(`tab-${s}`);
         if (!tab) return;
-        const isContracts = s === 'contracts';
-        tab.classList.toggle(isContracts ? 'text-gold'         : 'text-crimson-light', s === section);
-        tab.classList.toggle(isContracts ? 'border-gold'       : 'border-crimson',     s === section);
+        const isGold = s === 'contracts' || s === 'kyc';
+        tab.classList.toggle(isGold ? 'text-gold'         : 'text-crimson-light', s === section);
+        tab.classList.toggle(isGold ? 'border-gold'       : 'border-crimson',     s === section);
         tab.classList.toggle('text-muted',         s !== section);
         tab.classList.toggle('border-transparent', s !== section);
         const sb = $(`sidebar-${s}`);
@@ -2092,11 +2162,13 @@
       $('panel-applications').classList.toggle('hidden',  section !== 'applications');
       $('panel-payments').classList.toggle('hidden',      section !== 'payments');
       $('panel-contracts').classList.toggle('hidden',     section !== 'contracts');
+      $('panel-kyc').classList.toggle('hidden',           section !== 'kyc');
       $('panel-prompts').classList.toggle('hidden',       section !== 'prompts');
       $('panel-senotes').classList.toggle('hidden',       section !== 'senotes');
       if (section === 'applications' && !_appsLoaded) loadApplications();
       if (section === 'payments' && !_payoutWritersLoaded) loadPayoutWriterList();
       if (section === 'contracts' && !_contractsLoaded) { _contractsLoaded = true; loadContractsSection(); }
+      if (section === 'kyc' && !_kycLoaded) { _kycLoaded = true; loadKycSection(); }
       if (section === 'prompts' && !_promptsLoaded) { _promptsLoaded = true; loadAdminPrompts(); }
       if (section === 'senotes') loadAdminSeNotes();
       // On mobile: show the list for list-based sections, detail for the rest.
@@ -4907,6 +4979,13 @@
       }
     }
 
+    async function _loadKycPendingBadge() {
+      const { count } = await db.from('kyc_verifications').select('*', { count: 'exact', head: true }).eq('status', 'pending');
+      const badge = $('tab-kyc-badge');
+      if (count) { badge.textContent = count; badge.classList.remove('hidden'); }
+      else badge.classList.add('hidden');
+    }
+
     // ── APPLICATIONS ────────────────────────────────────────────────
     let _allApplications = [];
     let _appFilter       = 'pending';
@@ -5035,6 +5114,180 @@
       const opening = body.classList.contains('hidden');
       body.classList.toggle('hidden', !opening);
       chevron.style.transform = opening ? 'rotate(180deg)' : '';
+    }
+
+    // ── KYC (IDENTITY VERIFICATION) ─────────────────────────────────
+    const KYC_ID_TYPE_LABEL = { national_id:'National ID Card', nin_slip:'NIN Slip', passport:'International Passport', drivers_license:"Driver's License", voters_card:"Voter's Card" };
+    let _kycFilter = 'pending';
+    let _allKyc    = [];
+
+    async function loadKycSection() {
+      const list = $('kyc-list');
+      list.innerHTML = '<div class="space-y-3"><div class="skeleton h-20 w-full rounded-xl"></div><div class="skeleton h-20 w-full rounded-xl"></div></div>';
+
+      const [{ data: kycRows, error }, writersRes] = await Promise.all([
+        db.rpc('admin_get_kyc_verifications'),
+        allProfiles.length ? Promise.resolve({ data: allProfiles }) : db.from('profiles').select('id, name, email, rank').eq('is_senior_editor', false).order('name'),
+      ]);
+      if (error) { list.innerHTML = '<p class="text-muted text-sm py-8 text-center">Failed to load verifications.</p>'; return; }
+
+      const byWriter = new Map((kycRows || []).map(r => [r.writer_id, r]));
+      const writers = writersRes.data || [];
+      // Every writer appears exactly once — those who never submitted an
+      // ID show up as 'none' rather than being absent from the list, so
+      // admin can see who still needs to be prompted/followed up with.
+      _allKyc = writers.map(w => {
+        const r = byWriter.get(w.id);
+        return r ? { ...r, writer_name: w.name, writer_email: w.email } : {
+          writer_id: w.id, writer_name: w.name, writer_email: w.email,
+          id_type: null, id_image_path: null, status: 'none', rejection_reason: null, submitted_at: null, reviewed_at: null,
+        };
+      });
+      _updateKycCounts();
+      renderKyc();
+    }
+
+    function _updateKycCounts() {
+      const pending  = _allKyc.filter(k => k.status === 'pending').length;
+      const approved = _allKyc.filter(k => k.status === 'approved').length;
+      const rejected = _allKyc.filter(k => k.status === 'rejected').length;
+      const none     = _allKyc.filter(k => k.status === 'none').length;
+      if ($('kyc-pending-count'))  $('kyc-pending-count').textContent  = pending;
+      if ($('kyc-approved-count')) $('kyc-approved-count').textContent = approved;
+      if ($('kyc-rejected-count')) $('kyc-rejected-count').textContent = rejected;
+      if ($('kyc-none-count'))     $('kyc-none-count').textContent     = none;
+      const badge = $('tab-kyc-badge');
+      badge.textContent = pending || '';
+      badge.classList.toggle('hidden', !pending);
+    }
+
+    function filterKyc(f) {
+      _kycFilter = f;
+      ['pending','approved','rejected','none','all'].forEach(k => {
+        const b = $('kyc-filter-' + k);
+        if (!b) return;
+        const on = k === f;
+        b.classList.toggle('bg-gold/15',   on);
+        b.classList.toggle('text-gold',    on);
+        b.classList.toggle('border-gold/30', on);
+        b.classList.toggle('text-muted',        !on);
+        b.classList.toggle('border-transparent',!on);
+      });
+      renderKyc();
+    }
+
+    function renderKyc() {
+      const filtered = _kycFilter === 'all' ? _allKyc : _allKyc.filter(k => k.status === _kycFilter);
+      const list = $('kyc-list');
+      if (!filtered.length) {
+        const label = _kycFilter === 'all' ? '' : _kycFilter + ' ';
+        list.innerHTML = `<div class="text-center py-16"><p class="text-muted text-sm">No ${label}verifications.</p></div>`;
+        return;
+      }
+      list.innerHTML = filtered.map(_renderKycCard).join('');
+    }
+
+    function _renderKycCard(k) {
+      const statusBadge = {
+        pending:  '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gold/15 text-gold border border-gold/25">Pending</span>',
+        approved: '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-500/15 text-green-400 border border-green-500/25">Approved</span>',
+        rejected: '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-500/15 text-red-400 border border-red-500/25">Rejected</span>',
+        none:     '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-border/30 text-muted border border-border">Not Submitted</span>',
+      }[k.status] || '';
+
+      const date    = k.submitted_at ? new Date(k.submitted_at).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : '';
+      const idLabel = k.id_type ? (KYC_ID_TYPE_LABEL[k.id_type] || k.id_type) : '';
+
+      const viewBtn = k.id_image_path
+        ? `<button onclick="viewKycImage('${escHtml(k.writer_id)}')" class="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-white/80 border border-border text-xs font-semibold rounded-lg transition-colors">View ID</button>`
+        : '';
+      const actionBtns = k.status === 'pending' ? `
+        <div class="flex gap-2 pt-3 border-t border-border/50">
+          ${viewBtn}
+          <button onclick="approveKyc('${escHtml(k.writer_id)}')"
+                  class="flex-1 px-4 py-2.5 bg-green-600/15 hover:bg-green-600/25 text-green-400 border border-green-500/25 text-xs font-semibold rounded-lg transition-colors">
+            Approve
+          </button>
+          <button onclick="rejectKyc('${escHtml(k.writer_id)}')"
+                  class="px-4 py-2.5 bg-red-600/10 hover:bg-red-600/20 text-red-400 border border-red-500/20 text-xs font-semibold rounded-lg transition-colors">
+            Reject
+          </button>
+        </div>` : (viewBtn ? `<div class="pt-3 border-t border-border/50">${viewBtn}</div>` : '');
+
+      const initial = escHtml((k.writer_name || '?').charAt(0).toUpperCase());
+      return `
+      <div class="rounded-2xl border border-border bg-surface p-4 sm:p-5">
+        <div class="flex items-start gap-3">
+          <div class="w-9 h-9 rounded-full bg-charcoal border border-border flex items-center justify-center flex-shrink-0 mt-0.5">
+            <span class="font-serif text-crimson-light text-sm font-bold">${initial}</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 mb-0.5 flex-wrap">
+              <h3 class="text-white font-medium text-sm">${escHtml(k.writer_name || '—')}</h3>
+              ${statusBadge}
+            </div>
+            <p class="text-muted text-[11px]">${escHtml(k.writer_email || '')}${idLabel ? ' · ' + escHtml(idLabel) : ''}${date ? ' · ' + date : ''}</p>
+            ${k.status === 'rejected' && k.rejection_reason ? `<p class="text-red-400/80 text-xs mt-1.5">Reason: ${escHtml(k.rejection_reason)}</p>` : ''}
+          </div>
+        </div>
+        ${actionBtns}
+      </div>`;
+    }
+
+    async function viewKycImage(writerId) {
+      const k = _allKyc.find(x => x.writer_id === writerId);
+      if (!k?.id_image_path) return;
+      const { data, error } = await db.storage.from('kyc-documents').createSignedUrl(k.id_image_path, 300);
+      if (error || !data?.signedUrl) { showToast('Could not load ID image: ' + (error?.message || 'unknown error')); return; }
+      window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+    }
+
+    async function approveKyc(writerId) {
+      if (!confirm("Approve this writer's ID?")) return;
+      const { error } = await db.rpc('admin_review_kyc', { p_writer_id: writerId, p_approve: true });
+      if (error) { showToast('Error: ' + error.message); return; }
+      showToast('Verification approved ✓');
+      const writerProfile = allProfiles.find(p => p.id === writerId);
+      if (writerProfile) {
+        await db.from('notifications').insert({
+          user_id: writerId, type: 'kyc_approved', title: 'Identity Verified',
+          body: 'Your ID has been verified — you’re all set.',
+        }).catch(() => {});
+        if (writerProfile.email) {
+          const _accessToken = await _getFreshAccessToken();
+          fetch(`${SUPABASE_URL}/functions/v1/send-notification`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _accessToken },
+            body: JSON.stringify({ type: 'kyc_approved', writerId, writerEmail: writerProfile.email, writerName: writerProfile.name, data: {} }),
+          }).catch(() => {});
+        }
+      }
+      _kycLoaded = false; await loadKycSection(); _kycLoaded = true;
+    }
+
+    async function rejectKyc(writerId) {
+      const reason = prompt('Reason for rejecting this ID (shown to the writer):');
+      if (reason === null) return;
+      if (!reason.trim()) { showToast('A rejection reason is required.'); return; }
+      const { error } = await db.rpc('admin_review_kyc', { p_writer_id: writerId, p_approve: false, p_rejection_reason: reason.trim() });
+      if (error) { showToast('Error: ' + error.message); return; }
+      showToast('Verification rejected.');
+      const writerProfile = allProfiles.find(p => p.id === writerId);
+      if (writerProfile) {
+        await db.from('notifications').insert({
+          user_id: writerId, type: 'kyc_rejected', title: 'Identity Verification Rejected',
+          body: reason.trim(),
+        }).catch(() => {});
+        if (writerProfile.email) {
+          const _accessToken = await _getFreshAccessToken();
+          fetch(`${SUPABASE_URL}/functions/v1/send-notification`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _accessToken },
+            body: JSON.stringify({ type: 'kyc_rejected', writerId, writerEmail: writerProfile.email, writerName: writerProfile.name, data: { reason: reason.trim() } }),
+          }).catch(() => {});
+        }
+      }
+      _kycLoaded = false; await loadKycSection(); _kycLoaded = true;
     }
 
     async function approveApplication(id) {
@@ -6151,6 +6404,14 @@
           if (_contractsLoaded) loadContractsSection();
         })
         .subscribe();
+      // Live — a writer submitting/resubmitting an ID updates the tab
+      // badge immediately, and refreshes the KYC list if it's already open.
+      db.channel('admin-kyc-live')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'kyc_verifications' }, () => {
+          _loadKycPendingBadge();
+          if (_kycLoaded) loadKycSection();
+        })
+        .subscribe();
       db.channel('admin-recent-earnings-live')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'earnings' }, () => loadRecentEarnings())
         .subscribe();
@@ -6161,7 +6422,7 @@
         .on('postgres_changes', { event: '*', schema: 'public', table: 'writing_prompts' }, () => { if (_promptsLoaded) loadAdminPrompts(); })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'prompt_claims' }, () => { if (_promptsLoaded) loadAdminPrompts(); })
         .subscribe();
-      await Promise.all([ loadWritersList(), loadWriters(), loadRecentEarnings(), _loadPendingBadge(), loadAdminSeNotes() ]);
+      await Promise.all([ loadWritersList(), loadWriters(), loadRecentEarnings(), _loadPendingBadge(), _loadKycPendingBadge(), loadAdminSeNotes() ]);
       // On mobile, start on the writers list
       if (window.innerWidth < 768) _adminShowList();
     })();
@@ -6515,21 +6776,21 @@
 
     // 2. Mirror tab active state to desktop sidebar nav buttons
     (function() {
-      const sections = ['writers','income','applications','payments','contracts','prompts','senotes'];
+      const sections = ['writers','income','applications','payments','contracts','kyc','prompts','senotes'];
 
       function syncDeskNav(activeSection) {
         document.querySelectorAll('.desk-nav-btn').forEach(btn => {
           const s = btn.dataset.dskTab;
           const isActive = s === activeSection;
-          const isContracts = s === 'contracts';
+          const isGold = s === 'contracts' || s === 'kyc';
           // Active: crimson border + crimson text; Inactive: transparent border + muted
-          btn.classList.toggle('border-crimson',    isActive && !isContracts);
-          btn.classList.toggle('text-crimson-light', isActive && !isContracts);
-          btn.classList.toggle('bg-crimson/8',       isActive && !isContracts);
-          btn.classList.toggle('hover\\:bg-crimson/12', isActive && !isContracts);
-          btn.classList.toggle('border-gold',        isActive && isContracts);
-          btn.classList.toggle('text-gold',          isActive && isContracts);
-          btn.classList.toggle('bg-gold/8',          isActive && isContracts);
+          btn.classList.toggle('border-crimson',    isActive && !isGold);
+          btn.classList.toggle('text-crimson-light', isActive && !isGold);
+          btn.classList.toggle('bg-crimson/8',       isActive && !isGold);
+          btn.classList.toggle('hover\\:bg-crimson/12', isActive && !isGold);
+          btn.classList.toggle('border-gold',        isActive && isGold);
+          btn.classList.toggle('text-gold',          isActive && isGold);
+          btn.classList.toggle('bg-gold/8',          isActive && isGold);
           btn.classList.toggle('border-transparent', !isActive);
           btn.classList.toggle('text-muted',         !isActive);
           btn.classList.toggle('hover:text-white',   !isActive);
@@ -6553,7 +6814,7 @@
       });
 
       // Sync badge text & visibility from mobile to desktop badge mirrors
-      ['applications','contracts','senotes'].forEach(s => {
+      ['applications','contracts','kyc','senotes'].forEach(s => {
         const mobileBadge = document.getElementById('tab-' + s + '-badge');
         const deskBadge   = document.querySelector('[data-dsk-badge="' + s + '"]');
         if (!mobileBadge || !deskBadge) return;
