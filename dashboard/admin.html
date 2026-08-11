@@ -706,6 +706,7 @@
               <div class="flex items-center gap-2 mt-0.5 flex-wrap">
                 <span id="writer-email-heading" class="inline-block text-[11px] text-muted/80 bg-charcoal border border-border rounded-full px-3 py-0.5"></span>
                 <span id="admin-rank-pill" class="hidden inline-flex items-center gap-1.5 text-[11px] font-medium border rounded-full px-2.5 py-0.5"></span>
+                <span id="kyc-status-pill" class="hidden inline-flex items-center gap-1.5 text-[11px] font-medium border rounded-full px-2.5 py-0.5"></span>
               </div>
             </div>
             <!-- Action buttons row — Brief, Payout, Send Contract all visible -->
@@ -2211,10 +2212,11 @@
 
     // ── WRITERS SIDEBAR ─────────────────────────────────────────────
     async function loadWritersList() {
-      const [{ data: writers }, { data: submittedChapters }, { data: unreadMsgs }] = await Promise.all([
+      const [{ data: writers }, { data: submittedChapters }, { data: unreadMsgs }, { data: kycRows }] = await Promise.all([
         db.from('profiles').select('id, name, email, rank').eq('is_senior_editor', false).order('name'),
         db.from('chapters').select('books!inner(author_id)').eq('status', 'submitted'),
         db.from('messages').select('sender_id').eq('recipient_id', currentUserId).is('read_at', null),
+        db.from('kyc_verifications').select('writer_id, status'),
       ]);
       // Pre-populate unread map for all writers
       (unreadMsgs || []).forEach(m => {
@@ -2223,6 +2225,19 @@
       const container = $('writers-list');
       if (!writers?.length) { container.innerHTML = `<p class="text-muted text-xs px-2 pt-2">No writers yet.</p>`; return; }
       const pendingSet = new Set((submittedChapters ?? []).map(c => c.books?.author_id).filter(Boolean));
+      const kycByWriter = new Map((kycRows || []).map(r => [r.writer_id, r.status]));
+      // A small persistent marker of ID-verification state right in the
+      // roster, so it isn't only visible while looking at the KYC tab's
+      // filtered queue -- that queue naturally drops an item the moment
+      // it's actioned, which otherwise reads as the record vanishing
+      // with no trace.
+      const kycDot = w => {
+        const s = kycByWriter.get(w.id);
+        if (s === 'approved') return '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" title="ID Verified"></span>';
+        if (s === 'pending')  return '<span class="w-1.5 h-1.5 rounded-full bg-gold flex-shrink-0" title="ID Pending Review"></span>';
+        if (s === 'rejected') return '<span class="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" title="ID Rejected"></span>';
+        return '';
+      };
       container.innerHTML = writers.map(w => {
         _writerReg.set(w.id, w);
         return `
@@ -2235,6 +2250,7 @@
               <p class="text-muted/70 text-[10px] truncate">${escHtml(w.email)}</p>
             </div>
             ${pendingSet.has(w.id) ? '<span class="notif-dot flex-shrink-0"></span>' : ''}
+            ${kycDot(w)}
             <span data-woid="${w.id}" class="w-1.5 h-1.5 rounded-full bg-muted/30 flex-shrink-0" title="Offline"></span>
           </div>
         </button>`;
@@ -2270,6 +2286,7 @@
       if (_adminChatOpen) closeAdminChat();
       $('writer-books-grid').innerHTML = '<div class="skeleton h-64 rounded-2xl col-span-full"></div>';
       updateRankTracker(writer.id);
+      _loadKycStatusPill(writer.id);
       await _loadWriterBooksList(writer.id);
       openAdminChatFor(writer.id);
 
@@ -2282,6 +2299,29 @@
           filter: 'author_id=eq.' + writer.id,
         }, () => _loadWriterBooksList(writer.id))
         .subscribe();
+    }
+
+    // A persistent record of this writer's verification state, visible
+    // right on their profile — reviewing an ID in the KYC tab's Pending
+    // queue naturally drops it from that view the moment it's actioned,
+    // which otherwise leaves no trace anywhere else that it happened.
+    async function _loadKycStatusPill(writerId) {
+      const pill = $('kyc-status-pill');
+      pill.classList.add('hidden');
+      const { data: row } = await db.from('kyc_verifications')
+        .select('status, id_type, rejection_reason, reviewed_at')
+        .eq('writer_id', writerId).maybeSingle();
+      const STYLE = {
+        approved: { label: 'ID Verified',        cls: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/25' },
+        pending:  { label: 'ID Pending Review',  cls: 'text-gold bg-gold/10 border-gold/25' },
+        rejected: { label: 'ID Rejected',        cls: 'text-red-400 bg-red-400/10 border-red-400/25' },
+      };
+      const st = STYLE[row?.status];
+      if (!st) return;
+      pill.className = 'inline-flex items-center gap-1.5 text-[11px] font-medium border rounded-full px-2.5 py-0.5 ' + st.cls;
+      pill.textContent = st.label;
+      pill.title = row.status === 'rejected' && row.rejection_reason ? ('Reason: ' + row.rejection_reason) : '';
+      pill.classList.remove('hidden');
     }
     let _writerBooksSub = null;
     async function _loadWriterBooksList(writerId) {
@@ -5242,27 +5282,39 @@
       window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
     }
 
+    // Shared by approve/reject — writes the in-app notification and, if
+    // the write itself fails (e.g. an RLS/schema mismatch), says so via a
+    // toast rather than swallowing it silently. A silent failure here
+    // means the writer never finds out their ID was reviewed at all.
+    async function _notifyKyc(writerId, type, title, body, emailData) {
+      const writerProfile = allProfiles.find(p => p.id === writerId);
+      if (!writerProfile) return;
+      const { error: notifErr } = await db.from('notifications').insert({ user_id: writerId, type, title, body });
+      if (notifErr) { console.error('KYC notification insert failed:', notifErr); showToast('Reviewed, but notifying the writer failed: ' + notifErr.message); }
+      if (writerProfile.email) {
+        const _accessToken = await _getFreshAccessToken();
+        try {
+          const res = await fetch(`${SUPABASE_URL}/functions/v1/send-notification`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _accessToken },
+            body: JSON.stringify({ type, writerId, writerEmail: writerProfile.email, writerName: writerProfile.name, data: emailData }),
+          });
+          if (!res.ok) console.error('KYC notification email failed:', await res.text());
+        } catch (e) { console.error('KYC notification email failed:', e); }
+      }
+    }
+
     async function approveKyc(writerId) {
       if (!confirm("Approve this writer's ID?")) return;
       const { error } = await db.rpc('admin_review_kyc', { p_writer_id: writerId, p_approve: true });
       if (error) { showToast('Error: ' + error.message); return; }
       showToast('Verification approved ✓');
-      const writerProfile = allProfiles.find(p => p.id === writerId);
-      if (writerProfile) {
-        await db.from('notifications').insert({
-          user_id: writerId, type: 'kyc_approved', title: 'Identity Verified',
-          body: 'Your ID has been verified — you’re all set.',
-        }).catch(() => {});
-        if (writerProfile.email) {
-          const _accessToken = await _getFreshAccessToken();
-          fetch(`${SUPABASE_URL}/functions/v1/send-notification`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _accessToken },
-            body: JSON.stringify({ type: 'kyc_approved', writerId, writerEmail: writerProfile.email, writerName: writerProfile.name, data: {} }),
-          }).catch(() => {});
-        }
-      }
+      await _notifyKyc(writerId, 'kyc_approved', 'Identity Verified', 'Your ID has been verified — you’re all set.', {});
+      // Land on the Approved tab rather than just refreshing the Pending
+      // one — the approved item would otherwise vanish from view with no
+      // visible record that the review happened.
       _kycLoaded = false; await loadKycSection(); _kycLoaded = true;
+      filterKyc('approved');
     }
 
     async function rejectKyc(writerId) {
@@ -5272,22 +5324,9 @@
       const { error } = await db.rpc('admin_review_kyc', { p_writer_id: writerId, p_approve: false, p_rejection_reason: reason.trim() });
       if (error) { showToast('Error: ' + error.message); return; }
       showToast('Verification rejected.');
-      const writerProfile = allProfiles.find(p => p.id === writerId);
-      if (writerProfile) {
-        await db.from('notifications').insert({
-          user_id: writerId, type: 'kyc_rejected', title: 'Identity Verification Rejected',
-          body: reason.trim(),
-        }).catch(() => {});
-        if (writerProfile.email) {
-          const _accessToken = await _getFreshAccessToken();
-          fetch(`${SUPABASE_URL}/functions/v1/send-notification`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _accessToken },
-            body: JSON.stringify({ type: 'kyc_rejected', writerId, writerEmail: writerProfile.email, writerName: writerProfile.name, data: { reason: reason.trim() } }),
-          }).catch(() => {});
-        }
-      }
+      await _notifyKyc(writerId, 'kyc_rejected', 'Identity Verification Rejected', reason.trim(), { reason: reason.trim() });
       _kycLoaded = false; await loadKycSection(); _kycLoaded = true;
+      filterKyc('rejected');
     }
 
     async function approveApplication(id) {
@@ -6405,10 +6444,13 @@
         })
         .subscribe();
       // Live — a writer submitting/resubmitting an ID updates the tab
-      // badge immediately, and refreshes the KYC list if it's already open.
+      // badge and the writers-list status dots immediately, and refreshes
+      // the KYC list if it's already open.
       db.channel('admin-kyc-live')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'kyc_verifications' }, () => {
           _loadKycPendingBadge();
+          loadWritersList();
+          if (selectedWriter?.id) _loadKycStatusPill(selectedWriter.id);
           if (_kycLoaded) loadKycSection();
         })
         .subscribe();
