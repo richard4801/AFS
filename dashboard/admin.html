@@ -6537,6 +6537,7 @@
           + (c.status === 'signed' ? _bonusStatusPill(c) : '')
           + '<span class="text-[10px] font-bold uppercase tracking-wider border rounded-full px-2 py-0.5 ' + statusColor + '">' + c.status + '</span>'
           + (c.status === 'signed' ? '<button onclick="viewSignedContract(\'' + c.id + '\')" class="text-xs text-muted hover:text-white border border-border hover:border-white/20 rounded-full px-3 py-1 transition-colors">View</button>' : '')
+          + (c.status === 'signed' ? '<button onclick="downloadContractPdf(\'' + c.id + '\')" class="text-xs text-muted hover:text-white border border-border hover:border-white/20 rounded-full px-3 py-1 transition-colors">PDF</button>' : '')
           + '<button onclick="deleteContract(\'' + c.id + '\')" class="text-red-400/40 hover:text-red-400 transition-colors p-1 rounded-md hover:bg-red-500/10" title="Delete contract"><svg xmlns=\'http://www.w3.org/2000/svg\' width=\'13\' height=\'13\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><polyline points=\'3 6 5 6 21 6\'/><path d=\'M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6\'/><path d=\'M10 11v6\'/><path d=\'M14 11v6\'/><path d=\'M9 6V4h6v2\'/></svg></button>'
           + '</div></div>';
       }).join('');
@@ -6630,6 +6631,10 @@
           + '<p class="text-muted text-xs">Name on file: <span class="text-white">' + escHtml(contract.name_signed || '') + '</span></p>'
           + '<p class="text-muted text-xs">Signed at: <span class="text-white">' + new Date(contract.signed_at).toLocaleString('en-GB') + '</span></p>'
           + '<p class="text-muted text-xs">Document version: ' + contract.doc_version + '</p>'
+          + '<div class="flex gap-2 mt-3">'
+          + '<button onclick="viewSignedContract(\'' + contract.id + '\')" class="text-[11px] text-muted hover:text-white border border-border hover:border-white/20 rounded-full px-3 py-1 transition-colors">View</button>'
+          + '<button onclick="downloadContractPdf(\'' + contract.id + '\')" class="text-[11px] text-muted hover:text-white border border-border hover:border-white/20 rounded-full px-3 py-1 transition-colors">Download PDF</button>'
+          + '</div>'
           + '</div>'
           + _compensationDetailBlock(contract)
         : '<p class="text-gold text-xs mt-3">Pending signature &mdash; writer has not yet signed.</p>';
@@ -6741,12 +6746,13 @@
       closeSendContractModal();
     }
 
-    async function viewSignedContract(contractId) {
-      // Find contract + writer from already-loaded data
+    // Shared by the "View" and "Download PDF" contract actions — fetches
+    // the contract + writer record and fills the same template both use.
+    async function _buildFilledContractHtml(contractId) {
       const contractsRaw = await db.rpc('admin_get_contracts');
       const contracts = contractsRaw.data || [];
       const c = contracts.find(x => x.id === contractId);
-      if (!c) { showToast('Contract not found.'); return; }
+      if (!c) { showToast('Contract not found.'); return null; }
 
       const { data: writer } = await db.from('profiles')
         .select('id,name,email,country,payoneer,bank_details,payment_info')
@@ -6765,7 +6771,7 @@
       const bonusClause = c.sign_in_bonus_amount
         ? 'A one-time sign-in bonus of ₦' + Number(c.sign_in_bonus_amount).toLocaleString() + ' is granted upon execution of this Agreement, subject to Section 6.6.'
         : 'No sign-in bonus applies to this Agreement.';
-      const filled = html
+      return html
         .replace(/\{\{WRITER_NAME\}\}/g,         escHtml(wName))
         .replace(/\{\{WRITER_EMAIL\}\}/g,        escHtml(wEmail))
         .replace(/\{\{WRITER_COUNTRY\}\}/g,      escHtml(wCountry))
@@ -6774,12 +6780,36 @@
         .replace(/\{\{WRITER_SIGNATURE\}\}/g,    escHtml(c.name_signed || ''))
         .replace(/\{\{COMPENSATION_MODEL\}\}/g,  escHtml(track))
         .replace(/\{\{SIGN_IN_BONUS_CLAUSE\}\}/g, escHtml(bonusClause));
+    }
 
+    async function viewSignedContract(contractId) {
+      const filled = await _buildFilledContractHtml(contractId);
+      if (!filled) return;
       const blob = new Blob([filled], { type: 'text/html' });
       const url  = URL.createObjectURL(blob);
       const win  = window.open(url, '_blank');
+      if (!win) showToast('Please allow pop-ups to view the contract.');
       // Revoke after the window loads
       setTimeout(() => URL.revokeObjectURL(url), 10000);
+    }
+
+    // The contract's own print stylesheet (assets/contract-v1.html,
+    // @media print) already lays it out for paper -- rather than
+    // rasterizing the HTML through a canvas library (which blurs text and
+    // handles page breaks poorly for a multi-page legal document), a
+    // window.print() on the filled document gives a real, selectable-text
+    // PDF via the browser's native "Save as PDF" destination. The print
+    // trigger is appended as static markup, not interpolated with any
+    // writer-supplied value, so this can't be turned into script injection.
+    async function downloadContractPdf(contractId) {
+      const filled = await _buildFilledContractHtml(contractId);
+      if (!filled) return;
+      const printable = filled.replace('</body>', '<script>window.addEventListener("load",()=>{window.print();});<\/script></body>');
+      const blob = new Blob([printable], { type: 'text/html' });
+      const url  = URL.createObjectURL(blob);
+      const win  = window.open(url, '_blank');
+      if (!win) showToast('Please allow pop-ups to download the PDF.');
+      setTimeout(() => URL.revokeObjectURL(url), 15000);
     }
   </script>
 
