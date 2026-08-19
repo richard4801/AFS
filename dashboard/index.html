@@ -466,7 +466,14 @@
           <p class="text-[10px] font-semibold tracking-widest uppercase text-muted mb-1">Compensation</p>
           <h3 id="comp-model-label" class="text-white text-lg font-serif"></h3>
         </div>
-        <span id="comp-model-badge" class="text-[10px] font-bold uppercase tracking-wide border rounded-full px-2.5 py-1"></span>
+        <div class="flex items-center gap-2 flex-wrap">
+          <button id="comp-model-download-btn" onclick="downloadMyContractPdf()"
+                  class="inline-flex items-center gap-1.5 text-[10px] font-semibold text-muted hover:text-white border border-border hover:border-white/20 rounded-full px-3 py-1 transition-colors disabled:opacity-40">
+            <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span id="comp-model-download-btn-label">Download Contract PDF</span>
+          </button>
+          <span id="comp-model-badge" class="text-[10px] font-bold uppercase tracking-wide border rounded-full px-2.5 py-1"></span>
+        </div>
       </div>
       <div id="comp-model-window" class="hidden mb-3">
         <p class="text-muted text-xs mb-1.5">Switch window closes in <span data-countdown data-expires="" class="font-mono tabular-nums font-semibold"></span></p>
@@ -5434,12 +5441,15 @@
     // compModel/bonusAmount describe the PENDING contract's terms at the
     // moment it's opened for signing -- the same fields admin sets when
     // sending the contract (dashboard/admin.html's Send Contract modal).
-    function _buildContractHTML(profile, signedName, compModel, bonusAmount) {
+    function _buildContractHTML(profile, signedName, compModel, bonusAmount, effectiveDateOverride) {
       const name    = profile.full_name || profile.name || '{{WRITER_NAME}}';
       const email   = profile.email     || '{{WRITER_EMAIL}}';
       const country = profile.country   || '{{WRITER_COUNTRY}}';
       const payment = profile.payoneer  || profile.bank_details || profile.payment_info || '{{WRITER_PAYMENT}}';
-      const date    = new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
+      // Only the live pre-sign preview wants "today" -- downloading an
+      // already-signed contract needs to show the date it was actually
+      // signed, not the date it happens to be re-downloaded.
+      const date    = effectiveDateOverride || new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
       const sig     = signedName ? escHtml(signedName) : '';
       const track   = compModel === 'SHARED_REVENUE' ? 'Shared Revenue' : 'Flat Rate';
       const bonusClause = bonusAmount
@@ -5457,6 +5467,47 @@
           .replace(/\{\{COMPENSATION_MODEL\}\}/g,  escHtml(track))
           .replace(/\{\{SIGN_IN_BONUS_CLAUSE\}\}/g, escHtml(bonusClause))
         );
+    }
+
+    // The contract's own print stylesheet (assets/contract-v1.html,
+    // @media print) already lays it out for paper -- rather than
+    // rasterizing the HTML through a canvas library (which blurs text and
+    // handles page breaks poorly for a multi-page legal document), a
+    // window.print() on the filled document gives a real, selectable-text
+    // PDF via the browser's native "Save as PDF" destination. The print
+    // trigger is appended as static markup, not interpolated with any
+    // writer-supplied value, so this can't be turned into script injection.
+    async function downloadMyContractPdf() {
+      const btn = $('comp-model-download-btn');
+      const label = $('comp-model-download-btn-label');
+      if (btn) btn.disabled = true;
+      if (label) label.textContent = 'Preparing…';
+      try {
+        const { data: { user } } = await db.auth.getUser();
+        if (!user) return;
+        const { data: rows } = await db.from('contracts')
+          .select('name_signed, signed_at, compensation_model, sign_in_bonus_amount')
+          .eq('writer_id', user.id).eq('status', 'signed')
+          .order('signed_at', { ascending: false }).limit(1);
+        const c = rows?.[0];
+        if (!c) { showToast('No signed contract on file yet.'); return; }
+        const { data: profile } = await db.from('profiles')
+          .select('name, email, country, payoneer, bank_details, payment_info')
+          .eq('id', user.id).single();
+        const effectiveDate = c.signed_at
+          ? new Date(c.signed_at).toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })
+          : null;
+        const html = await _buildContractHTML(profile || {}, c.name_signed, c.compensation_model, c.sign_in_bonus_amount, effectiveDate);
+        const printable = html.replace('</body>', '<script>window.addEventListener("load",()=>{window.print();});<\/script></body>');
+        const blob = new Blob([printable], { type: 'text/html' });
+        const url  = URL.createObjectURL(blob);
+        const win  = window.open(url, '_blank');
+        if (!win) showToast('Please allow pop-ups to download your contract.');
+        setTimeout(() => URL.revokeObjectURL(url), 15000);
+      } finally {
+        if (btn) btn.disabled = false;
+        if (label) label.textContent = 'Download Contract PDF';
+      }
     }
 
     async function openContractModal() {
