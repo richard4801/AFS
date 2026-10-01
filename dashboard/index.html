@@ -3026,6 +3026,28 @@
         })
         .subscribe();
 
+      // DELETE subscription — admin deleting a message (their own, or one
+      // I sent) removes it from view live rather than leaving it stuck
+      // until the next reload.
+      db.channel('writer-deletes-' + userId)
+        .on('postgres_changes', {
+          event: 'DELETE', schema: 'public', table: 'messages',
+          filter: 'recipient_id=eq.' + userId,
+        }, payload => {
+          const before = _chatMessages.length;
+          _chatMessages = _chatMessages.filter(m => m.id !== payload.old.id);
+          if (_chatMessages.length !== before && _chatOpen) _renderChatMessages();
+        })
+        .on('postgres_changes', {
+          event: 'DELETE', schema: 'public', table: 'messages',
+          filter: 'sender_id=eq.' + userId,
+        }, payload => {
+          const before = _chatMessages.length;
+          _chatMessages = _chatMessages.filter(m => m.id !== payload.old.id);
+          if (_chatMessages.length !== before && _chatOpen) _renderChatMessages();
+        })
+        .subscribe();
+
       // Find admin ID
       const { data: cfg } = await db.from('site_config').select('value').eq('key', 'admin_id').maybeSingle();
       _chatAdminId = cfg?.value || null;
@@ -3104,6 +3126,23 @@
       return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
 
+    // Admin's WhatsApp-invite quick action embeds the link in this marker
+    // rather than leaving it as visible text (dashboard/admin.html,
+    // sendWhatsAppInvite()) -- this strips it back out and renders a real
+    // button instead of a raw URL.
+    function _extractWhatsappInvite(body) {
+      const m = (body || '').match(/<whatsapp-invite>([\s\S]*?)<\/whatsapp-invite>/);
+      if (!m) return { text: body || '', link: null };
+      return { text: (body || '').replace(/<whatsapp-invite>[\s\S]*?<\/whatsapp-invite>/, '').trim(), link: m[1].trim() };
+    }
+    function _whatsappInviteButton(link) {
+      if (!link) return '';
+      return '<a href="' + safeHref(link) + '" target="_blank" rel="noopener noreferrer" '
+        + 'class="inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-[11px] font-semibold rounded-full transition-colors">'
+        + '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12.001 2C6.478 2 2 6.478 2 12c0 1.835.495 3.556 1.358 5.04L2.05 22l5.11-1.341A9.945 9.945 0 0 0 12 22c5.523 0 10-4.477 10-10S17.524 2 12.001 2zm0 18.167c-1.676 0-3.232-.49-4.546-1.33l-.325-.195-3.038.797.812-2.963-.213-.306A8.145 8.145 0 0 1 3.833 12c0-4.51 3.657-8.167 8.167-8.167 4.51 0 8.167 3.657 8.167 8.167 0 4.51-3.657 8.167-8.167 8.167z"/></svg>'
+        + 'Join WhatsApp Group</a>';
+    }
+
     function _renderChatMessages() {
       const container = $('chat-messages');
       if (!container) return;
@@ -3142,11 +3181,13 @@
             + '<p class="' + (isSent ? 'text-obsidian/60' : 'text-muted') + ' text-[10.5px] truncate max-w-[220px]">' + escHtml(parent.body) + '</p></div>'
           : '';
         const edited = m.edited_at ? '<span class="' + timeCls + ' text-[9px] italic ml-1">edited</span>' : '';
+        const { text: bodyText, link: waLink } = _extractWhatsappInvite(m.body);
         return dateSep
           + '<div class="chat-row flex ' + (isSent ? 'justify-end' : 'justify-start') + '" data-msg-id="' + m.id + '" data-sent="' + (isSent ? '1' : '0') + '">'
           + '<div class="chat-bubble ' + bubbleCls + ' px-3.5 py-2.5 max-w-[88%] sm:max-w-[80%]">'
           + quote
-          + '<p class="' + textCls + ' text-[13px] leading-relaxed break-words" style="white-space:pre-wrap">' + escHtml(m.body) + '</p>'
+          + (bodyText ? '<p class="' + textCls + ' text-[13px] leading-relaxed break-words" style="white-space:pre-wrap">' + escHtml(bodyText) + '</p>' : '')
+          + _whatsappInviteButton(waLink)
           + '<div class="flex items-center gap-1 mt-1 ' + (isSent ? 'justify-end' : 'justify-start') + '">'
           + '<span class="' + timeCls + ' text-[10px]">' + timeStr + '</span>'
           + edited

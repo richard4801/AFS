@@ -377,6 +377,10 @@
         <p id="admin-chat-writer-status" class="text-muted/60 text-[10px] mt-0.5">Offline</p>
       </div>
       <div class="flex items-center gap-1">
+        <button id="admin-chat-welcome-btn" onclick="sendWelcomeMessage()" title="Send welcome message"
+                class="w-7 h-7 flex items-center justify-center rounded-full text-muted hover:text-gold hover:bg-charcoal transition-all">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+        </button>
         <button id="admin-chat-whatsapp-btn" onclick="sendWhatsAppInvite()" title="Send WhatsApp group invite"
                 class="w-7 h-7 flex items-center justify-center rounded-full text-muted hover:text-emerald-400 hover:bg-charcoal transition-all">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12.001 2C6.478 2 2 6.478 2 12c0 1.835.495 3.556 1.358 5.04L2.05 22l5.11-1.341A9.945 9.945 0 0 0 12 22c5.523 0 10-4.477 10-10S17.524 2 12.001 2zm0 18.167c-1.676 0-3.232-.49-4.546-1.33l-.325-.195-3.038.797.812-2.963-.213-.306A8.145 8.145 0 0 1 3.833 12c0-4.51 3.657-8.167 8.167-8.167 4.51 0 8.167 3.657 8.167 8.167 0 4.51-3.657 8.167-8.167 8.167z"/></svg>
@@ -1704,6 +1708,24 @@
           if (_adminChatOpen) { _renderAdminChatMessages(); _markAdminChatRead(); _playChime(true); }
           else { _adminChatUnread[writerId] = (_adminChatUnread[writerId] || 0) + 1; _updateAdminChatBadge(); _updateWriterSidebarBadge(writerId); _playChime(false); }
         })
+        // DELETE subscription — the writer deleting their own message (or
+        // a delete from another admin session) removes it from view live.
+        .on('postgres_changes', {
+          event: 'DELETE', schema: 'public', table: 'messages',
+          filter: 'recipient_id=eq.' + currentUserId,
+        }, payload => {
+          const before = _adminChatMessages.length;
+          _adminChatMessages = _adminChatMessages.filter(m => m.id !== payload.old.id);
+          if (_adminChatMessages.length !== before && _adminChatOpen) _renderAdminChatMessages();
+        })
+        .on('postgres_changes', {
+          event: 'DELETE', schema: 'public', table: 'messages',
+          filter: 'sender_id=eq.' + currentUserId,
+        }, payload => {
+          const before = _adminChatMessages.length;
+          _adminChatMessages = _adminChatMessages.filter(m => m.id !== payload.old.id);
+          if (_adminChatMessages.length !== before && _adminChatOpen) _renderAdminChatMessages();
+        })
         .subscribe();
 
       // Typing channel — shared with writer side (sorted IDs)
@@ -1914,6 +1936,22 @@
       }
     }
 
+    // A WhatsApp invite link is embedded in a chat message body wrapped in
+    // this marker (see sendWhatsAppInvite()) rather than left as plain
+    // visible text, so it renders as a real button instead of a raw URL.
+    function _extractWhatsappInvite(body) {
+      const m = (body || '').match(/<whatsapp-invite>([\s\S]*?)<\/whatsapp-invite>/);
+      if (!m) return { text: body || '', link: null };
+      return { text: (body || '').replace(/<whatsapp-invite>[\s\S]*?<\/whatsapp-invite>/, '').trim(), link: m[1].trim() };
+    }
+    function _whatsappInviteButton(link) {
+      if (!link) return '';
+      return '<a href="' + safeHref(link) + '" target="_blank" rel="noopener noreferrer" '
+        + 'class="inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-[11px] font-semibold rounded-full transition-colors">'
+        + '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12.001 2C6.478 2 2 6.478 2 12c0 1.835.495 3.556 1.358 5.04L2.05 22l5.11-1.341A9.945 9.945 0 0 0 12 22c5.523 0 10-4.477 10-10S17.524 2 12.001 2zm0 18.167c-1.676 0-3.232-.49-4.546-1.33l-.325-.195-3.038.797.812-2.963-.213-.306A8.145 8.145 0 0 1 3.833 12c0-4.51 3.657-8.167 8.167-8.167 4.51 0 8.167 3.657 8.167 8.167 0 4.51-3.657 8.167-8.167 8.167z"/></svg>'
+        + 'Join WhatsApp Group</a>';
+    }
+
     function _renderAdminChatMessages() {
       const container = $('admin-chat-messages');
       if (!container) return;
@@ -1952,11 +1990,13 @@
             + '<p class="' + (isSent ? 'text-white/60' : 'text-muted') + ' text-[10.5px] truncate max-w-[220px]">' + escHtml(parent.body) + '</p></div>'
           : '';
         const edited = m.edited_at ? '<span class="' + timeCls + ' text-[9px] italic ml-1">edited</span>' : '';
+        const { text: bodyText, link: waLink } = _extractWhatsappInvite(m.body);
         return dateSep
           + '<div class="admin-chat-row flex ' + (isSent ? 'justify-end' : 'justify-start') + '" data-msg-id="' + m.id + '" data-sent="' + (isSent ? '1' : '0') + '">'
           + '<div class="admin-chat-bubble ' + bubbleCls + ' px-3.5 py-2.5 max-w-[88%] sm:max-w-[80%]">'
           + quote
-          + '<p class="' + textCls + ' text-[13px] leading-relaxed break-words" style="white-space:pre-wrap">' + escHtml(m.body) + '</p>'
+          + (bodyText ? '<p class="' + textCls + ' text-[13px] leading-relaxed break-words" style="white-space:pre-wrap">' + escHtml(bodyText) + '</p>' : '')
+          + _whatsappInviteButton(waLink)
           + '<div class="flex items-center gap-1 mt-1 ' + (isSent ? 'justify-end' : 'justify-start') + '">'
           + '<span class="' + timeCls + ' text-[10px]">' + timeStr + '</span>'
           + edited
@@ -2001,6 +2041,18 @@
       $('admin-chat-context').style.display = 'none';
     }
 
+    // Admin can delete either side of the conversation (their own sent
+    // messages, or ones the writer sent) -- delete_message() enforces
+    // that server-side; a writer or SE is still restricted to their own.
+    async function deleteAdminChatMessage(id) {
+      if (!confirm('Delete this message? This cannot be undone.')) return;
+      const { error } = await db.rpc('delete_message', { p_id: id });
+      if (error) { showToast('Delete failed: ' + error.message); return; }
+      _adminChatMessages = _adminChatMessages.filter(m => m.id !== id);
+      if (_adminChatEditingId === id || _adminChatReplyTo?.id === id) _adminChatClearContext();
+      _renderAdminChatMessages();
+    }
+
     // ── Gesture-based reply/edit (right-click menu, double-click, mobile
     // swipe) — same interaction model as the admin↔Senior Editor chat. ──
     let _adminChatMenuEl = null;
@@ -2009,7 +2061,8 @@
       const el = document.createElement('div');
       el.className = 'fixed z-[10001] bg-charcoal border border-border rounded-lg shadow-xl shadow-black/60 py-1 min-w-[132px] text-[12.5px] overflow-hidden';
       el.innerHTML = (isSent ? '<button class="w-full text-left px-3 py-1.5 text-white/80 hover:bg-white/5 transition-colors" data-act="edit">Edit message</button>' : '')
-        + '<button class="w-full text-left px-3 py-1.5 text-white/80 hover:bg-white/5 transition-colors" data-act="quote">Quote in reply</button>';
+        + '<button class="w-full text-left px-3 py-1.5 text-white/80 hover:bg-white/5 transition-colors" data-act="quote">Quote in reply</button>'
+        + '<button class="w-full text-left px-3 py-1.5 text-red-400 hover:bg-red-500/10 transition-colors" data-act="delete">Delete message</button>';
       document.body.appendChild(el);
       const r = el.getBoundingClientRect();
       el.style.left = Math.min(x, window.innerWidth - r.width - 8) + 'px';
@@ -2018,6 +2071,7 @@
         const act = e.target.closest('[data-act]')?.dataset.act;
         if (act === 'edit') _adminChatEditMessage(msgId);
         else if (act === 'quote') _adminChatReplyToMessage(msgId);
+        else if (act === 'delete') deleteAdminChatMessage(msgId);
         _adminChatCloseMenu();
       });
       _adminChatMenuEl = el;
@@ -2137,12 +2191,11 @@
       }
     }
 
-    // One-click send of a canned invite into the open chat, instead of
-    // retyping/pasting the same WhatsApp link into every writer's chat by
-    // hand. Goes through the same send_message RPC as a normal message.
-    async function sendWhatsAppInvite() {
+    // Shared by the chat header's canned-message quick actions (WhatsApp
+    // invite, welcome message) — sends through the same send_message path
+    // as typing a message manually, then notifies the writer if offline.
+    async function _adminQuickSendChat(body, successToast) {
       if (!_adminChatWriterId || !currentUserId) return;
-      const body = "Hey! 👋 Join our AFS Writers community on WhatsApp so you don't miss announcements, prompts, and updates: " + WHATSAPP_GROUP_LINK;
       const { data, error } = await db.rpc('send_message', {
         p_recipient_id: _adminChatWriterId,
         p_body: body,
@@ -2161,7 +2214,22 @@
           }).then(() => {});
         }
       }
-      showToast('WhatsApp invite sent ✓');
+      showToast(successToast);
+    }
+
+    async function sendWhatsAppInvite() {
+      // The link is wrapped in a marker rather than left as visible text —
+      // _extractWhatsappInvite() strips it back out at render time and
+      // shows a real "Join WhatsApp Group" button instead.
+      const body = "Hey! 👋 Join our AFS Writers community on WhatsApp so you don't miss announcements, prompts, and updates."
+        + '\n<whatsapp-invite>' + WHATSAPP_GROUP_LINK + '</whatsapp-invite>';
+      await _adminQuickSendChat(body, 'WhatsApp invite sent ✓');
+    }
+
+    async function sendWelcomeMessage() {
+      const body = "Welcome to Apex Fiction Studio! 🎉 We're thrilled to have you join our writers' collective. "
+        + "One quick question while you're settling in — how did you hear about us?";
+      await _adminQuickSendChat(body, 'Welcome message sent ✓');
     }
 
     let currentUserId   = null;
