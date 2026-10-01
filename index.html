@@ -1137,6 +1137,38 @@
         <p class="text-muted text-xs">Keep writing in the meantime.</p>
       </div>
 
+      <!-- Applications-closed state (shown instead of the form when admin
+           has paused new submissions) -->
+      <div id="apply-closed" class="hidden relative rounded-2xl border border-border bg-surface p-8 sm:p-10 text-center shadow-2xl shadow-black/50">
+        <div class="absolute top-0 left-10 right-10 h-px bg-gradient-to-r from-transparent via-gold to-transparent opacity-50 rounded-full"></div>
+        <div class="w-14 h-14 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center mx-auto mb-6">
+          <svg class="w-6 h-6 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/></svg>
+        </div>
+        <h3 class="font-serif text-2xl sm:text-3xl text-white mb-3">We're Not Currently Receiving Applications</h3>
+        <p class="text-muted text-sm sm:text-base leading-relaxed max-w-sm mx-auto mb-6">
+          We've paused new submissions while we work through our current pipeline. Leave your email and we'll let you know the moment applications reopen.
+        </p>
+        <form id="waitlist-form" class="max-w-sm mx-auto">
+          <div class="flex flex-col sm:flex-row gap-3">
+            <input
+              id="waitlistEmail"
+              name="waitlistEmail"
+              type="email"
+              placeholder="jane@email.com"
+              autocomplete="email"
+              required
+              class="form-input flex-1 bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-3 transition-all duration-200 focus:ring-0"
+            />
+            <button type="submit" id="waitlist-btn"
+                    class="flex-shrink-0 inline-flex items-center justify-center gap-2 px-5 py-3 bg-gold text-obsidian text-sm font-bold rounded-lg hover:bg-gold-light transition-colors duration-200 disabled:opacity-50">
+              <span id="waitlist-btn-label">Notify Me</span>
+            </button>
+          </div>
+          <p id="waitlist-error" class="hidden text-red-400 text-xs mt-3"></p>
+          <p id="waitlist-success" class="hidden text-gold text-xs mt-3">You're on the list — we'll email you when applications reopen.</p>
+        </form>
+      </div>
+
     </div>
   </section>
 
@@ -1179,6 +1211,49 @@
       const SUPABASE_ANON_KEY = 'sb_publishable_v0fbhx8NkRNxYYVw8VGz_g_7Eqja11K';
       const { createClient } = supabase;
       const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+      // ── Applications open/closed gate ──────────────────────────────────
+      // Checked before the visitor ever touches the form -- if admin has
+      // paused submissions, the form card is swapped for a waitlist signup
+      // instead. Defaults to open (the normal form shows) if this lookup
+      // fails for any reason, rather than silently blocking applicants.
+      (async function checkApplicationsOpen() {
+        const formCard   = document.getElementById('apply-form')?.closest('.relative.rounded-2xl');
+        const closedCard = document.getElementById('apply-closed');
+        if (!formCard || !closedCard) return;
+        const { data } = await db.from('site_settings').select('applications_open').eq('id', 1).maybeSingle();
+        if (data && data.applications_open === false) {
+          formCard.classList.add('hidden');
+          closedCard.classList.remove('hidden');
+        }
+      })();
+
+      const waitlistForm  = document.getElementById('waitlist-form');
+      const waitlistEmail = document.getElementById('waitlistEmail');
+      const waitlistBtn   = document.getElementById('waitlist-btn');
+      const waitlistLbl   = document.getElementById('waitlist-btn-label');
+      const waitlistErr   = document.getElementById('waitlist-error');
+      const waitlistOk    = document.getElementById('waitlist-success');
+      waitlistForm?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        waitlistErr.classList.add('hidden');
+        const email = waitlistEmail.value.trim().toLowerCase();
+        if (!email) return;
+        waitlistBtn.disabled = true;
+        waitlistLbl.textContent = 'Joining…';
+        const { error } = await db.from('application_waitlist').insert({ email });
+        waitlistBtn.disabled = false;
+        waitlistLbl.textContent = 'Notify Me';
+        if (error) {
+          waitlistErr.textContent = error.code === '23505'
+            ? "You're already on the list — we'll email you when applications reopen."
+            : 'Something went wrong. Please try again.';
+          waitlistErr.classList.remove('hidden');
+          return;
+        }
+        waitlistForm.querySelector('.flex').classList.add('hidden');
+        waitlistOk.classList.remove('hidden');
+      });
 
       const form    = document.getElementById('apply-form');
       const btn     = document.getElementById('apply-btn');

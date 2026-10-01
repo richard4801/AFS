@@ -377,6 +377,10 @@
         <p id="admin-chat-writer-status" class="text-muted/60 text-[10px] mt-0.5">Offline</p>
       </div>
       <div class="flex items-center gap-1">
+        <button id="admin-chat-whatsapp-btn" onclick="sendWhatsAppInvite()" title="Send WhatsApp group invite"
+                class="w-7 h-7 flex items-center justify-center rounded-full text-muted hover:text-emerald-400 hover:bg-charcoal transition-all">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12.001 2C6.478 2 2 6.478 2 12c0 1.835.495 3.556 1.358 5.04L2.05 22l5.11-1.341A9.945 9.945 0 0 0 12 22c5.523 0 10-4.477 10-10S17.524 2 12.001 2zm0 18.167c-1.676 0-3.232-.49-4.546-1.33l-.325-.195-3.038.797.812-2.963-.213-.306A8.145 8.145 0 0 1 3.833 12c0-4.51 3.657-8.167 8.167-8.167 4.51 0 8.167 3.657 8.167 8.167 0 4.51-3.657 8.167-8.167 8.167z"/></svg>
+        </button>
         <button id="admin-chat-fs-btn" onclick="toggleAdminChatFullscreen()" title="Fullscreen"
                 class="w-7 h-7 flex items-center justify-center rounded-full text-muted hover:text-white hover:bg-charcoal transition-all">
           <svg id="admin-chat-fs-icon" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
@@ -1256,6 +1260,17 @@
             </button>
           </div>
         </div>
+        <div id="applications-status-bar" class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 rounded-xl border border-border bg-surface px-4 py-3">
+          <div class="flex items-center gap-2.5">
+            <span id="applications-status-dot" class="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0"></span>
+            <p id="applications-status-label" class="text-white/80 text-xs font-medium">Applications are open</p>
+            <span id="applications-waitlist-count" class="hidden text-muted text-xs">&middot; <span id="applications-waitlist-count-num">0</span> waiting to be notified</span>
+          </div>
+          <button id="applications-toggle-btn" onclick="toggleApplicationsOpen()"
+                  class="flex-shrink-0 px-3.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors bg-red-500/10 text-red-400 border-red-500/25 hover:bg-red-500/20">
+            Close Applications
+          </button>
+        </div>
         <div id="applications-list" class="space-y-3"></div>
       </div>
 
@@ -1472,6 +1487,9 @@
   <script>
     const SUPABASE_URL      = 'https://qbqsbdswcqmrxoizgfrw.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_v0fbhx8NkRNxYYVw8VGz_g_7Eqja11K';
+    // Replace with the real invite link before using the "WhatsApp Invite"
+    // quick-send button in chat — chat.whatsapp.com/invite/<code>.
+    const WHATSAPP_GROUP_LINK = 'https://chat.whatsapp.com/REPLACE_WITH_YOUR_GROUP_INVITE_LINK';
     const { createClient } = supabase;
     const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, storage: window.localStorage } });
 
@@ -2117,6 +2135,33 @@
           }).then(() => {});
         }
       }
+    }
+
+    // One-click send of a canned invite into the open chat, instead of
+    // retyping/pasting the same WhatsApp link into every writer's chat by
+    // hand. Goes through the same send_message RPC as a normal message.
+    async function sendWhatsAppInvite() {
+      if (!_adminChatWriterId || !currentUserId) return;
+      const body = "Hey! 👋 Join our AFS Writers community on WhatsApp so you don't miss announcements, prompts, and updates: " + WHATSAPP_GROUP_LINK;
+      const { data, error } = await db.rpc('send_message', {
+        p_recipient_id: _adminChatWriterId,
+        p_body: body,
+        p_sent_as: 'admin',
+        p_parent_id: null,
+      }).single();
+      if (error) { showToast('Send failed: ' + error.message); return; }
+      if (data) {
+        _adminChatMessages.push(data);
+        _renderAdminChatMessages();
+        if (!_onlineWriters.has(_adminChatWriterId)) {
+          db.from('notifications').insert({
+            user_id: _adminChatWriterId, type: 'chat_message',
+            title: 'Message from Your Editor',
+            body: 'Open your chat to view.',
+          }).then(() => {});
+        }
+      }
+      showToast('WhatsApp invite sent ✓');
     }
 
     let currentUserId   = null;
@@ -5042,6 +5087,74 @@
       _allApplications = data || [];
       _updateAppCounts();
       renderApplications();
+      loadApplicationsStatusBar();
+    }
+
+    // ── Open/close the public application form ──────────────────────
+    async function loadApplicationsStatusBar() {
+      const [{ data: settings }, { count }] = await Promise.all([
+        db.from('site_settings').select('applications_open').eq('id', 1).maybeSingle(),
+        db.from('application_waitlist').select('*', { count: 'exact', head: true }).is('notified_at', null),
+      ]);
+      _applicationsOpen = settings?.applications_open !== false;
+      const dot   = $('applications-status-dot');
+      const label = $('applications-status-label');
+      const btn   = $('applications-toggle-btn');
+      dot.className = 'w-2 h-2 rounded-full flex-shrink-0 ' + (_applicationsOpen ? 'bg-emerald-400' : 'bg-red-400');
+      label.textContent = _applicationsOpen ? 'Applications are open' : 'Applications are closed';
+      btn.textContent = _applicationsOpen ? 'Close Applications' : 'Reopen Applications';
+      btn.className = 'flex-shrink-0 px-3.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-colors '
+        + (_applicationsOpen ? 'bg-red-500/10 text-red-400 border-red-500/25 hover:bg-red-500/20'
+                             : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25 hover:bg-emerald-500/20');
+      const waitlistCount = $('applications-waitlist-count');
+      if (count) {
+        $('applications-waitlist-count-num').textContent = count;
+        waitlistCount.classList.remove('hidden');
+      } else {
+        waitlistCount.classList.add('hidden');
+      }
+    }
+
+    let _applicationsOpen = true;
+    async function toggleApplicationsOpen() {
+      const nextOpen = !_applicationsOpen;
+      const msg = nextOpen
+        ? 'Reopen applications? The form will show on the landing page again, and everyone on the waitlist will be emailed.'
+        : "Close applications? The landing page will show a \"not currently receiving applications\" message with a waitlist signup instead of the form.";
+      if (!confirm(msg)) return;
+      const btn = $('applications-toggle-btn');
+      btn.disabled = true;
+      const { data, error } = await db.rpc('admin_set_applications_open', { p_open: nextOpen });
+      btn.disabled = false;
+      if (error) { showToast('Error: ' + error.message); return; }
+      _applicationsOpen = data;
+      await loadApplicationsStatusBar();
+      if (nextOpen) {
+        showToast('Applications reopened — notifying the waitlist…');
+        await _notifyApplicationWaitlist();
+      } else {
+        showToast('Applications closed.');
+      }
+    }
+
+    async function _notifyApplicationWaitlist() {
+      const { data: rows, error } = await db.from('application_waitlist').select('id, email').is('notified_at', null);
+      if (error || !rows?.length) { if (!error) showToast('Applications reopened ✓'); return; }
+      const _accessToken = await _getFreshAccessToken();
+      let sent = 0;
+      for (const row of rows) {
+        try {
+          const res = await fetch(`${SUPABASE_URL}/functions/v1/send-notification`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _accessToken },
+            body: JSON.stringify({ type: 'applications_reopened', writerId: null, writerEmail: row.email, writerName: '', data: {} }),
+          });
+          if (res.ok) sent++;
+        } catch (e) { console.error('Waitlist notify failed for', row.email, e); }
+      }
+      await db.rpc('admin_mark_waitlist_notified', { p_ids: rows.map(r => r.id) });
+      loadApplicationsStatusBar();
+      showToast(`Applications reopened — notified ${sent} of ${rows.length} on the waitlist.`);
     }
 
     function _updateAppCounts() {
@@ -5082,6 +5195,10 @@
         return;
       }
       list.innerHTML = filtered.map(_renderAppCard).join('');
+    }
+
+    function _isLikelyUrl(s) {
+      return /^https?:\/\//i.test((s || '').trim());
     }
 
     function _renderAppCard(app) {
@@ -5135,14 +5252,21 @@
           ${app.sample_chapters_url ? `<div>
             <p class="text-[10px] font-semibold tracking-[0.16em] uppercase text-muted mb-2">Writing Sample — Chapters 1–3</p>
             <a href="${safeHref(app.sample_chapters_url)}" target="_blank" rel="noopener noreferrer"
-               class="inline-flex items-center gap-2 text-gold text-sm hover:underline">
+               class="inline-flex items-center gap-2 px-4 py-2 bg-gold/10 hover:bg-gold/20 border border-gold/30 hover:border-gold/60 text-gold text-xs font-semibold rounded-lg transition-all duration-200">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Download writing sample
+              Open Writing Sample
+            </a>
+          </div>` : (app.test_scene && _isLikelyUrl(app.test_scene) ? `<div>
+            <p class="text-[10px] font-semibold tracking-[0.16em] uppercase text-muted mb-2">Writing Sample — Chapters 1–3</p>
+            <a href="${safeHref(app.test_scene)}" target="_blank" rel="noopener noreferrer"
+               class="inline-flex items-center gap-2 px-4 py-2 bg-gold/10 hover:bg-gold/20 border border-gold/30 hover:border-gold/60 text-gold text-xs font-semibold rounded-lg transition-all duration-200">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Open Writing Sample
             </a>
           </div>` : (app.test_scene ? `<div>
             <p class="text-[10px] font-semibold tracking-[0.16em] uppercase text-muted mb-2">Writing Sample</p>
             <div class="rounded-xl bg-charcoal border border-border p-4 text-white/80 text-sm leading-relaxed max-h-72 overflow-y-auto thin-scroll whitespace-pre-wrap">${escHtml(app.test_scene)}</div>
-          </div>` : '')}
+          </div>` : ''))}
           ${actionBtns}
         </div>
       </div>`;
