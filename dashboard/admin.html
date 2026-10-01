@@ -7,6 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <link rel="icon" type="image/svg+xml" href="../assets/afs-favicon.svg"/>
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/favicon-32.png"/>
   <title>Admin — Apex Fiction Studio</title>
     <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -114,7 +115,13 @@
       </svg>
       <span class="text-[9px] font-bold tracking-[0.22em] uppercase text-crimson-light border border-crimson/35 bg-crimson/12 rounded-full px-2.5 py-0.5">Admin</span>
     </div>
-    <span id="nav-name" class="text-muted text-xs truncate max-w-[130px]"></span>
+    <div class="flex items-center gap-2">
+      <button id="desktop-notif-btn-mobile" onclick="enableDesktopNotifications()" title="Enable desktop notifications"
+              class="w-7 h-7 flex items-center justify-center rounded-full text-muted hover:text-white hover:bg-white/5 transition-all">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      </button>
+      <span id="nav-name" class="text-muted text-xs truncate max-w-[130px]"></span>
+    </div>
   </header>
 
   <!-- MOBILE TAB BAR (scrollable, icon + short label) -->
@@ -747,6 +754,11 @@
         <div class="flex items-center justify-between mb-3">
           <span class="admin-nav-name text-muted text-[11px] truncate max-w-[130px]"></span>
         </div>
+        <button id="desktop-notif-btn" onclick="enableDesktopNotifications()"
+                class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-muted hover:text-white hover:bg-white/5 border border-transparent hover:border-border/50 text-[11px] font-medium transition-all duration-200 mb-1.5">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          Desktop Alerts
+        </button>
         <button id="sign-out-btn"
                 class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-muted hover:text-white hover:bg-white/5 border border-transparent hover:border-border/50 text-[11px] font-medium transition-all duration-200">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -1617,6 +1629,82 @@
       return /^https?:\/\//i.test(u) ? escHtml(u) : '#';
     };
 
+    // ── DESKTOP NOTIFICATIONS + TAB BADGE ────────────────────────────
+    // A pop-up (via the browser's own Notification API) and a dot on the
+    // browser tab's favicon/title, for events worth seeing even when this
+    // tab isn't the one in front -- new chat messages, new applications/
+    // waitlist signups, and new KYC submissions.
+    const _dashBaseTitle = document.title;
+    let _dashUnreadForTab = 0;
+
+    function _canDesktopNotify() { return 'Notification' in window; }
+
+    async function enableDesktopNotifications() {
+      if (!_canDesktopNotify()) { showToast('Desktop notifications are not supported in this browser.'); return; }
+      if (Notification.permission === 'granted') { showToast('Desktop notifications are already on.'); return; }
+      if (Notification.permission === 'denied') { showToast("Desktop notifications are blocked — enable them in your browser's site settings for this page."); return; }
+      const perm = await Notification.requestPermission();
+      showToast(perm === 'granted' ? 'Desktop notifications enabled ✓' : 'Desktop notifications not enabled.');
+    }
+
+    function _desktopNotify(title, body) {
+      if (!_canDesktopNotify() || Notification.permission !== 'granted') return;
+      try { new Notification(title, { body, icon: '../assets/favicon-32.png' }); } catch (e) {}
+    }
+
+    // The favicon dot is drawn onto a canvas copy of the existing icon
+    // rather than swapping in a separate "badged" image file, so it
+    // works regardless of which favicon file is actually in use.
+    let _faviconDotOn = false;
+    function _setFaviconDot(on) {
+      if (on === _faviconDotOn) return;
+      _faviconDotOn = on;
+      const link = document.querySelector('link[rel="icon"][type="image/png"]') || document.querySelector('link[rel~="icon"]');
+      if (!link) return;
+      if (!link.dataset.origHref) link.dataset.origHref = link.href;
+      if (!on) { link.href = link.dataset.origHref; return; }
+      const img = new Image();
+      img.onload = () => {
+        const size = 32;
+        const canvas = document.createElement('canvas');
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, size, size);
+        ctx.beginPath();
+        ctx.arc(size - 7, 7, 7, 0, Math.PI * 2);
+        ctx.fillStyle = '#E11D48';
+        ctx.fill();
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = '#0D0B09';
+        ctx.stroke();
+        link.href = canvas.toDataURL('image/png');
+      };
+      img.onerror = () => {};
+      img.src = link.dataset.origHref;
+    }
+
+    function _bumpTabBadge() {
+      _dashUnreadForTab++;
+      document.title = '(' + _dashUnreadForTab + ') ' + _dashBaseTitle;
+      _setFaviconDot(true);
+    }
+    function _clearTabBadge() {
+      if (_dashUnreadForTab === 0 && !_faviconDotOn) return;
+      _dashUnreadForTab = 0;
+      document.title = _dashBaseTitle;
+      _setFaviconDot(false);
+    }
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) _clearTabBadge(); });
+    window.addEventListener('focus', _clearTabBadge);
+
+    // Only pop up / badge the tab when admin isn't already looking at it.
+    function _notifyIfAway(title, body) {
+      if (document.hidden || !document.hasFocus()) {
+        _desktopNotify(title, body);
+        _bumpTabBadge();
+      }
+    }
+
     // ── ADMIN CHAT ────────────────────────────────────────────────────
     let _adminChatOpen     = false;
     let _adminChatMessages = [];
@@ -1816,6 +1904,7 @@
           _adminChatMessages.push(payload.new);
           if (_adminChatOpen) { _renderAdminChatMessages(); _markAdminChatRead(); _playChime(true); }
           else { _adminChatUnread[writerId] = (_adminChatUnread[writerId] || 0) + 1; _updateAdminChatBadge(); _updateWriterSidebarBadge(writerId); _playChime(false); }
+          _notifyIfAway('New message from ' + (_writerReg.get(writerId)?.name || 'a writer'), payload.new.body.slice(0, 120));
         })
         // DELETE subscription — the writer deleting their own message (or
         // a delete from another admin session) removes it from view live.
@@ -2022,6 +2111,7 @@
           _adminChatUnread[senderId] = (_adminChatUnread[senderId] || 0) + 1;
           _updateWriterSidebarBadge(senderId);
           _playChime(false);
+          _notifyIfAway('New message from ' + (_writerReg.get(senderId)?.name || 'a writer'), payload.new.body.slice(0, 120));
         })
         .subscribe();
     }
@@ -6947,9 +7037,19 @@
         .on('postgres_changes', { event: '*', schema: 'public', table: 'chapters' }, () => loadWritersList())
         .subscribe();
       db.channel('admin-applications-live')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'applications' }, () => {
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'applications' }, payload => {
           _loadPendingBadge();
           if (_appsLoaded) loadApplications();
+          if (payload.eventType === 'INSERT') {
+            _notifyIfAway('New writer application', (payload.new.name || payload.new.email || 'Someone') + ' just applied.');
+          }
+        })
+        .subscribe();
+      // Live — a new "notify me when applications reopen" signup.
+      db.channel('admin-waitlist-live')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'application_waitlist' }, payload => {
+          if (_appsLoaded) loadApplicationsStatusBar();
+          _notifyIfAway('New waitlist signup', (payload.new.email || 'Someone') + ' wants to know when applications reopen.');
         })
         .subscribe();
       db.channel('admin-contracts-live')
@@ -6961,11 +7061,14 @@
       // badge and the writers-list status dots immediately, and refreshes
       // the KYC list if it's already open.
       db.channel('admin-kyc-live')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'kyc_verifications' }, () => {
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'kyc_verifications' }, payload => {
           _loadKycPendingBadge();
           loadWritersList();
           if (selectedWriter?.id) _loadKycStatusPill(selectedWriter.id);
           if (_kycLoaded) loadKycSection();
+          if (payload.eventType === 'INSERT') {
+            _notifyIfAway('New ID submitted', (_writerReg.get(payload.new.writer_id)?.name || 'A writer') + ' submitted an ID for verification.');
+          }
         })
         .subscribe();
       db.channel('admin-recent-earnings-live')
