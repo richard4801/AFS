@@ -366,13 +366,9 @@
             <span id="nav-rank-text" class="text-[10px] font-semibold tracking-wide uppercase truncate max-w-[120px]"></span>
           </span>
         </button>
-        <button id="install-app-nav-btn" onclick="showInstallPrompt()" title="Install AFS as an app"
+        <button id="more-menu-btn" onclick="toggleMoreMenu()" title="More options"
                 class="relative flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-white hover:bg-surface border border-border hover:border-white/20 transition-all duration-200">
-          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg>
-        </button>
-        <button id="desktop-notif-btn" onclick="enableDesktopNotifications()" title="Enable desktop notifications"
-                class="relative flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-white hover:bg-surface border border-border hover:border-white/20 transition-all duration-200">
-          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>
         </button>
         <button id="notif-btn" onclick="toggleNotifPanel()"
                 class="relative flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-white hover:bg-surface border border-border hover:border-white/20 transition-all duration-200">
@@ -1184,6 +1180,21 @@
   </div>
 
   <!-- NOTIFICATION PANEL -->
+  <!-- MORE OPTIONS MENU (install app / desktop alerts) — kept off the nav
+       bar itself, which was getting crowded with one icon per feature. -->
+  <div id="more-menu-panel" class="hidden fixed z-[80] right-2 sm:right-4 top-16 w-56 rounded-2xl border border-border bg-surface shadow-2xl shadow-black/70 overflow-hidden">
+    <button onclick="showInstallPrompt(); toggleMoreMenu()"
+            class="w-full flex items-center gap-2.5 px-4 py-3 text-left text-white/80 hover:bg-charcoal hover:text-white text-[13px] transition-colors">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg>
+      Install App
+    </button>
+    <button onclick="enableDesktopNotifications(); toggleMoreMenu()"
+            class="w-full flex items-center gap-2.5 px-4 py-3 text-left text-white/80 hover:bg-charcoal hover:text-white text-[13px] transition-colors border-t border-border/30">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      Desktop Alerts
+    </button>
+  </div>
+
   <div id="notif-panel" class="hidden fixed z-[80] right-2 sm:right-4 top-16 w-[calc(100vw-1rem)] sm:w-[340px] rounded-2xl border border-border bg-surface shadow-2xl shadow-black/70 overflow-hidden">
     <div class="flex items-center justify-between px-4 py-3.5 border-b border-border/50 bg-charcoal/40">
       <div class="flex items-center gap-2">
@@ -3501,6 +3512,16 @@
       $('notif-panel').classList.toggle('hidden', !_notifPanelOpen);
       if (_notifPanelOpen) renderNotifList();
     }
+
+    function toggleMoreMenu() {
+      $('more-menu-panel')?.classList.toggle('hidden');
+    }
+    document.addEventListener('click', e => {
+      const panel = $('more-menu-panel'), btn = $('more-menu-btn');
+      if (!panel || panel.classList.contains('hidden')) return;
+      if (panel.contains(e.target) || btn?.contains(e.target)) return;
+      panel.classList.add('hidden');
+    });
 
     function renderNotifList() {
       const list = $('notif-list');
