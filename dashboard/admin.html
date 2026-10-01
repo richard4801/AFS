@@ -5187,7 +5187,7 @@
 
     // ── TOAST / SIGNOUT / BOOT ──────────────────────────────────────
     async function _loadPendingBadge() {
-      const { count } = await db.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'pending');
+      const { count } = await db.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'pending').is('last_note_sent_at', null);
       if (count) {
         const badge = $('tab-applications-badge');
         badge.textContent = count;
@@ -5289,7 +5289,7 @@
     }
 
     function _updateAppCounts() {
-      const pending  = _allApplications.filter(a => a.status === 'pending').length;
+      const pending  = _allApplications.filter(a => a.status === 'pending' && !a.last_note_sent_at).length;
       const approved = _allApplications.filter(a => a.status === 'approved').length;
       const rejected = _allApplications.filter(a => a.status === 'rejected').length;
       if ($('pending-count'))  $('pending-count').textContent  = pending;
@@ -5316,9 +5316,13 @@
     }
 
     function renderApplications() {
+      // A note sent on a still-pending application pulls it out of the
+      // active queue (it's "waiting to hear back," not something to keep
+      // re-reviewing) -- it stays fully visible under "All", just not
+      // under "Pending" anymore.
       const filtered = _appFilter === 'all'
         ? _allApplications
-        : _allApplications.filter(a => a.status === _appFilter);
+        : _allApplications.filter(a => a.status === _appFilter && !(_appFilter === 'pending' && a.last_note_sent_at));
       const list = $('applications-list');
       if (!filtered.length) {
         const label = _appFilter === 'all' ? '' : _appFilter + ' ';
@@ -5362,6 +5366,9 @@
       const sourceBadge = app.source === 'prompt_link'
         ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-400/15 text-indigo-300 border border-indigo-400/25">Public Link</span>'
         : '';
+      const notedBadge = app.last_note_sent_at
+        ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gold/15 text-gold border border-gold/25">Note Sent</span>'
+        : '';
       const subline = app.logline ? `"${escHtml(app.logline)}"` : (promptTitle ? `From: ${escHtml(promptTitle)}` : '');
       return `
       <div id="app-card-${escHtml(app.id)}" class="rounded-2xl border border-border bg-surface overflow-hidden">
@@ -5374,6 +5381,7 @@
               <h3 class="text-white font-medium text-sm">${escHtml(app.name)}</h3>
               ${statusBadge}
               ${sourceBadge}
+              ${notedBadge}
             </div>
             ${subline ? `<p class="text-gold/80 text-xs italic truncate mb-0.5">${subline}</p>` : ''}
             <p class="text-muted text-[11px]">${escHtml(app.email)} · ${date}</p>
@@ -5707,7 +5715,16 @@
         errEl.classList.remove('hidden');
         return;
       }
-      showToast('Note sent to ' + _appNoteTarget.email + ' ✓');
+      // Pull it out of the active Pending queue -- it's waiting to hear
+      // back, not something to keep re-reviewing. Still fully visible
+      // under "All".
+      const notedApp = _appNoteTarget;
+      const nowIso = new Date().toISOString();
+      await db.from('applications').update({ last_note_sent_at: nowIso }).eq('id', notedApp.id);
+      notedApp.last_note_sent_at = nowIso;
+      _updateAppCounts();
+      renderApplications();
+      showToast('Note sent to ' + notedApp.email + ' ✓');
       closeAppNoteModal();
     }
 
