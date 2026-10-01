@@ -163,6 +163,11 @@
       <span class="text-[9px] font-semibold tracking-wide uppercase">SE Notes</span>
       <span id="tab-senotes-badge" class="hidden absolute top-1.5 right-2 min-w-[16px] h-4 px-1 rounded-full bg-crimson text-white text-[9px] font-bold flex items-center justify-center"></span>
     </button>
+    <button id="tab-emails" onclick="switchSection('emails')"
+            class="flex-shrink-0 flex-1 min-w-[60px] flex flex-col items-center gap-1 px-1 py-2.5 text-muted border-t-2 border-transparent hover:text-white transition-colors duration-200">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      <span class="text-[9px] font-semibold tracking-wide uppercase">Emails</span>
+    </button>
   </nav>
 
   <!-- DELETE BOOK MODAL -->
@@ -618,6 +623,11 @@
           <span data-dsk-badge="senotes" class="hidden absolute right-4 top-1/2 -translate-y-1/2 min-w-[18px] h-[18px] px-1 rounded-full bg-crimson text-white text-[9px] font-bold inline-flex items-center justify-center"></span>
         </button>
 
+        <button data-dsk-tab="emails" onclick="switchSection('emails')"
+                class="desk-nav-btn w-full text-left pl-6 pr-4 py-3 border-l-[2px] border-transparent text-muted hover:text-white hover:bg-white/5 transition-colors duration-150">
+          <span class="text-[10px] font-bold tracking-[0.26em] uppercase">Emails</span>
+        </button>
+
       </nav>
 
       <!-- Divider -->
@@ -705,6 +715,29 @@
           </div>
           <p class="px-4 pt-2 pb-2 text-[9px] font-bold tracking-[0.22em] uppercase text-muted/70">Prompt Library</p>
           <div id="admin-prompts-sidebar" class="px-2 pb-4 space-y-0.5"></div>
+        </div>
+
+        <!-- Emails sub-panel -->
+        <div id="sidebar-emails" class="hidden flex-col">
+          <p class="px-4 pt-4 pb-2 text-[9px] font-bold tracking-[0.22em] uppercase text-muted/70">Archive</p>
+          <div class="px-3 pb-4 space-y-2">
+            <div class="rounded-xl bg-obsidian border border-border p-3 text-center">
+              <p id="email-archive-total-count" class="text-2xl font-bold text-white font-serif">—</p>
+              <p class="text-[9px] text-muted tracking-widest uppercase mt-0.5">Total Emails</p>
+            </div>
+            <div class="rounded-xl bg-obsidian border border-border p-3 text-center">
+              <p id="email-archive-application-count" class="text-2xl font-bold text-gold font-serif">—</p>
+              <p class="text-[9px] text-muted tracking-widest uppercase mt-0.5">Applications</p>
+            </div>
+            <div class="rounded-xl bg-obsidian border border-border p-3 text-center">
+              <p id="email-archive-waitlist-count" class="text-2xl font-bold text-indigo-300 font-serif">—</p>
+              <p class="text-[9px] text-muted tracking-widest uppercase mt-0.5">Waitlist</p>
+            </div>
+            <div class="rounded-xl bg-obsidian border border-border p-3 text-center">
+              <p id="email-archive-profile-count" class="text-2xl font-bold text-emerald-400 font-serif">—</p>
+              <p class="text-[9px] text-muted tracking-widest uppercase mt-0.5">Accounts</p>
+            </div>
+          </div>
         </div>
 
       </div>
@@ -1311,6 +1344,46 @@
           </button>
         </div>
         <div id="applications-list" class="space-y-3"></div>
+      </div>
+
+      <!-- EMAILS PANEL -->
+      <div id="panel-emails" class="hidden p-5 md:p-7">
+        <div class="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <p class="text-[10px] font-bold tracking-[0.22em] uppercase text-crimson-light mb-1.5">Archive</p>
+            <h2 class="font-serif text-2xl sm:text-3xl text-white mb-1">Email Archive</h2>
+            <p class="text-muted text-sm">Every email address ever entered on the site — applications, the applications waitlist, and real accounts.</p>
+          </div>
+          <button onclick="exportEmailArchiveCsv()"
+                  class="inline-flex items-center gap-2 px-4 py-2.5 bg-gold/10 hover:bg-gold/20 border border-gold/30 hover:border-gold/60 text-gold text-xs font-semibold rounded-lg transition-all duration-200 flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export CSV
+          </button>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-3 mb-5">
+          <input id="email-archive-search" type="text" placeholder="Search by email or name…"
+                 oninput="renderEmailArchive()"
+                 class="flex-1 bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-4 py-2.5 focus:outline-none focus:border-gold/50"/>
+          <div class="flex gap-1.5 flex-shrink-0 flex-wrap">
+            <button id="email-filter-all"         onclick="filterEmailArchive('all')"
+                    class="px-3 py-1.5 rounded-lg text-[10px] font-semibold tracking-wide uppercase border transition-colors bg-crimson/15 text-crimson-light border-crimson/30">
+              All
+            </button>
+            <button id="email-filter-application"  onclick="filterEmailArchive('application')"
+                    class="px-3 py-1.5 rounded-lg text-[10px] font-semibold tracking-wide uppercase border transition-colors text-muted border-transparent hover:text-white hover:bg-white/5">
+              Applications
+            </button>
+            <button id="email-filter-waitlist"     onclick="filterEmailArchive('waitlist')"
+                    class="px-3 py-1.5 rounded-lg text-[10px] font-semibold tracking-wide uppercase border transition-colors text-muted border-transparent hover:text-white hover:bg-white/5">
+              Waitlist
+            </button>
+            <button id="email-filter-profile"      onclick="filterEmailArchive('profile')"
+                    class="px-3 py-1.5 rounded-lg text-[10px] font-semibold tracking-wide uppercase border transition-colors text-muted border-transparent hover:text-white hover:bg-white/5">
+              Accounts
+            </button>
+          </div>
+        </div>
+        <div id="email-archive-list" class="space-y-2"></div>
       </div>
 
     </main>
@@ -2322,8 +2395,9 @@
     // ── SECTION SWITCHING ───────────────────────────────────────────
     let _contractsLoaded = false;
     let _kycLoaded = false;
+    let _emailArchiveLoaded = false;
     function switchSection(section) {
-      ['writers','income','applications','payments','contracts','kyc','prompts','senotes'].forEach(s => {
+      ['writers','income','applications','payments','contracts','kyc','prompts','senotes','emails'].forEach(s => {
         const tab = $(`tab-${s}`);
         if (!tab) return;
         const isGold = s === 'contracts' || s === 'kyc';
@@ -2342,12 +2416,14 @@
       $('panel-kyc').classList.toggle('hidden',           section !== 'kyc');
       $('panel-prompts').classList.toggle('hidden',       section !== 'prompts');
       $('panel-senotes').classList.toggle('hidden',       section !== 'senotes');
+      $('panel-emails').classList.toggle('hidden',        section !== 'emails');
       if (section === 'applications' && !_appsLoaded) loadApplications();
       if (section === 'payments' && !_payoutWritersLoaded) loadPayoutWriterList();
       if (section === 'contracts' && !_contractsLoaded) { _contractsLoaded = true; loadContractsSection(); }
       if (section === 'kyc' && !_kycLoaded) { _kycLoaded = true; loadKycSection(); }
       if (section === 'prompts' && !_promptsLoaded) { _promptsLoaded = true; loadAdminPrompts(); }
       if (section === 'senotes') loadAdminSeNotes();
+      if (section === 'emails' && !_emailArchiveLoaded) { _emailArchiveLoaded = true; loadEmailArchive(); }
       // On mobile: show the list for list-based sections, detail for the rest.
       if (window.innerWidth < 768) {
         if (_adminListSections.includes(section)) _adminShowList();
@@ -5728,6 +5804,98 @@
       closeAppNoteModal();
     }
 
+    // ── EMAIL ARCHIVE ─────────────────────────────────────────────────
+    // Every row here is written server-side by triggers on the source
+    // tables (sql/email_archive.sql) -- this just reads and displays it.
+    let _allEmailArchive = [];
+    let _emailFilter     = 'all';
+    const EMAIL_SOURCE_LABEL = { application: 'Application', waitlist: 'Waitlist', profile: 'Account' };
+    const EMAIL_SOURCE_CLS   = {
+      application: 'bg-gold/15 text-gold border-gold/25',
+      waitlist:    'bg-indigo-400/15 text-indigo-300 border-indigo-400/25',
+      profile:     'bg-emerald-400/15 text-emerald-400 border-emerald-400/25',
+    };
+
+    async function loadEmailArchive() {
+      const list = $('email-archive-list');
+      list.innerHTML = '<div class="space-y-2"><div class="skeleton h-14 w-full rounded-xl"></div><div class="skeleton h-14 w-full rounded-xl"></div></div>';
+      const { data, error } = await db.from('email_archive').select('*').order('captured_at', { ascending: false });
+      if (error) { list.innerHTML = '<p class="text-muted text-sm py-8 text-center">Failed to load the email archive.</p>'; return; }
+      _allEmailArchive = data || [];
+      _updateEmailArchiveCounts();
+      renderEmailArchive();
+    }
+
+    function _updateEmailArchiveCounts() {
+      const byCount = s => _allEmailArchive.filter(e => e.source === s).length;
+      if ($('email-archive-total-count'))       $('email-archive-total-count').textContent       = _allEmailArchive.length;
+      if ($('email-archive-application-count')) $('email-archive-application-count').textContent = byCount('application');
+      if ($('email-archive-waitlist-count'))    $('email-archive-waitlist-count').textContent    = byCount('waitlist');
+      if ($('email-archive-profile-count'))     $('email-archive-profile-count').textContent     = byCount('profile');
+    }
+
+    function filterEmailArchive(f) {
+      _emailFilter = f;
+      ['all','application','waitlist','profile'].forEach(k => {
+        const b = $('email-filter-' + k);
+        if (!b) return;
+        const on = k === f;
+        b.classList.toggle('bg-crimson/15',      on);
+        b.classList.toggle('text-crimson-light', on);
+        b.classList.toggle('border-crimson/30',  on);
+        b.classList.toggle('text-muted',        !on);
+        b.classList.toggle('border-transparent',!on);
+      });
+      renderEmailArchive();
+    }
+
+    function _emailArchiveFiltered() {
+      const q = ($('email-archive-search')?.value || '').trim().toLowerCase();
+      return _allEmailArchive.filter(e => {
+        if (_emailFilter !== 'all' && e.source !== _emailFilter) return false;
+        if (q && !e.email.toLowerCase().includes(q) && !(e.name || '').toLowerCase().includes(q)) return false;
+        return true;
+      });
+    }
+
+    function renderEmailArchive() {
+      const filtered = _emailArchiveFiltered();
+      const list = $('email-archive-list');
+      if (!filtered.length) {
+        list.innerHTML = '<div class="text-center py-16"><p class="text-muted text-sm">No emails match.</p></div>';
+        return;
+      }
+      list.innerHTML = filtered.map(e => {
+        const date = new Date(e.captured_at).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+        const sourceBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold border ' + (EMAIL_SOURCE_CLS[e.source] || 'bg-white/5 text-muted border-border') + '">' + (EMAIL_SOURCE_LABEL[e.source] || e.source) + '</span>';
+        return '<div class="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3">'
+          + '<div class="min-w-0">'
+          + '<p class="text-white text-sm font-medium truncate">' + escHtml(e.email) + '</p>'
+          + '<p class="text-muted text-[11px] truncate">' + (e.name ? escHtml(e.name) + ' · ' : '') + date + '</p>'
+          + '</div>'
+          + '<div class="flex-shrink-0">' + sourceBadge + '</div>'
+          + '</div>';
+      }).join('');
+    }
+
+    function exportEmailArchiveCsv() {
+      const rows = _emailArchiveFiltered();
+      if (!rows.length) { showToast('Nothing to export.'); return; }
+      const esc = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+      const csv = ['Email,Name,Source,Captured At']
+        .concat(rows.map(e => [esc(e.email), esc(e.name || ''), esc(EMAIL_SOURCE_LABEL[e.source] || e.source), esc(e.captured_at)].join(',')))
+        .join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = 'afs-email-archive-' + new Date().toISOString().slice(0, 10) + '.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
     async function sendInvite(writerId, writerName, writerEmail) {
       const btn = $('send-invite-btn');
       const lbl = $('invite-btn-label');
@@ -7194,7 +7362,7 @@
 
     // 2. Mirror tab active state to desktop sidebar nav buttons
     (function() {
-      const sections = ['writers','income','applications','payments','contracts','kyc','prompts','senotes'];
+      const sections = ['writers','income','applications','payments','contracts','kyc','prompts','senotes','emails'];
 
       function syncDeskNav(activeSection) {
         document.querySelectorAll('.desk-nav-btn').forEach(btn => {
