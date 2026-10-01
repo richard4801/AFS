@@ -273,7 +273,7 @@
       <div class="space-y-4">
         <div>
           <label class="block text-xs font-medium text-white/70 tracking-wide mb-2">Message</label>
-          <textarea id="app-note-message" rows="5" placeholder="e.g. Your writing sample link isn't opening for us — could you resend it or double-check the sharing permissions?"
+          <textarea id="app-note-message" rows="5" placeholder="Write your message…"
                     class="w-full bg-charcoal border border-border text-white placeholder-muted text-sm rounded-lg px-3 py-2.5 resize-y focus:outline-none focus:border-gold/50"></textarea>
           <p class="text-muted text-[11px] mt-1.5">Sent by email to the address on their application — they don't have a dashboard account yet.</p>
         </div>
@@ -5645,14 +5645,20 @@
     // ── Send a note to an applicant (email only -- they have no account
     // or dashboard yet at this stage) ───────────────────────────────────
     let _appNoteTarget = null;
+    // Pre-filled as a starting point for the most common reason to reach
+    // out (a broken/misconfigured sample link) -- selected on open so
+    // typing anything replaces it outright when it doesn't apply.
+    const APP_NOTE_DEFAULT = "Your writing sample link isn't opening for us — could you resend it or double-check the sharing permissions?";
     function openAppNoteModal(id) {
       const app = _allApplications.find(a => a.id === id);
       if (!app) return;
       _appNoteTarget = app;
       $('app-note-applicant').textContent = 'To: ' + (app.name || app.email) + ' (' + app.email + ')';
-      $('app-note-message').value = '';
+      const msgEl = $('app-note-message');
+      msgEl.value = APP_NOTE_DEFAULT;
       $('app-note-error').classList.add('hidden');
       $('app-note-modal').classList.remove('hidden');
+      setTimeout(() => { msgEl.focus(); msgEl.select(); }, 0);
     }
     function closeAppNoteModal() {
       $('app-note-modal').classList.add('hidden');
