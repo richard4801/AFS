@@ -508,11 +508,29 @@
 
     // Auth redirect handler.
     // Implicit flow fires PASSWORD_RECOVERY for reset links, SIGNED_IN for invites.
+    //
+    // _isAuthRedirect only looks at the URL's shape (does it have type=invite/
+    // recovery, a hash token, or a code param) -- it says nothing about
+    // whether THIS visit's tokens are what actually produced the active
+    // session. If someone bookmarks (or reuses) the original invite/reset
+    // email instead of a clean login.html link, that bookmark's hash still
+    // has type=invite/recovery baked in on every visit, long after its own
+    // access_token has expired -- but by then they also have a real,
+    // separately-persisted session from having already signed in normally.
+    // getSession() returns that real session, _isAuthRedirect is still
+    // true from the stale hash, and without this check they'd be forced
+    // through "set a new password" every single time they reopen that old
+    // link, forever. Comparing the session's access_token against the
+    // hash's own access_token confirms this session actually came from
+    // the tokens in THIS url, not a leftover one from before.
+    function _sessionMatchesThisRedirect(session) {
+      return !!session && (!_hashToken || session.access_token === _hashToken);
+    }
     db.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
         showSetPasswordStep(); return;
       }
-      if (_isAuthRedirect && session && event === 'SIGNED_IN') {
+      if (_isAuthRedirect && event === 'SIGNED_IN' && _sessionMatchesThisRedirect(session)) {
         showSetPasswordStep(); return;
       }
     });
@@ -522,11 +540,21 @@
     (async () => {
       if (!_isAuthRedirect) return;
       const { data: { session } } = await db.auth.getSession();
-      if (session) showSetPasswordStep();
+      if (_sessionMatchesThisRedirect(session)) showSetPasswordStep();
     })();
 
     // If we arrived with an auth error (expired/consumed link), guide recovery.
     if (_authError && !_isAuthRedirect) showLinkExpired();
+
+    // Scrub the auth hash from the visible URL once we've read it, so an
+    // in-tab reload of this exact page doesn't reprocess the same (by then
+    // likely stale) tokens. Doesn't help a bookmarked copy of the original
+    // email link -- the browser re-supplies that hash fresh every time --
+    // which is what _sessionMatchesThisRedirect() above actually guards
+    // against; this is just tidiness for the current tab.
+    if (_isAuthRedirect || _authError) {
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
 
     // Digit-box auto-advance + backspace
     document.getElementById('digit-row').addEventListener('input', e => {
