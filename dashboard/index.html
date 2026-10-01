@@ -366,6 +366,10 @@
             <span id="nav-rank-text" class="text-[10px] font-semibold tracking-wide uppercase truncate max-w-[120px]"></span>
           </span>
         </button>
+        <button id="install-app-nav-btn" onclick="showInstallPrompt()" title="Install AFS as an app"
+                class="relative flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-white hover:bg-surface border border-border hover:border-white/20 transition-all duration-200">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg>
+        </button>
         <button id="desktop-notif-btn" onclick="enableDesktopNotifications()" title="Enable desktop notifications"
                 class="relative flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-white hover:bg-surface border border-border hover:border-white/20 transition-all duration-200">
           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
@@ -5253,6 +5257,30 @@
       $('install-banner')?.classList.add('hidden');
       localStorage.setItem('afs_writer_install_dismissed_at', String(Date.now()));
     }
+
+    // Manual re-trigger for the nav's "Install AFS" button — for anyone
+    // who missed or dismissed the automatic prompt and wants it back,
+    // bypassing the snooze cooldown entirely. Doesn't fire the native
+    // install dialog directly (the browser only allows that from the
+    // captured beforeinstallprompt event, which may not exist yet this
+    // session); it just surfaces the same banner, whose own Install
+    // button does that when a prompt is actually available.
+    function showInstallPrompt() {
+      if (document.documentElement.classList.contains('pwa-standalone') || localStorage.getItem('afs_writer_installed') === '1') {
+        showToast('AFS is already installed ✓');
+        return;
+      }
+      if (_deferredInstallPrompt) {
+        $('install-banner')?.classList.remove('hidden');
+        return;
+      }
+      // No captured prompt -- most likely Safari/iOS, which never fires
+      // beforeinstallprompt at all, or a browser that hasn't offered it
+      // yet this session. Either way, point to the manual path instead
+      // of showing a banner whose own button would silently do nothing.
+      showToast("Use your browser's menu — \"Add to Home Screen\" or \"Install App\" — to add AFS.");
+    }
+
     window.addEventListener('appinstalled', () => {
       $('install-banner')?.classList.add('hidden');
       localStorage.setItem('afs_writer_installed', '1');
